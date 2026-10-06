@@ -112,15 +112,26 @@
     .pitch-chip.strike{background:#3b1820;border-color:#7d3140}
     .pitch-chip.foul{background:#3a3016;border-color:#786323}
     .pitch-chip.hit{background:#173656;border-color:#2f6da8}
-    .diamond-area{display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:center}
-    .diamond-wrap{height:155px;position:relative}
-    .diamond{position:absolute;width:76px;height:76px;left:42px;top:39px;transform:rotate(45deg);border:2px solid #4c6580;border-radius:8px;background:#081624}
-    .base{position:absolute;width:27px;height:27px;background:#21364c;border:2px solid #6b829a;transform:rotate(45deg);border-radius:4px;transition:.15s}
+    .diamond-area{display:grid;grid-template-columns:170px minmax(0,1fr);gap:14px;align-items:center}
+    .diamond-wrap{position:relative;width:156px;height:142px;margin:0 auto}
+    .diamond{
+      position:absolute;width:72px;height:72px;left:50%;top:72px;
+      transform:translate(-50%,-50%) rotate(45deg);
+      border:2px solid #4c6580;border-radius:8px;background:#081624
+    }
+    .base{
+      position:absolute;width:25px;height:25px;background:#21364c;border:2px solid #6b829a;
+      transform:rotate(45deg);border-radius:4px;transition:.15s;z-index:2
+    }
     .base.on{background:var(--yellow);border-color:#ffe69a;box-shadow:0 0 14px rgba(255,200,87,.33)}
-    .b2{left:67px;top:14px}.b1{left:110px;top:58px}.b3{left:24px;top:58px}
-    .base-label{position:absolute;font-size:11px;color:var(--muted)}
-    .l2{left:71px;top:0}.l1{left:137px;top:64px}.l3{left:0;top:64px}
-    .base-summary{line-height:1.75;color:#d9e6f4;font-size:14px}
+    .b2{left:50%;top:16px;transform:translateX(-50%) rotate(45deg)}
+    .b1{right:18px;top:60px}
+    .b3{left:18px;top:60px}
+    .base-label{position:absolute;font-size:10px;color:var(--muted);z-index:3;white-space:nowrap}
+    .l2{left:50%;top:0;transform:translateX(-50%)}
+    .l1{right:0;top:66px}
+    .l3{left:0;top:66px}
+    .base-summary{line-height:1.75;color:#d9e6f4;font-size:14px;min-width:0}
     .base-summary b{color:#fff}
     .pitch-visual{margin-top:15px;border-top:1px solid var(--line);padding-top:14px}
     .pitch-grid{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center}
@@ -164,11 +175,20 @@
     .highlight-desc{font-size:13px;line-height:1.55;color:#d8e5f2;overflow-wrap:anywhere}
     .highlight-meta{font-size:10px;color:var(--muted);margin-top:6px}
     .table-card{margin-top:14px;padding:18px;overflow:hidden}
-    .scroll{overflow-x:auto}
-    table{width:100%;border-collapse:collapse;min-width:720px}
-    th,td{text-align:center;padding:10px 9px;border-bottom:1px solid var(--line);font-size:14px}
-    th{color:var(--muted);font-weight:650}
-    td.teamcell{text-align:left;font-weight:800;white-space:nowrap}
+    .scroll{position:relative;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;isolation:isolate}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:650px}
+    th,td{text-align:center;padding:10px 9px;border-bottom:1px solid var(--line);font-size:14px;background-clip:padding-box}
+    th{color:var(--muted);font-weight:650;background:#0d1d30}
+    td{background:#0b192a}
+    td.teamcell,th.teamhead{
+      position:sticky;left:0;z-index:4;text-align:left;font-weight:850;white-space:nowrap;
+      min-width:84px;width:84px;background:#0d1d30;border-right:1px solid var(--line);
+      box-shadow:5px 0 9px rgba(4,12,22,.34)
+    }
+    th.teamhead{z-index:6}
+    .score-team{display:flex;align-items:center;gap:7px;min-width:0}
+    .score-team-logo{width:23px;height:23px;object-fit:contain;flex:none}
+    .score-team-abbr{font-size:12px;font-weight:900;letter-spacing:.04em}
     td.total{font-weight:900}
     .lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:14px}
     .events{padding:18px}
@@ -345,16 +365,13 @@
       .latest{font-size:13px;margin-top:9px;padding:10px 11px}
       .pitch-chip{width:31px;height:31px}
 
-      .diamond-area{
-        grid-template-columns:130px minmax(0,1fr);
-        gap:6px;
-      }
-      .diamond-wrap{
-        width:130px;
-        height:140px;
-        transform:scale(.88);
-        transform-origin:center;
-      }
+      .diamond-area{grid-template-columns:142px minmax(0,1fr);gap:6px}
+      .diamond-wrap{width:138px;height:132px;margin:0 auto}
+      .diamond{width:64px;height:64px;top:67px}
+      .b2{top:15px}
+      .b1{right:14px;top:56px}
+      .b3{left:14px;top:56px}
+      .l1{right:0;top:62px}.l3{left:0;top:62px}
       .base-summary{font-size:12px;line-height:1.7}
       .pitch-visual{margin-top:9px;padding-top:10px}
       .pitch-grid{grid-template-columns:112px minmax(0,1fr);gap:6px}
@@ -380,16 +397,11 @@
         padding:0 12px 3px;
         -webkit-overflow-scrolling:touch;
       }
-      table{min-width:610px}
+      table{min-width:590px}
       th,td{padding:8px 7px;font-size:12px}
-      th:first-child,td:first-child{
-        position:sticky;
-        left:0;
-        z-index:2;
-        background:#0d1d30;
-        box-shadow:1px 0 0 var(--line);
-      }
-      th:first-child{z-index:3}
+      td.teamcell,th.teamhead{min-width:76px;width:76px;padding-left:8px;padding-right:8px}
+      .score-team-logo{width:21px;height:21px}
+      .score-team-abbr{font-size:11px}
 
       .events{border-radius:0}
       .event{
@@ -430,7 +442,7 @@
       .logo{width:42px;height:42px}
       .team-name{font-size:12px}
       .pitch-summary{grid-template-columns:1fr}
-      .diamond-area{grid-template-columns:120px minmax(0,1fr)}
+      .diamond-area{grid-template-columns:136px minmax(0,1fr)}
       .pitch-grid{grid-template-columns:104px minmax(0,1fr)}
     }
   
@@ -484,7 +496,35 @@
       .highlight-counter{display:none}
     }
 
-  </style>
+  
+    /* 統一收合箭頭尺寸，避免不同 Unicode 符號看起來忽大忽小 */
+    .collapse-toggle,.highlights-toggle{
+      width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;
+      padding:0!important;border-radius:8px!important;font-size:0!important
+    }
+    .collapse-toggle .chev,.highlights-toggle .highlight-chevron{
+      display:block!important;width:8px;height:8px;font-size:0!important;line-height:0;
+      border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+      transform:rotate(45deg)!important;transition:transform .18s ease!important
+    }
+    .collapse-toggle[aria-expanded="true"] .chev,
+    .highlights-toggle[aria-expanded="true"] .highlight-chevron{transform:rotate(225deg)!important}
+    .highlights-card{margin-bottom:12px!important}
+    .highlight-item.top-half,.event.top-half{background:linear-gradient(135deg,rgba(62,116,176,.16),rgba(10,24,41,.98))}
+    .highlight-item.bottom-half,.event.bottom-half{background:linear-gradient(135deg,rgba(61,220,151,.10),rgba(10,24,41,.98))}
+    .event.top-half,.event.bottom-half{padding-left:10px;padding-right:10px;border-radius:9px}
+    .live-chip{position:relative}
+    .live-chip::after{
+      content:attr(data-tooltip);position:absolute;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);
+      padding:5px 7px;border-radius:7px;background:#020812;color:#eaf4ff;border:1px solid var(--line);
+      font-size:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:20
+    }
+    .live-chip:hover::after,.live-chip:focus::after{opacity:1}
+    @media(max-width:600px){
+      .highlights-card{margin-bottom:10px!important}
+      .diamond-area{align-items:start}
+    }
+</style>
 </head>
 <body>
   <main class="wrap">
@@ -505,7 +545,7 @@
           <input id="dateInput" type="date" />
         </label>
         <button id="refreshBtn" type="button">立即更新</button>
-        <div class="live-chip"><span id="liveDot" class="dot off"></span><span id="updateText">尚未更新</span></div>
+        <div id="liveChip" class="live-chip" tabindex="0" data-tooltip="尚未更新"><span id="liveDot" class="dot off"></span><span id="updateText">尚未更新</span></div>
       </div>
     </div>
 
@@ -671,7 +711,7 @@
 
   const els = {
     dateInput:$('dateInput'), refreshBtn:$('refreshBtn'), gameTabs:$('gameTabs'),
-    error:$('errorBox'), liveDot:$('liveDot'), updateText:$('updateText'),
+    error:$('errorBox'), liveDot:$('liveDot'), updateText:$('updateText'), liveChip:$('liveChip'),
     series:$('seriesText'), state:$('statePill'), inning:$('inningText'),
     awayLogo:$('awayLogo'), homeLogo:$('homeLogo'), awayName:$('awayName'), homeName:$('homeName'),
     awayRhe:$('awayRhe'), homeRhe:$('homeRhe'), bigScore:$('bigScore'),
@@ -768,9 +808,9 @@
   function markUpdated(ok,isLive){
     els.liveDot.classList.toggle('off',!ok);
     els.liveDot.classList.toggle('live',!!(ok&&isLive));
-    els.updateText.textContent=ok
-      ? `${isLive?'LIVE · ':'已更新 '}${new Date().toLocaleTimeString('zh-TW',{hour12:false})}`
-      : '更新失敗';
+    const time=new Date().toLocaleTimeString('zh-TW',{hour12:false});
+    els.updateText.textContent=ok?(isLive?'LIVE':'已更新'):'更新失敗';
+    els.liveChip.dataset.tooltip=ok?('最後更新 '+time):('更新失敗 · '+time);
   }
 
   function renderNoGame(date){
@@ -1203,11 +1243,12 @@
     }
     return items.sort((a,b)=>{
       const aNoInning=a.inningSort==null, bNoInning=b.inningSort==null;
-      // 1) 沒有特定局數的整場統計／里程碑放最上面
+      // 1) 多轟里程碑、守備狀態等「整場型焦點」固定置頂
       if(aNoInning!==bNoInning)return aNoInning?-1:1;
+      if(aNoInning&&bNoInning)return (b.priority-a.priority)||(b.order-a.order);
       // 2) 有局數時，越後面的局數越上面
-      if(!aNoInning&&a.inningSort!==b.inningSort)return b.inningSort-a.inningSort;
-      // 3) 同一局依較晚發生的事件優先，再以重要度排序
+      if(a.inningSort!==b.inningSort)return b.inningSort-a.inningSort;
+      // 3) 同一局較晚發生的事件優先
       return (b.order-a.order)||(b.priority-a.priority);
     });
   }
@@ -1236,14 +1277,16 @@
       (state.highlightsExpanded?'收合':'展開')+'全部 '+list.length+' 則本場焦點');
     renderHighlightTicker();
     if(!state.highlightsExpanded)return;
-    els.gameHighlights.innerHTML=list.length?list.map(x=>
-      '<article class="highlight-item '+x.tone+'">'+
+    els.gameHighlights.innerHTML=list.length?list.map(x=>{
+      const inningText=(x.meta||'')+' '+(x.desc||'');
+      const halfClass=inningText.includes('局上')?' top-half':inningText.includes('局下')?' bottom-half':'';
+      return '<article class="highlight-item '+x.tone+halfClass+'">'+
         '<div class="highlight-top"><span class="highlight-icon" aria-hidden="true">'+x.icon+'</span>'+
         '<div class="highlight-title">'+esc(x.title)+'</div></div>'+
         '<div class="highlight-desc">'+esc(x.desc)+'</div>'+
         (x.meta?'<div class="highlight-meta">'+esc(x.meta)+'</div>':'')+
-      '</article>'
-    ).join(''):'<div class="empty" style="grid-column:1/-1">目前還沒有符合條件的焦點事件</div>';
+      '</article>';
+    }).join(''):'<div class="empty" style="grid-column:1/-1">目前還沒有符合條件的焦點事件</div>';
   }
 
   function renderHighlights(feed){
@@ -1267,14 +1310,20 @@
     renderHighlightTicker();
   }
 
+  function teamAbbr(team){
+    return team?.abbreviation||team?.teamCode?.toUpperCase()||
+      String(team?.name||'---').split(/\s+/).map(x=>x[0]).join('').slice(0,3).toUpperCase();
+  }
   function renderLineScore(ls,away,home){
     const innings=ls.innings||[], maxInning=Math.max(9,...innings.map(i=>i.num||0));
-    let head='<tr><th>球隊</th>';
+    let head='<tr><th class="teamhead">球隊</th>';
     for(let i=1;i<=maxInning;i++) head+=`<th>${i}</th>`;
     head+='<th>R</th><th>H</th><th>E</th></tr>';els.inningHead.innerHTML=head;
     const rows=[{side:'away',team:away,total:ls.teams?.away||{}},{side:'home',team:home,total:ls.teams?.home||{}}];
     els.inningBody.innerHTML=rows.map(row=>{
-      let tr=`<tr><td class="teamcell">${esc(row.team?.name||row.side)}</td>`;
+      const abbr=teamAbbr(row.team);
+      const logo=teamLogo(row.team?.id);
+      let tr=`<tr><td class="teamcell"><div class="score-team"><img class="score-team-logo" src="${esc(logo)}" alt=""><span class="score-team-abbr">${esc(abbr)}</span></div></td>`;
       for(let i=1;i<=maxInning;i++){const inn=innings.find(x=>x.num===i);tr+=`<td>${inn?.[row.side]?.runs??''}</td>`}
       return tr+`<td class="total">${row.total.runs??0}</td><td>${row.total.hits??0}</td><td>${row.total.errors??0}</td></tr>`;
     }).join('');
@@ -1327,7 +1376,8 @@
       ? `${play.result?.awayScore??'-'} - ${play.result?.homeScore??'-'}`
       : zhEventName(play.result?.event||'');
 
-    return `<div class="event">
+    const halfClass=play.about?.halfInning==='top'?'top-half':play.about?.halfInning==='bottom'?'bottom-half':'';
+    return `<div class="event ${halfClass}">
       <div class="event-inning">${esc(inning)}</div>
       <div class="event-desc">${esc(desc)}</div>
       <div class="event-score">${esc(score)}</div>
