@@ -182,12 +182,16 @@
     td{background:#0b192a}
     td.teamcell,th.teamhead{
       position:sticky;left:0;z-index:4;text-align:left;font-weight:850;white-space:nowrap;
-      min-width:84px;width:84px;background:#0d1d30;border-right:1px solid var(--line);
-      box-shadow:5px 0 9px rgba(4,12,22,.34)
+      min-width:84px;width:84px;background:#18324d;border-right:1px solid #36536f;
+      box-shadow:5px 0 10px rgba(4,12,22,.28)
     }
-    th.teamhead{z-index:6}
+    th.teamhead{z-index:6;background:#203d5b;color:#f2f7fb}
     .score-team{display:flex;align-items:center;gap:7px;min-width:0}
-    .score-team-logo{width:23px;height:23px;object-fit:contain;flex:none}
+    .score-team-logo{
+      width:25px;height:25px;object-fit:contain;flex:none;
+      padding:3px;border-radius:7px;background:rgba(248,251,255,.94);
+      box-shadow:0 0 0 1px rgba(255,255,255,.16)
+    }
     .score-team-abbr{font-size:12px;font-weight:900;letter-spacing:.04em}
     td.total{font-weight:900}
     .lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:14px}
