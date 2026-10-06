@@ -692,6 +692,87 @@
       box-shadow:0 3px 14px rgba(255,196,37,.24),0 3px 12px rgba(0,0,0,.20)
     }
 
+
+    /* 對戰名單 */
+    .hero-status-right{display:flex;align-items:center;gap:8px;flex:none}
+    .matchup-roster-btn{
+      min-height:32px;padding:5px 10px;border-radius:9px;background:#173b59;
+      border-color:#3e6686;color:#eef9ff;font-size:11px;font-weight:850;white-space:nowrap
+    }
+    .matchup-roster-btn:hover{background:#204d70;border-color:#67a2cc}
+    .roster-shell{padding:18px;margin-top:4px;min-width:0}
+    .roster-page-head{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px
+    }
+    .roster-page-head h2{margin:2px 0 4px;font-size:24px}
+    .roster-eyebrow{font-size:11px;color:var(--accent);font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+    .roster-meta{font-size:11px;color:var(--muted);line-height:1.5}
+    .roster-back{min-height:34px;padding:6px 10px;font-size:11px}
+    .roster-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+    .roster-team{border:1px solid var(--line);border-radius:15px;background:#091827;overflow:hidden;min-width:0}
+    .roster-team-head{
+      display:flex;align-items:center;gap:10px;padding:12px 13px;
+      background:linear-gradient(180deg,#17334e,#10273d);border-bottom:1px solid var(--line)
+    }
+    .roster-team-logo{
+      width:42px;height:42px;object-fit:contain;padding:5px;border-radius:50%;
+      background:rgba(248,251,255,.96);flex:none
+    }
+    .roster-team-name{font-size:17px;font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .roster-team-sub{font-size:10px;color:var(--muted);margin-top:2px}
+    .roster-section{padding:11px 11px 2px}
+    .roster-section+.roster-section{border-top:1px solid rgba(108,140,169,.16)}
+    .roster-section-title{
+      display:flex;align-items:center;justify-content:space-between;gap:8px;
+      margin-bottom:8px;font-size:11px;font-weight:900;color:#dce9f5
+    }
+    .roster-section-title small{font-size:9px;color:var(--muted);font-weight:650}
+    .roster-list{display:flex;flex-direction:column;gap:7px;padding-bottom:9px}
+    .roster-player{
+      display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;align-items:center;
+      border:1px solid #243f59;border-radius:11px;padding:8px;background:#0c1e30;min-width:0
+    }
+    .roster-player.starter{border-color:#3f6d5a;background:linear-gradient(135deg,#102b2a,#0c1d2e)}
+    .roster-photo{width:38px;height:38px;object-fit:cover;border-radius:50%;background:#203449;border:1px solid #38506a}
+    .roster-player-main{min-width:0}
+    .roster-player-top{display:flex;align-items:center;gap:6px;min-width:0}
+    .roster-order{font-size:10px;color:#8bd8ff;font-weight:950;white-space:nowrap}
+    .roster-player-name{font-size:12px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .roster-pos{
+      margin-left:auto;flex:none;padding:2px 5px;border-radius:6px;background:#18344d;
+      border:1px solid #31516c;font-size:9px;color:#dceaf6;font-weight:850;white-space:nowrap
+    }
+    .starter-tag{
+      flex:none;padding:2px 5px;border-radius:6px;background:#143b2b;border:1px solid #2d7452;
+      color:#8bf0b9;font-size:8px;font-weight:900
+    }
+    .roster-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;margin-top:6px}
+    .roster-stat{
+      min-width:0;padding:4px 2px;border-radius:6px;background:#081521;text-align:center;
+      font-size:9px;font-weight:850;color:#f1f7fc;font-variant-numeric:tabular-nums
+    }
+    .roster-stat small{display:block;font-size:7px;color:var(--muted);font-weight:700;margin-bottom:1px}
+    .roster-empty{padding:34px 12px;text-align:center;color:var(--muted)}
+    .roster-note{padding:0 12px 12px;color:var(--muted);font-size:9px;line-height:1.5}
+    @media(max-width:820px){
+      .roster-board{grid-template-columns:1fr}
+    }
+    @media(max-width:600px){
+      .hero-status-right{gap:5px}
+      .matchup-roster-btn{min-height:28px;padding:4px 7px;font-size:9px}
+      .roster-shell{padding:12px 10px;border-radius:0}
+      .roster-page-head h2{font-size:20px}
+      .roster-team-head{padding:10px}
+      .roster-team-logo{width:38px;height:38px}
+      .roster-section{padding:9px 8px 2px}
+      .roster-player{grid-template-columns:34px minmax(0,1fr);gap:7px;padding:7px}
+      .roster-photo{width:34px;height:34px}
+      .roster-player-name{font-size:11px}
+      .roster-stats{gap:3px}
+      .roster-stat{font-size:8px;padding:4px 1px}
+      .roster-stat small{font-size:6px}
+    }
+
 </style>
 </head>
 <body>
@@ -715,6 +796,10 @@
               <button class="feature-menu-item" type="button" data-view="bracket">
                 <span class="feature-menu-icon">🏆</span>
                 <span class="feature-menu-copy"><b>季後賽戰況</b><small>淘汰賽進度・系列賽勝敗</small></span>
+              </button>
+              <button class="feature-menu-item" type="button" data-view="roster">
+                <span class="feature-menu-icon">👥</span>
+                <span class="feature-menu-copy"><b>對戰名單</b><small>兩隊 26 人・先發・例行賽數據</small></span>
               </button>
             </div>
           </div>
@@ -762,7 +847,10 @@
     <section class="card hero">
       <div class="statusline">
         <div><span id="seriesText">等待載入賽事</span><span id="statePill" class="pill">--</span></div>
-        <div id="inningText" class="inning">--</div>
+        <div class="hero-status-right">
+          <div id="inningText" class="inning">--</div>
+          <button id="heroRosterBtn" class="matchup-roster-btn" type="button">對戰名單</button>
+        </div>
       </div>
       <div class="teams">
         <div class="team">
@@ -898,6 +986,20 @@
       </section>
     </div>
 
+    <div id="rosterView" class="app-view" hidden>
+      <section class="card roster-shell">
+        <div class="roster-page-head">
+          <div>
+            <div class="roster-eyebrow">MATCHUP ROSTER</div>
+            <h2 id="rosterMatchupTitle">對戰名單</h2>
+            <div id="rosterMeta" class="roster-meta">選擇一場比賽後即可查看兩隊名單</div>
+          </div>
+          <button id="rosterBackBtn" class="roster-back" type="button">← 即時比賽</button>
+        </div>
+        <div id="rosterBoard" class="roster-empty">準備載入兩隊名單…</div>
+      </section>
+    </div>
+
         <div class="foot">
       資料來源：MLB Stats API · 每 5 秒更新
     </div>
@@ -931,11 +1033,13 @@
     topControls:$('topControls'), topControlsToggle:$('topControlsToggle'),
     pullRefresh:$('pullRefresh'), pullRefreshText:$('pullRefreshText'),
     featureMenuButton:$('featureMenuButton'), featureMenu:$('featureMenu'),
-    appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'),
-    bracketBoard:$('bracketBoard'), bracketStatus:$('bracketStatus'), bracketYearText:$('bracketYearText')
+    appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'), rosterView:$('rosterView'),
+    bracketBoard:$('bracketBoard'), bracketStatus:$('bracketStatus'), bracketYearText:$('bracketYearText'),
+    heroRosterBtn:$('heroRosterBtn'), rosterBackBtn:$('rosterBackBtn'), rosterBoard:$('rosterBoard'),
+    rosterMatchupTitle:$('rosterMatchupTitle'), rosterMeta:$('rosterMeta')
   };
 
-  const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false,view:'live',topControlsExpanded:true,bracketYear:null,bracketLoading:false};
+  const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false,view:'live',topControlsExpanded:true,bracketYear:null,bracketLoading:false,rosterLoading:false,currentFeed:null,currentFeedGamePk:null,rosterCache:new Map()};
 
   function localDateString(d=new Date()){
     const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
@@ -1035,6 +1139,8 @@
     try{
       const feed=await getJSON(`${API}/v1.1/game/${gamePk}/feed/live`);
       if(gamePk!==state.selectedGamePk)return;
+      state.currentFeed=feed;
+      state.currentFeedGamePk=gamePk;
       renderGame(feed);
       const isLive=feed.gameData?.status?.abstractGameState==='Live';
       markUpdated(true,isLive);
@@ -1625,6 +1731,221 @@
   }
 
 
+
+  function rosterPositionLabel(abbr){
+    const map={
+      P:'投手',SP:'先發投手',RP:'後援投手',C:'捕手','1B':'一壘手','2B':'二壘手',
+      '3B':'三壘手',SS:'游擊手',LF:'左外野手',CF:'中外野手',RF:'右外野手',
+      OF:'外野手',IF:'內野手',DH:'指定打擊',PH:'代打',PR:'代跑',TWP:'二刀流'
+    };
+    return map[abbr]||abbr||'--';
+  }
+  function seasonStat(person,group){
+    const entries=person?.stats||[];
+    const found=entries.find(s=>
+      String(s.group?.displayName||s.group?.id||'').toLowerCase()===group
+    );
+    return found?.splits?.[0]?.stat||{};
+  }
+  function stat3(v){
+    if(v==null||v==='')return '--';
+    const n=Number(v);
+    if(!Number.isFinite(n))return String(v);
+    return n.toFixed(3).replace(/^0/,'');
+  }
+  function stat2(v){
+    if(v==null||v==='')return '--';
+    const n=Number(v);
+    return Number.isFinite(n)?n.toFixed(2):String(v);
+  }
+  function baseballInnings(v){
+    if(v==null||v==='')return 0;
+    const s=String(v),parts=s.split('.');
+    const whole=Number(parts[0])||0;
+    const outs=Number(parts[1])||0;
+    return whole+(outs===1?1/3:outs===2?2/3:0);
+  }
+  function rate9(value,innings){
+    const n=Number(value)||0,ip=baseballInnings(innings);
+    return ip>0?(n*9/ip):null;
+  }
+  function estimatedFip(s){
+    const ip=baseballInnings(s.inningsPitched);
+    if(!ip)return null;
+    const hr=Number(s.homeRuns)||0,bb=Number(s.baseOnBalls)||0,hbp=Number(s.hitBatsmen)||0,k=Number(s.strikeOuts)||0;
+    return (13*hr+3*(bb+hbp)-2*k)/ip+3.10;
+  }
+  function metricHTML(label,value){
+    return '<span class="roster-stat"><small>'+esc(label)+'</small>'+esc(value)+'</span>';
+  }
+  function hitterMetrics(person){
+    const s=seasonStat(person,'hitting');
+    const ops=s.ops!=null?s.ops:
+      (Number.isFinite(Number(s.obp))&&Number.isFinite(Number(s.slg))?Number(s.obp)+Number(s.slg):null);
+    return [
+      ['AVG',stat3(s.avg)],['OBP',stat3(s.obp)],['SLG',stat3(s.slg)],
+      ['OPS',stat3(ops)],['HR',s.homeRuns??'--'],['RBI',s.rbi??'--']
+    ];
+  }
+  function pitcherMetrics(person){
+    const s=seasonStat(person,'pitching');
+    const fip=estimatedFip(s);
+    const k9=rate9(s.strikeOuts,s.inningsPitched);
+    const bb9=rate9(s.baseOnBalls,s.inningsPitched);
+    return [
+      ['ERA',stat2(s.era)],['WHIP',stat2(s.whip)],['FIP*',fip==null?'--':fip.toFixed(2)],
+      ['K/9',k9==null?'--':k9.toFixed(2)],['BB/9',bb9==null?'--':bb9.toFixed(2)],
+      ['W-L',(s.wins??'--')+'-'+(s.losses??'--')]
+    ];
+  }
+  function isPitcherEntry(entry){
+    const a=entry?.position?.abbreviation||'';
+    return ['P','SP','RP'].includes(a)||entry?.position?.type==='Pitcher';
+  }
+  function rosterPlayerHTML(entry,options={}){
+    const p=entry?.person||{};
+    const id=p.id;
+    const abbr=options.position||entry?.position?.abbreviation||'--';
+    const pitcher=isPitcherEntry({...entry,position:{...(entry?.position||{}),abbreviation:abbr}});
+    const metrics=pitcher?pitcherMetrics(p):hitterMetrics(p);
+    return '<div class="roster-player '+(options.starter?'starter':'')+'">'+
+      '<img class="roster-photo" src="'+esc(headshot(id))+'" alt="">'+
+      '<div class="roster-player-main">'+
+        '<div class="roster-player-top">'+
+          (options.order?'<span class="roster-order">#'+options.order+'</span>':'')+
+          '<span class="roster-player-name">'+esc(p.fullName||'--')+'</span>'+
+          (options.starter?'<span class="starter-tag">先發</span>':'')+
+          '<span class="roster-pos">'+esc(abbr+' · '+rosterPositionLabel(abbr))+'</span>'+
+        '</div>'+
+        '<div class="roster-stats">'+metrics.map(x=>metricHTML(x[0],x[1])).join('')+'</div>'+
+      '</div>'+
+    '</div>';
+  }
+  function lineupInfo(feed,side){
+    const box=feed?.liveData?.boxscore?.teams?.[side]||{};
+    const players=box.players||{};
+    let ids=(box.battingOrder||[]).map(Number).filter(Boolean);
+    if(!ids.length){
+      ids=Object.values(players)
+        .filter(p=>p?.battingOrder)
+        .sort((a,b)=>Number(a.battingOrder)-Number(b.battingOrder))
+        .map(p=>p.person?.id).filter(Boolean);
+    }
+    const lineup=ids.map((id,index)=>{
+      const bp=players['ID'+id]||{};
+      return {id,order:index+1,position:bp.position?.abbreviation||bp.allPositions?.[0]?.abbreviation||'--'};
+    });
+    const probable=feed?.gameData?.probablePitchers?.[side]?.id||null;
+    const starterId=Number(box.pitchers?.[0]||probable)||null;
+    return {lineup,starterId};
+  }
+  async function fetchTeamRoster(teamId,season,date){
+    const key=[teamId,season,date].join(':');
+    const cached=state.rosterCache.get(key);
+    if(cached&&Date.now()-cached.time<15*60*1000)return cached.rows;
+
+    const hydrate='person(stats(group=[hitting,pitching],type=[season],season='+season+'))';
+    const url=API+'/v1/teams/'+teamId+'/roster?rosterType=active&season='+season+
+      (date?'&date='+encodeURIComponent(date):'')+'&hydrate='+encodeURIComponent(hydrate);
+    const data=await getJSON(url);
+    let rows=data.roster||[];
+
+    // 某些 roster 回應只帶基本 person 資料，再以 people endpoint 一次補齊 season stats。
+    const missing=rows.filter(r=>!(r.person?.stats||[]).length).map(r=>r.person?.id).filter(Boolean);
+    if(missing.length){
+      try{
+        const people=await getJSON(API+'/v1/people?personIds='+missing.join(',')+'&hydrate='+encodeURIComponent(hydrate));
+        const map=new Map((people.people||[]).map(p=>[p.id,p]));
+        rows=rows.map(r=>map.has(r.person?.id)?{...r,person:map.get(r.person.id)}:r);
+      }catch(_){}
+    }
+    state.rosterCache.set(key,{time:Date.now(),rows});
+    return rows;
+  }
+  function renderTeamRoster(team,rows,lineup){
+    const byId=new Map(rows.map(r=>[Number(r.person?.id),r]));
+    const used=new Set();
+    const starterPitcher=lineup.starterId?byId.get(Number(lineup.starterId)):null;
+    if(starterPitcher)used.add(Number(starterPitcher.person?.id));
+
+    const starters=lineup.lineup.map(item=>{
+      const r=byId.get(Number(item.id));
+      if(!r)return '';
+      used.add(Number(item.id));
+      return rosterPlayerHTML(r,{starter:true,order:item.order,position:item.position});
+    }).filter(Boolean);
+
+    const rest=rows.filter(r=>!used.has(Number(r.person?.id))).sort((a,b)=>{
+      const ap=isPitcherEntry(a)?1:0,bp=isPitcherEntry(b)?1:0;
+      return ap-bp||String(a.person?.fullName||'').localeCompare(String(b.person?.fullName||''));
+    });
+    const hitters=rest.filter(r=>!isPitcherEntry(r));
+    const pitchers=rest.filter(isPitcherEntry);
+
+    const section=(title,items,emptyText)=>
+      '<div class="roster-section"><div class="roster-section-title"><span>'+esc(title)+'</span><small>'+items.length+' 人</small></div>'+
+      '<div class="roster-list">'+(items.length?items.join(''):'<div class="roster-meta">'+esc(emptyText)+'</div>')+'</div></div>';
+
+    const starterPitcherHTML=starterPitcher
+      ?[rosterPlayerHTML(starterPitcher,{starter:true,position:'P'})]
+      :[];
+
+    return '<section class="roster-team">'+
+      '<div class="roster-team-head">'+
+        '<img class="roster-team-logo" src="'+esc(teamLogo(team.id))+'" alt="">'+
+        '<div><div class="roster-team-name">'+esc(team.name||team.teamName||'球隊')+'</div>'+
+        '<div class="roster-team-sub">'+esc(teamAbbr(team))+' · Active roster '+rows.length+' 人</div></div>'+
+      '</div>'+
+      section('先發投手',starterPitcherHTML,'先發投手尚未公布')+
+      section('先發打線',starters,'先發打線尚未公布')+
+      section('替補野手',hitters.map(r=>rosterPlayerHTML(r)),'目前沒有其他野手')+
+      section('牛棚 / 其他投手',pitchers.map(r=>rosterPlayerHTML(r)),'目前沒有其他投手')+
+      '<div class="roster-note">打者：AVG / OBP / SLG / OPS / HR / RBI。投手：ERA / WHIP / FIP* / K/9 / BB/9 / W-L。FIP* 以例行賽數據及 3.10 常數估算。</div>'+
+    '</section>';
+  }
+  async function loadMatchupRoster(force=false){
+    if(state.rosterLoading)return;
+    const gamePk=state.selectedGamePk;
+    if(!gamePk){
+      els.rosterMatchupTitle.textContent='對戰名單';
+      els.rosterMeta.textContent='目前沒有選取比賽';
+      els.rosterBoard.className='roster-empty';
+      els.rosterBoard.textContent='請先回到即時比賽選擇一場賽事';
+      return;
+    }
+    state.rosterLoading=true;
+    els.rosterBoard.className='roster-empty';
+    els.rosterBoard.textContent='載入兩隊 26 人名單與例行賽數據中…';
+    try{
+      let feed=state.currentFeedGamePk===gamePk?state.currentFeed:null;
+      if(!feed||force){
+        feed=await getJSON(API+'/v1.1/game/'+gamePk+'/feed/live');
+        state.currentFeed=feed;state.currentFeedGamePk=gamePk;
+      }
+      const gd=feed.gameData||{};
+      const away=gd.teams?.away||{},home=gd.teams?.home||{};
+      const season=Number(gd.game?.season)||Number(String(els.dateInput.value||'').slice(0,4))||new Date().getFullYear();
+      const officialDate=gd.datetime?.officialDate||els.dateInput.value||'';
+      els.rosterMatchupTitle.textContent=teamAbbr(away)+' vs '+teamAbbr(home);
+      els.rosterMeta.textContent=season+' 例行賽數據 · '+officialDate+' 名單';
+      const [awayRows,homeRows]=await Promise.all([
+        fetchTeamRoster(away.id,season,officialDate),
+        fetchTeamRoster(home.id,season,officialDate)
+      ]);
+      const awayLineup=lineupInfo(feed,'away');
+      const homeLineup=lineupInfo(feed,'home');
+      els.rosterBoard.className='roster-board';
+      els.rosterBoard.innerHTML=
+        renderTeamRoster(away,awayRows,awayLineup)+
+        renderTeamRoster(home,homeRows,homeLineup);
+    }catch(err){
+      els.rosterBoard.className='roster-empty';
+      els.rosterBoard.textContent='對戰名單載入失敗：'+err.message;
+    }finally{
+      state.rosterLoading=false;
+    }
+  }
+
   function postseasonYear(){
     const raw=els.dateInput.value||localDateString();
     const y=Number(String(raw).slice(0,4));
@@ -1792,16 +2113,30 @@
   }
   function switchView(view){
     state.view=view;
-    const bracket=view==='bracket';
-    els.liveView.hidden=bracket;
+    const bracket=view==='bracket',roster=view==='roster',live=view==='live';
+    els.liveView.hidden=!live;
     els.bracketView.hidden=!bracket;
+    els.rosterView.hidden=!roster;
     els.featureMenu.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===view));
-    els.appTitle.textContent=bracket?'MLB 季後賽戰況':'MLB 季後賽即時戰況';
-    els.appSubtitle.textContent=bracket?'外卡・分區系列賽・聯盟冠軍賽・世界大賽':'即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄';
-    els.topControlsToggle.hidden=bracket;
+
+    if(bracket){
+      els.appTitle.textContent='MLB 季後賽戰況';
+      els.appSubtitle.textContent='外卡・分區系列賽・聯盟冠軍賽・世界大賽';
+    }else if(roster){
+      els.appTitle.textContent='MLB 對戰名單';
+      els.appSubtitle.textContent='兩隊 Active roster・本場先發・例行賽打投數據';
+    }else{
+      els.appTitle.textContent='MLB 季後賽即時戰況';
+      els.appSubtitle.textContent='即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄';
+    }
+
+    els.topControlsToggle.hidden=!live;
     if(bracket){
       els.topControls.hidden=true;
       loadBracket();
+    }else if(roster){
+      els.topControls.hidden=true;
+      loadMatchupRoster();
     }else{
       setTopControlsExpanded(state.topControlsExpanded);
     }
@@ -1825,6 +2160,9 @@
   document.addEventListener('click',e=>{
     if(!els.featureMenu.contains(e.target)&&!els.featureMenuButton.contains(e.target))setFeatureMenuOpen(false);
   });
+
+  els.heroRosterBtn.addEventListener('click',()=>switchView('roster'));
+  els.rosterBackBtn.addEventListener('click',()=>switchView('live'));
 
   els.topControlsToggle.addEventListener('click',()=>{
     setTopControlsExpanded(els.topControlsToggle.getAttribute('aria-expanded')!=='true');
@@ -1918,6 +2256,7 @@
   loadSchedule(false);
   setInterval(()=>{if(state.view==='live')loadSchedule(true)},REFRESH_MS);
   setInterval(()=>{if(state.view==='bracket')loadBracket(true)},60000);
+  setInterval(()=>{if(state.view==='roster')loadMatchupRoster(true)},60000);
   async function disableLegacyPwaCache(){
     let hadController=false;
     try{
