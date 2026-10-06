@@ -433,16 +433,73 @@
       .diamond-area{grid-template-columns:120px minmax(0,1fr)}
       .pitch-grid{grid-template-columns:104px minmax(0,1fr)}
     }
+  
+    /* 2026-10 compact / collapsible layout overrides */
+    .topbar{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+    .topbar-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;width:100%}
+    #topControls{width:100%}
+    #topControls[hidden]{display:none!important}
+    .collapse-toggle{
+      display:inline-flex;align-items:center;justify-content:center;flex:none;
+      width:34px;height:34px;min-width:34px;min-height:34px;padding:0;
+      border:1px solid #31506c;border-radius:9px;background:#132c45;color:#e8f6ff;
+      font-size:18px;line-height:1
+    }
+    .collapse-toggle .chev,.highlight-chevron{display:inline-block;transition:transform .18s ease}
+    .collapse-toggle[aria-expanded="false"] .chev{transform:rotate(180deg)}
+    .highlights-toggle[aria-expanded="true"] .highlight-chevron{transform:rotate(180deg)}
+    .collapsible-card{margin-top:12px;padding:0!important;min-width:0}
+    .section-head{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      min-height:44px;padding:10px 14px;cursor:pointer;user-select:none
+    }
+    .section-head h2,.section-head .section-title{margin:0;font-size:16px;color:#dce7f1}
+    .collapse-body{padding:0 14px 14px}
+    .collapse-body[hidden]{display:none!important}
+    .highlights-card{padding:0!important}
+    .highlights-topline{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px 4px}
+    .highlight-ticker-row{display:flex;align-items:center;gap:8px;min-width:0;padding:0 12px 9px}
+    .highlight-ticker{flex:1;min-width:0}
+    .highlights-toggle{width:34px;height:34px;min-width:34px;min-height:34px;padding:0;font-size:18px}
+    .highlights-grid{margin:0 12px 12px!important;padding-top:10px!important}
+    .table-card{margin-top:12px}
+    .recent-card{margin-top:12px}
+    .events.collapsible-card{padding:0!important}
+    @media(max-width:720px){
+      .topbar{gap:6px}
+      .topbar-title{align-items:center}
+      .section-head{padding:8px 10px;min-height:40px}
+      .section-head h2,.section-head .section-title{font-size:14px}
+      .collapse-body{padding:0 10px 10px}
+      .collapse-toggle,.highlights-toggle{width:32px;height:32px;min-width:32px;min-height:32px;font-size:17px}
+      .highlights-topline{padding:7px 10px 3px}
+      .highlight-ticker-row{padding:0 10px 8px;gap:6px}
+      .highlights-grid{margin:0 10px 10px!important}
+      .recent-card{border-radius:0}
+    }
+    @media(max-width:600px){
+      .topbar-title>div>.subtitle{display:none}
+      .highlight-ticker-desc{display:block}
+      .highlight-ticker-title{max-width:55%;flex:0 1 auto}
+      .highlight-counter{display:none}
+    }
+
   </style>
 </head>
 <body>
   <main class="wrap">
     <div class="topbar">
-      <div>
-        <h1>MLB 季後賽即時戰況</h1>
-        <div class="subtitle">即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄</div>
+      <div class="topbar-title">
+        <div>
+          <h1>MLB 季後賽即時戰況</h1>
+          <div class="subtitle">即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄</div>
+        </div>
+        <button id="topControlsToggle" class="collapse-toggle" type="button"
+          aria-controls="topControls" aria-expanded="true" aria-label="收合日期與更新">
+          <span class="chev" aria-hidden="true">⌃</span>
+        </button>
       </div>
-      <div class="controls">
+      <div id="topControls" class="controls">
         <label>
           <span class="subtitle">日期</span>
           <input id="dateInput" type="date" />
@@ -458,14 +515,16 @@
     <section class="card highlights-card" aria-label="本場焦點">
       <div class="highlights-topline">
         <span class="highlights-label">🔥 本場焦點</span>
+        <button id="highlightsToggle" class="highlights-toggle" type="button"
+          aria-controls="gameHighlights" aria-expanded="false" aria-label="展開全部本場焦點">
+          <span class="highlight-chevron" aria-hidden="true">⌄</span>
+        </button>
+      </div>
+      <div class="highlight-ticker-row">
         <div id="highlightTicker" class="highlight-ticker" aria-live="off">
           <span class="highlight-ticker-desc">等待賽事資料</span>
         </div>
         <span id="highlightCounter" class="highlight-counter">0 / 0</span>
-        <button id="highlightsToggle" class="highlights-toggle" type="button"
-          aria-controls="gameHighlights" aria-expanded="false" aria-label="展開全部本場焦點">
-          <span id="highlightsToggleText">全部</span><span class="highlight-chevron" aria-hidden="true">⌄</span>
-        </button>
       </div>
       <div id="gameHighlights" class="highlights-grid" hidden></div>
     </section>
@@ -494,9 +553,49 @@
       </div>
     </section>
 
-    <div class="grid2">
-      <section class="card panel">
+    <section class="card table-card">
+      <h2 class="section-title">逐局比分</h2>
+      <div class="scroll">
+        <table>
+          <thead id="inningHead"></thead>
+          <tbody id="inningBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card collapsible-card" data-collapse-section>
+      <div class="section-head" data-collapse-head>
+        <h2>壘上與投球位置</h2>
+        <button class="collapse-toggle" type="button" aria-expanded="true" aria-label="收合壘上與投球位置"><span class="chev" aria-hidden="true">⌃</span></button>
+      </div>
+      <div class="collapse-body" data-collapse-body>
+        <div class="diamond-area">
+          <div class="diamond-wrap" aria-label="壘包狀況">
+            <div class="diamond"></div>
+            <div class="base-label l2">二壘</div><div id="base2" class="base b2"></div>
+            <div class="base-label l1">一壘</div><div id="base1" class="base b1"></div>
+            <div class="base-label l3">三壘</div><div id="base3" class="base b3"></div>
+          </div>
+          <div id="baseSummary" class="base-summary">壘上 <b>0</b> 人<br>一壘：--<br>二壘：--<br>三壘：--</div>
+        </div>
+        <div class="pitch-visual">
+          <div class="pitch-grid">
+            <div class="zone-wrap" aria-label="最近一球進壘點">
+              <div class="zone"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div id="pitchDot" class="pitch-dot"></div>
+            </div>
+            <div id="pitchData" class="pitch-data">目前沒有可顯示的投球座標。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card collapsible-card" data-collapse-section>
+      <div class="section-head" data-collapse-head>
         <h2>目前對決</h2>
+        <button class="collapse-toggle" type="button" aria-expanded="true" aria-label="收合目前對決"><span class="chev" aria-hidden="true">⌃</span></button>
+      </div>
+      <div class="collapse-body" data-collapse-body>
         <div class="matchup">
           <div class="person">
             <img id="batterPhoto" class="headshot" alt="" />
@@ -515,13 +614,11 @@
             </div>
           </div>
         </div>
-
         <div class="countrow">
           <div class="countbox"><strong id="balls">0</strong><span>壞球 BALL</span></div>
           <div class="countbox"><strong id="strikes">0</strong><span>好球 STRIKE</span></div>
           <div class="countbox"><strong id="outs">0</strong><span>出局 OUT</span></div>
         </div>
-
         <div class="pitch-summary">
           <div class="mini-card">
             <div class="k">最近一球</div>
@@ -534,62 +631,30 @@
             <div id="pitchEfficiencySub" class="s">好球數 / 用球數</div>
           </div>
         </div>
-
         <div id="latestPlay" class="latest">尚無最新打席資訊</div>
         <div>
           <div class="label" style="margin-top:11px">本打席投球序列</div>
           <div id="pitchSequence" class="pitch-seq"></div>
         </div>
-      </section>
-
-      <section class="card panel">
-        <h2>壘上與投球位置</h2>
-        <div class="diamond-area">
-          <div class="diamond-wrap" aria-label="壘包狀況">
-            <div class="diamond"></div>
-            <div class="base-label l2">二壘</div><div id="base2" class="base b2"></div>
-            <div class="base-label l1">一壘</div><div id="base1" class="base b1"></div>
-            <div class="base-label l3">三壘</div><div id="base3" class="base b3"></div>
-          </div>
-          <div id="baseSummary" class="base-summary">壘上 <b>0</b> 人<br>一壘：--<br>二壘：--<br>三壘：--</div>
-        </div>
-
-        <div class="pitch-visual">
-          <div class="pitch-grid">
-            <div class="zone-wrap" aria-label="最近一球進壘點">
-              <div class="zone">
-                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-              </div>
-              <div id="pitchDot" class="pitch-dot"></div>
-            </div>
-            <div id="pitchData" class="pitch-data">目前沒有可顯示的投球座標。</div>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <section class="card table-card">
-      <h2 class="section-title">逐局比分</h2>
-      <div class="scroll">
-        <table>
-          <thead id="inningHead"></thead>
-          <tbody id="inningBody"></tbody>
-        </table>
       </div>
     </section>
 
-    <div class="lower">
-      <section class="card events">
+    <section class="card events collapsible-card" data-collapse-section>
+      <div class="section-head" data-collapse-head>
         <h2 class="section-title">得分紀錄</h2>
+        <button class="collapse-toggle" type="button" aria-expanded="true" aria-label="收合得分紀錄"><span class="chev" aria-hidden="true">⌃</span></button>
+      </div>
+      <div class="collapse-body" data-collapse-body>
         <div id="scoringEvents" class="empty">尚無得分紀錄</div>
-      </section>
-      <section class="card events">
-        <h2 class="section-title">最近打席</h2>
-        <div id="recentEvents" class="empty">尚無打席紀錄</div>
-      </section>
-    </div>
+      </div>
+    </section>
 
-    <div class="foot">
+    <section class="card events recent-card">
+      <h2 class="section-title">最近打席</h2>
+      <div id="recentEvents" class="empty">尚無打席紀錄</div>
+    </section>
+
+        <div class="foot">
       資料來源：MLB Stats API。頁面每 5 秒更新一次。
       如果直接雙擊 HTML 後瀏覽器擋住資料請求，Mac 可在檔案所在資料夾執行
       <code>python3 -m http.server 8080</code>，再用瀏覽器開啟
@@ -622,7 +687,7 @@
     scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
     gameHighlights:$('gameHighlights'), highlightTicker:$('highlightTicker'),
     highlightCounter:$('highlightCounter'), highlightsToggle:$('highlightsToggle'),
-    highlightsToggleText:$('highlightsToggleText')
+    topControls:$('topControls'), topControlsToggle:$('topControlsToggle')
   };
 
   const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false};
@@ -1169,7 +1234,6 @@
     els.highlightsToggle.setAttribute('aria-expanded',String(state.highlightsExpanded));
     els.highlightsToggle.setAttribute('aria-label',
       (state.highlightsExpanded?'收合':'展開')+'全部 '+list.length+' 則本場焦點');
-    els.highlightsToggleText.textContent=state.highlightsExpanded?'收合':'全部';
     renderHighlightTicker();
     if(!state.highlightsExpanded)return;
     els.gameHighlights.innerHTML=list.length?list.map(x=>
@@ -1269,6 +1333,31 @@
       <div class="event-score">${esc(score)}</div>
     </div>`;
   }
+
+  function setTopControlsExpanded(expanded){
+    els.topControls.hidden=!expanded;
+    els.topControlsToggle.setAttribute('aria-expanded',String(expanded));
+    els.topControlsToggle.setAttribute('aria-label',expanded?'收合日期與更新':'展開日期與更新');
+  }
+  els.topControlsToggle.addEventListener('click',()=>{
+    setTopControlsExpanded(els.topControlsToggle.getAttribute('aria-expanded')!=='true');
+  });
+
+  document.querySelectorAll('[data-collapse-section]').forEach(section=>{
+    const head=section.querySelector('[data-collapse-head]');
+    const body=section.querySelector('[data-collapse-body]');
+    const btn=section.querySelector('.collapse-toggle');
+    if(!head||!body||!btn)return;
+    const setExpanded=expanded=>{
+      body.hidden=!expanded;
+      btn.setAttribute('aria-expanded',String(expanded));
+      const title=head.querySelector('h2')?.textContent?.trim()||'區塊';
+      btn.setAttribute('aria-label',(expanded?'收合':'展開')+title);
+    };
+    const toggle=()=>setExpanded(btn.getAttribute('aria-expanded')!=='true');
+    btn.addEventListener('click',e=>{e.stopPropagation();toggle();});
+    head.addEventListener('click',e=>{if(e.target.closest('button'))return;toggle();});
+  });
 
   els.highlightsToggle.addEventListener('click',()=>{
     state.highlightsExpanded=!state.highlightsExpanded;
