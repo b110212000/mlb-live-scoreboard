@@ -138,20 +138,30 @@
     .pitch-dot.ball{background:var(--green)}
     .pitch-data{font-size:13px;line-height:1.8;color:#d8e5f2}
     .pitch-data strong{color:#fff}
-    .highlights-card{margin-top:14px;padding:18px;overflow:hidden}
-    .highlights-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
-    .highlights-head .section-title{margin:0}
-    .highlights-note{font-size:11px;color:var(--muted);white-space:nowrap}
-    .highlights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    .highlight-item{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:13px;padding:13px 14px;background:linear-gradient(135deg,#10253b,#0a1829);min-width:0}
+    /* 本場焦點：收合時保持單一列，展開才顯示完整清單 */
+    .highlights-card{margin-top:12px;padding:10px 14px;min-width:0}
+    .highlights-topline{display:flex;align-items:center;gap:12px;min-width:0}
+    .highlights-label{font-size:14px;font-weight:900;white-space:nowrap;flex:none;color:#f6f8fb}
+    .highlight-ticker{display:flex;gap:8px;align-items:center;flex:1;min-width:0;overflow:hidden;white-space:nowrap;font-size:13px}
+    .highlight-ticker-icon{flex:none}
+    .highlight-ticker-title{flex:0 1 auto;min-width:0;max-width:48%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:800;color:#fff}
+    .highlight-ticker-desc{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#aebfd0}
+    .highlight-counter{color:var(--muted);font-size:11px;white-space:nowrap;flex:none;font-variant-numeric:tabular-nums}
+    .highlights-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:none;min-width:58px;min-height:36px;padding:7px 8px;border:1px solid #31506c;border-radius:9px;background:#132c45;color:#e8f6ff;font-size:12px;font-weight:800}
+    .highlights-toggle:hover{background:#1b3856}
+    .highlight-chevron{display:inline-block;font-size:15px;line-height:1;transition:transform .2s ease}
+    .highlights-toggle[aria-expanded="true"] .highlight-chevron{transform:rotate(180deg)}
+    #gameHighlights[hidden]{display:none!important}
+    .highlights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+    .highlight-item{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:linear-gradient(135deg,#10253b,#0a1829);min-width:0}
     .highlight-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
     .highlight-item.hot::before{background:var(--red)}
     .highlight-item.warn::before{background:var(--yellow)}
     .highlight-item.good::before{background:var(--green)}
     .highlight-top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
     .highlight-icon{font-size:17px;line-height:1}
-    .highlight-title{font-size:14px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .highlight-desc{font-size:13px;line-height:1.55;color:#d8e5f2}
+    .highlight-title{font-size:14px;font-weight:900;min-width:0;overflow-wrap:anywhere}
+    .highlight-desc{font-size:13px;line-height:1.55;color:#d8e5f2;overflow-wrap:anywhere}
     .highlight-meta{font-size:10px;color:var(--muted);margin-top:6px}
     .table-card{margin-top:14px;padding:18px;overflow:hidden}
     .scroll{overflow-x:auto}
@@ -169,6 +179,10 @@
     .event-score{font-weight:850;white-space:nowrap}
     .empty{padding:28px 12px;text-align:center;color:var(--muted)}
     .error{margin-top:14px;border:1px solid #7f3341;background:#2a1019;color:#ffd2da;border-radius:12px;padding:13px 15px;font-size:14px;line-height:1.55;display:none}
+    .controls input[type=date],.controls button{min-height:34px;padding:5px 9px;font-size:12px;border-radius:9px}
+    .controls .live-chip{min-height:34px;padding:6px 9px;font-size:12px}
+    .controls{gap:7px}
+    .controls label .subtitle{font-size:11px}
     .foot{margin-top:15px;color:var(--muted);font-size:12px;line-height:1.55}
     code{color:#d8f4ff}
     @media(max-width:720px){
@@ -219,12 +233,15 @@
       .hero,.panel,.table-card,.events{padding:13px 12px}
 
       .topbar h1{font-size:21px}
+      .controls input[type=date],.controls button{min-height:34px}
+      .highlight-ticker-desc{display:none}
+      .highlight-ticker-title{max-width:100%;flex:1}
       .topbar>div:first-child>.subtitle{display:none}
       .controls{
-        grid-template-columns:minmax(0,1fr) 46px minmax(106px,auto);
+        grid-template-columns:minmax(0,1fr) 38px minmax(100px,auto);
       }
       #refreshBtn{
-        width:46px;
+        width:38px;
         padding:0;
         font-size:0;
         position:relative;
@@ -344,10 +361,15 @@
       .zone-wrap{transform:scale(.88);transform-origin:center}
       .pitch-data{font-size:12px;line-height:1.65}
 
-      .highlights-card{margin-top:10px;border-radius:0;padding:13px 12px}
-      .highlights-head{margin-bottom:9px}
-      .highlights-note{font-size:9px}
-      .highlights-grid{grid-template-columns:1fr;gap:7px}
+      .highlights-card{margin-top:9px;border-radius:0;padding:8px 10px}
+      .highlights-topline{gap:7px}
+      .highlights-label{font-size:12px}
+      .highlight-ticker{gap:5px;font-size:12px}
+      .highlight-ticker-title{max-width:65%}
+      .highlight-ticker-desc{font-size:11px}
+      .highlight-counter{display:none}
+      .highlights-toggle{min-width:46px;min-height:36px;font-size:11px;padding:6px}
+      .highlights-grid{grid-template-columns:1fr;gap:7px;margin-top:9px;padding-top:9px}
       .highlight-item{padding:10px 11px}
       .highlight-title{font-size:13px}
       .highlight-desc{font-size:12px}
@@ -402,7 +424,7 @@
     }
 
     @media(max-width:380px){
-      .controls{grid-template-columns:minmax(0,1fr) 44px}
+      .controls{grid-template-columns:minmax(0,1fr) 38px}
       .live-chip{grid-column:1 / -1}
       .bigscore{font-size:36px;min-width:82px}
       .logo{width:42px;height:42px}
@@ -432,6 +454,21 @@
 
     <div id="gameTabs"></div>
     <div id="errorBox" class="error"></div>
+
+    <section class="card highlights-card" aria-label="本場焦點">
+      <div class="highlights-topline">
+        <span class="highlights-label">🔥 本場焦點</span>
+        <div id="highlightTicker" class="highlight-ticker" aria-live="off">
+          <span class="highlight-ticker-desc">等待賽事資料</span>
+        </div>
+        <span id="highlightCounter" class="highlight-counter">0 / 0</span>
+        <button id="highlightsToggle" class="highlights-toggle" type="button"
+          aria-controls="gameHighlights" aria-expanded="false" aria-label="展開全部本場焦點">
+          <span id="highlightsToggleText">全部</span><span class="highlight-chevron" aria-hidden="true">⌄</span>
+        </button>
+      </div>
+      <div id="gameHighlights" class="highlights-grid" hidden></div>
+    </section>
 
     <section class="card hero">
       <div class="statusline">
@@ -531,16 +568,6 @@
       </section>
     </div>
 
-    <section class="card highlights-card">
-      <div class="highlights-head">
-        <h2 class="section-title">🔥 本場焦點</h2>
-        <div class="highlights-note">依即時賽事資料自動整理</div>
-      </div>
-      <div id="gameHighlights" class="highlights-grid">
-        <div class="empty" style="grid-column:1/-1">等待焦點事件</div>
-      </div>
-    </section>
-
     <section class="card table-card">
       <h2 class="section-title">逐局比分</h2>
       <div class="scroll">
@@ -593,10 +620,12 @@
     pitchDot:$('pitchDot'), pitchData:$('pitchData'),
     inningHead:$('inningHead'), inningBody:$('inningBody'),
     scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
-    gameHighlights:$('gameHighlights')
+    gameHighlights:$('gameHighlights'), highlightTicker:$('highlightTicker'),
+    highlightCounter:$('highlightCounter'), highlightsToggle:$('highlightsToggle'),
+    highlightsToggleText:$('highlightsToggleText')
   };
 
-  const state = {games:[], selectedGamePk:null, loading:false};
+  const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false};
 
   function localDateString(d=new Date()){
     const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
@@ -661,6 +690,7 @@
   async function loadGame(gamePk){
     try{
       const feed=await getJSON(`${API}/v1.1/game/${gamePk}/feed/live`);
+      if(gamePk!==state.selectedGamePk)return;
       renderGame(feed);
       const isLive=feed.gameData?.status?.abstractGameState==='Live';
       markUpdated(true,isLive);
@@ -688,7 +718,8 @@
     els.inningHead.innerHTML='';els.inningBody.innerHTML='';
     els.scoringEvents.className='empty';els.scoringEvents.textContent='尚無得分紀錄';
     els.recentEvents.className='empty';els.recentEvents.textContent='尚無打席紀錄';
-    els.gameHighlights.innerHTML='<div class="empty" style="grid-column:1/-1">目前沒有可整理的焦點</div>';
+    state.highlights=[];state.highlightIndex=0;state.highlightGamePk=null;state.highlightsExpanded=false;
+    syncHighlights();
     setBases(null,null,null);renderPitchLocation(null);markUpdated(true,false);
   }
 
@@ -917,110 +948,251 @@
     els.pitchData.innerHTML=`球種：<strong>${esc(type)}</strong><br>球速：<strong>${esc(speed)}</strong><br>轉速：<strong>${esc(spin)}</strong><br>結果：<strong>${esc(result)}</strong>`;
   }
 
-  function renderHighlights(feed){
-    const gd=feed.gameData||{}, live=feed.liveData||{}, plays=live.plays||{};
+  // 統計已完成打席、逐球記錄與官方逐局資料，產生全部符合條件的本場焦點。
+  function buildHighlightItems(feed){
+    const gd=feed.gameData||{},live=feed.liveData||{},plays=live.plays||{};
     const all=plays.allPlays||[];
     const awayName=gd.teams?.away?.name||'客隊';
     const homeName=gd.teams?.home?.name||'主隊';
-    const batting=new Map(), pitcherHR=new Map(), errorEvents=[], leadEvents=[];
-    let prevAway=0, prevHome=0;
-
-    function getBat(p){
-      const id=p.matchup?.batter?.id;
-      const name=p.matchup?.batter?.fullName||'未知打者';
-      const key=id||name;
-      if(!batting.has(key)) batting.set(key,{name:name,h:0,hr:0,rbi:0,grandSlams:0});
-      return batting.get(key);
-    }
+    const batters=new Map(),pitchers=new Map(),errors={away:[],home:[]};
+    const items=[],seen=new Set(),scoreChanges=[];
+    let prevAway=0,prevHome=0,seq=0;
+    const halfName=h=>h==='top'?'上':h==='bottom'?'下':'';
+    const when=p=>String(p.about?.inning??'-')+'局'+halfName(p.about?.halfInning);
+    const add=(id,priority,icon,title,desc,meta,tone,order)=>{
+      if(seen.has(id))return;
+      seen.add(id);
+      items.push({id,priority,icon,title,desc,meta:meta||'',tone:tone||'',order:order??seq});
+    };
+    const bFor=p=>{
+      const id=p.matchup?.batter?.id, name=p.matchup?.batter?.fullName;
+      if(!id&&!name)return null;
+      const key=String(id||name);
+      if(!batters.has(key))batters.set(key,{key,name:name||'打者',hits:0,hr:0,rbi:0,single:0,double:0,triple:0,walks:0});
+      return batters.get(key);
+    };
+    const pFor=p=>{
+      const id=p.matchup?.pitcher?.id,name=p.matchup?.pitcher?.fullName;
+      if(!id&&!name)return null;
+      const key=String(id||name);
+      if(!pitchers.has(key))pitchers.set(key,{key,name:name||'投手',hrAllowed:0,strikeouts:0});
+      return pitchers.get(key);
+    };
 
     for(const p of all){
-      const event=p.result?.event||'';
-      const batter=getBat(p);
-      if(['Single','Double','Triple','Home Run'].includes(event)) batter.h++;
-      if(event==='Home Run'){
-        batter.hr++;
-        if(Number(p.result?.rbi||0)>=4) batter.grandSlams++;
-        const pitcher=p.matchup?.pitcher;
-        if(pitcher){
-          const key=pitcher.id||pitcher.fullName;
-          const item=pitcherHR.get(key)||{name:pitcher.fullName||'投手',count:0};
-          item.count++; pitcherHR.set(key,item);
+      const event=p.result?.event||'',etype=p.result?.eventType||'';
+      if(!event&&!etype)continue;
+      const n=seq++,b=bFor(p),pitcher=pFor(p);
+      const id=String(p.atBatIndex??n);
+      const inning=when(p),rbi=Math.max(0,Number(p.result?.rbi)||0);
+      const batterName=b?.name||'打者';
+      const pitcherName=pitcher?.name||'投手';
+      const nameForScore=p.about?.halfInning==='top'?awayName:homeName;
+      const isHR=event==='Home Run'||etype==='home_run';
+      const hitKind=({Single:'single',Double:'double',Triple:'triple','Home Run':'hr'})[event];
+      if(b){
+        if(hitKind){
+          b.hits++;
+          b[hitKind]++;
+        }
+        if(event==='Walk'||event==='Intent Walk')b.walks++;
+        b.rbi+=rbi;
+      }
+      if(isHR){
+        if(b&&!hitKind){b.hits++;b.hr++;}
+        if(pitcher)pitcher.hrAllowed++;
+        const hrType=rbi===4?'滿貫砲':rbi===3?'三分砲':rbi===2?'兩分砲':rbi===1?'陽春砲':'全壘打';
+        const hitEvent=(p.playEvents||[]).findLast?.(x=>x.hitData)||
+          [...(p.playEvents||[])].reverse().find(x=>x.hitData);
+        const dist=hitEvent?.hitData?.totalDistance;
+        const speed=hitEvent?.hitData?.launchSpeed;
+        const extra=[];
+        if(Number.isFinite(Number(dist))&&Number(dist)>0)extra.push(Math.round(Number(dist))+' 呎');
+        if(Number.isFinite(Number(speed))&&Number(speed)>0)extra.push(Number(speed).toFixed(1)+' mph');
+        add('hr:'+id,84,'💣',batterName+' '+hrType,
+          batterName+' 從 '+pitcherName+' 手中擊出'+hrType+'。'+(extra.length?'擊球資訊：'+extra.join('、')+'。':''),
+          inning,'hot',n);
+      }
+      if(pitcher&&(event==='Strikeout'||etype.startsWith('strikeout')))pitcher.strikeouts++;
+      const isError=event==='Field Error'||etype==='field_error'||/\b(fielding|throwing) error\b/i.test(p.result?.description||'');
+      if(isError){
+        const defending=p.about?.halfInning==='top'?'home':'away';
+        errors[defending].push({id,inning,n});
+        const team=defending==='home'?homeName:awayName;
+        add('error:'+id,79,'⚠️',team+' 發生守備失誤',
+          inning+'，'+team+' 出現守備失誤，讓攻方有機會延續進攻。',inning,'warn',n);
+      }
+      if(rbi>=2&&!isHR){
+        add('multiRbi:'+id,69,'⚡',batterName+' 單次貢獻 '+rbi+' 打點',
+          batterName+' 在'+inning+'的一次攻勢中送回 '+rbi+' 分。',inning,'good',n);
+      }
+      const isDP=/double.play|grounded.into.dp/i.test(event+' '+etype);
+      if(isDP){
+        const fielding=p.about?.halfInning==='top'?homeName:awayName;
+        add('dp:'+id,53,'🧤',fielding+' 策動雙殺',
+          inning+'，'+fielding+'完成雙殺守備，迅速拿下兩個出局數。',inning,'good',n);
+      }
+
+      // 盜壘資訊多半位於跑者紀錄，不能只靠打席 event。
+      const steals=new Set();
+      for(const runner of p.runners||[]){
+        const details=runner.details||{};
+        const action=details.event||'';
+        if(/stolen.base/i.test(action)){
+          const name=details.runner?.fullName||'跑者';
+          const target=runner.movement?.end||'';
+          steals.add(name+'|'+target);
         }
       }
-      batter.rbi+=Number(p.result?.rbi||0);
-
-      if(event==='Field Error'||/error/i.test(p.result?.description||'')){
-        const fieldingTeam=p.about?.halfInning==='top'?homeName:awayName;
-        errorEvents.push({team:fieldingTeam,inning:String(p.about?.inning??'-')+'局'+(p.about?.halfInning==='top'?'上':'下'),desc:zhDescription(p.result?.description)||'發生守備失誤'});
+      if(/stolen.base/i.test(event+' '+etype)&&!steals.size){
+        steals.add(batterName+'|');
+      }
+      for(const steal of steals){
+        const parts=steal.split('|');
+        add('steal:'+id+':'+steal,59,'🏃',parts[0]+' 盜壘成功',
+          inning+'，'+parts[0]+'完成盜壘'+(parts[1]?'，抵達'+({ '2B':'二壘','3B':'三壘',score:'本壘'}[parts[1]]||parts[1]):'')+'。',inning,'good',n);
       }
 
-      const aw=Number(p.result?.awayScore??prevAway), hm=Number(p.result?.homeScore??prevHome);
-      const beforeDiff=prevAway-prevHome, afterDiff=aw-hm;
-      if((beforeDiff<0&&afterDiff>0)||(beforeDiff>0&&afterDiff<0)){
-        leadEvents.push({type:'goahead',team:afterDiff>0?awayName:homeName,inning:p.about?.inning,half:p.about?.halfInning,score:aw+'-'+hm});
-      }else if(beforeDiff!==0&&afterDiff===0){
-        leadEvents.push({type:'tie',team:p.about?.halfInning==='top'?awayName:homeName,inning:p.about?.inning,half:p.about?.halfInning,score:aw+'-'+hm});
-      }else if(beforeDiff===0&&afterDiff!==0&&(aw!==prevAway||hm!==prevHome)){
-        leadEvents.push({type:'lead',team:afterDiff>0?awayName:homeName,inning:p.about?.inning,half:p.about?.halfInning,score:aw+'-'+hm});
+      const awRaw=Number(p.result?.awayScore),hmRaw=Number(p.result?.homeScore);
+      const aw=Number.isFinite(awRaw)?awRaw:prevAway;
+      const hm=Number.isFinite(hmRaw)?hmRaw:prevHome;
+      if(aw!==prevAway||hm!==prevHome){
+        const before=Math.sign(prevAway-prevHome),after=Math.sign(aw-hm);
+        scoreChanges.push({aw,hm,prevAway,prevHome,inning:p.about?.inning,half:p.about?.halfInning,id,n});
+        if(before!==0&&after===0){
+          add('tie:'+id,96,'⚖️',nameForScore+' 追平比賽',
+            inning+'，'+nameForScore+'將比分追成 '+aw+'：'+hm+'。',inning,'hot',n);
+        }else if(before!==after&&after!==0){
+          const leader=after>0?awayName:homeName;
+          const reversed=before!==0&&before!==after;
+          add('lead:'+id,reversed?100:80,reversed?'🔄':'⬆️',leader+(reversed?' 逆轉超前':' 取得領先'),
+            inning+'，'+leader+(reversed?'完成逆轉':'取得領先')+'，比分 '+aw+'：'+hm+'。',inning,reversed?'hot':'good',n);
+        }
+        if(!isHR&&rbi<2){
+          const eventZh=zhEventName(event)||'得分攻勢';
+          add('score:'+id,61,'🏟️',nameForScore+' 再添分數',
+            inning+'，'+(b?.name?b.name+' '+eventZh+'，':'')+'比分來到 '+aw+'：'+hm+'。',inning,'',n);
+        }
       }
-      prevAway=aw; prevHome=hm;
+      prevAway=aw;prevHome=hm;
     }
 
-    const items=[];
-    const push=(priority,icon,title,desc,meta,tone)=>items.push({priority:priority,icon:icon,title:title,desc:desc,meta:meta||'',tone:tone||''});
-
-    for(const b of batting.values()){
-      if(b.grandSlams>0) push(100,'🚀',b.name+' 滿貫砲',b.name+' 本場轟出滿貫全壘打，目前累計 '+b.rbi+' 分打點。','關鍵長打','hot');
-      if(b.hr>=3) push(98,'🔥',b.name+' 三響砲',b.name+' 今天已經敲出 '+b.hr+' 支全壘打，火力完全爆發。','單場多轟','hot');
-      else if(b.hr===2) push(95,'🔥',b.name+' 雙響砲',b.name+' 本場已擊出 2 支全壘打，共貢獻 '+b.rbi+' 分打點。','單場雙轟','hot');
-      else if(b.hr===1) push(72,'💣',b.name+' 開轟',b.name+' 本場擊出全壘打'+(b.rbi?'，目前累計 '+b.rbi+' 分打點':'')+'。','全壘打','');
-      if(b.rbi>=4) push(90,'⚡',b.name+' '+b.rbi+' 分打點',b.name+' 今天已經貢獻 '+b.rbi+' 分打點，是目前最具破壞力的打者之一。','打點爆發','good');
-      if(b.h>=4) push(86,'🎯',b.name+' '+b.h+' 安猛打',b.name+' 本場已敲出 '+b.h+' 支安打，持續製造進攻機會。','多安打','good');
-      else if(b.h===3) push(78,'🎯',b.name+' 猛打賞',b.name+' 今天已經完成單場 3 安。','3 安打','good');
+    for(const b of batters.values()){
+      if(b.hr>=2){
+        const word=b.hr===2?'雙響砲':b.hr===3?'三響砲':b.hr+'響砲';
+        add('hitterMultiHR:'+b.key,105,'🔥',b.name+' '+word,
+          b.name+' 本場已敲出 '+b.hr+' 支全壘打，累計 '+b.rbi+' 分打點。','多轟里程碑','hot');
+      }
+      if(b.single&&b.double&&b.triple&&b.hr){
+        add('cycle:'+b.key,115,'🏆',b.name+' 完成完全打擊',
+          b.name+' 本場集齊一壘安打、二壘安打、三壘安打與全壘打。','完全打擊','hot');
+      }
+      if(b.hits>=3){
+        add('hitMilestone:'+b.key,b.hits>=4?93:76,'🎯',b.name+' 單場 '+b.hits+' 安',
+          b.name+' 今天已敲出 '+b.hits+' 支安打'+(b.hr?'，其中包含 '+b.hr+' 支全壘打':'')+'。','打擊表現','good');
+      }
+      if(b.rbi>=3){
+        add('rbiMilestone:'+b.key,b.rbi>=5?98:85,'⚡',b.name+' 單場 '+b.rbi+' 打點',
+          b.name+' 本場累計貢獻 '+b.rbi+' 分打點。','打點表現','good');
+      }
+    }
+    for(const p of pitchers.values()){
+      if(p.hrAllowed>=2){
+        add('pitcherHR:'+p.key,p.hrAllowed>=3?94:82,'📉',p.name+' 挨了 '+p.hrAllowed+' 轟',
+          p.name+' 本場已被對手擊出 '+p.hrAllowed+' 支全壘打。','投手挨轟','warn');
+      }
+      if(p.strikeouts>=5){
+        add('pitcherK:'+p.key,p.strikeouts>=10?99:p.strikeouts>=8?88:68,'⚾',
+          p.name+' 累計 '+p.strikeouts+' 次三振',
+          p.name+' 本場已送出 '+p.strikeouts+' 次三振。','投手壓制力','good');
+      }
     }
 
-    for(const p of pitcherHR.values()){
-      if(p.count>=3) push(93,'📉',p.name+' 挨了 '+p.count+' 轟',p.name+' 本場已被敲出 '+p.count+' 支全壘打，長打壓制出現明顯問題。','投手危機','warn');
-      else if(p.count===2) push(82,'📉',p.name+' 單場挨 2 轟',p.name+' 今天已經被對手敲出 2 支全壘打。','投手挨轟','warn');
+    // 官方逐局統計適合找出單局大量得分的情況。
+    for(const inn of live.linescore?.innings||[]){
+      for(const side of ['away','home']){
+        const runs=Number(inn?.[side]?.runs);
+        if(Number.isFinite(runs)&&runs>=3){
+          const name=side==='away'?awayName:homeName;
+          add('bigInning:'+side+':'+inn.num,91,'🚨',name+' 單局攻下 '+runs+' 分',
+            String(inn.num)+'局'+(side==='away'?'上':'下')+'，'+name+'單局灌進 '+runs+' 分。','單局攻勢','hot');
+        }
+      }
     }
-
-    if(errorEvents.length){
-      const byTeam={};
-      errorEvents.forEach(e=>{if(!byTeam[e.team]) byTeam[e.team]=[];byTeam[e.team].push(e);});
-      Object.entries(byTeam).forEach(([team,list])=>{
-        if(list.length>=2) push(88,'⚠️',team+' 守備不穩',team+' 本場已發生 '+list.length+' 次守備失誤，可能直接影響比賽走勢。','守備失誤','warn');
-        else push(62,'⚠️',team+' 發生守備失誤',list[0].desc,list[0].inning,'warn');
-      });
+    for(const side of ['away','home']){
+      const official=Number(live.linescore?.teams?.[side]?.errors);
+      const count=Number.isFinite(official)?official:errors[side].length;
+      if(count>=2){
+        const team=side==='away'?awayName:homeName;
+        add('errorTotal:'+side,89,'⚠️',team+' 累計 '+count+' 次失誤',
+          team+' 本場已有 '+count+' 次守備失誤。','守備狀態','warn');
+      }
     }
-
-    const latestLead=leadEvents.at(-1);
-    if(latestLead){
-      const half=latestLead.half==='top'?'上':'下';
-      const where=String(latestLead.inning??'-')+' 局'+half;
-      if(latestLead.type==='goahead') push(97,'🔄',latestLead.team+' 逆轉超前',where+'完成逆轉，目前比分 '+latestLead.score+'。','比分轉折','hot');
-      else if(latestLead.type==='tie') push(92,'⚖️',latestLead.team+' 追平比賽',where+'將比分追成 '+latestLead.score+'。','追平戰局','good');
-      else push(80,'⬆️',latestLead.team+' 取得領先',where+'取得領先，目前比分 '+latestLead.score+'。','領先變化','good');
+    // 最後半局的致勝分：僅在 MLB 標示比賽結束時判斷。
+    const isFinal=gd.status?.abstractGameState==='Final';
+    const last=scoreChanges.at(-1);
+    if(isFinal&&last&&last.half==='bottom'&&Number(last.inning)>=9&&
+       last.hm>last.aw&&last.prevHome<=last.prevAway){
+      add('walkoff',110,'🎉',homeName+' 再見勝利',
+        String(last.inning)+'局下，'+homeName+'攻下致勝分，以 '+last.hm+'：'+last.aw+' 結束比賽。','再見時刻','hot',last.n);
     }
+    return items.sort((a,b)=>b.priority-a.priority||b.order-a.order);
+  }
 
-    items.sort((a,b)=>b.priority-a.priority);
-    const dedup=[], seen=new Set();
-    for(const item of items){
-      if(seen.has(item.title)) continue;
-      seen.add(item.title); dedup.push(item);
-      if(dedup.length>=6) break;
-    }
-
-    if(!dedup.length){
-      els.gameHighlights.innerHTML='<div class="empty" style="grid-column:1/-1">目前尚未出現值得特別整理的焦點事件</div>';
+  function renderHighlightTicker(){
+    const list=state.highlights||[];
+    if(!list.length){
+      els.highlightTicker.innerHTML='<span class="highlight-ticker-desc">目前還沒有符合條件的焦點事件</span>';
+      els.highlightCounter.textContent='0 / 0';
       return;
     }
-    els.gameHighlights.innerHTML=dedup.map(x=>
+    state.highlightIndex=((state.highlightIndex%list.length)+list.length)%list.length;
+    const item=list[state.highlightIndex];
+    els.highlightTicker.innerHTML=
+      '<span class="highlight-ticker-icon" aria-hidden="true">'+item.icon+'</span>'+
+      '<span class="highlight-ticker-title">'+esc(item.title)+'</span>'+
+      '<span class="highlight-ticker-desc">· '+esc(item.desc)+'</span>';
+    els.highlightCounter.textContent=(state.highlightIndex+1)+' / '+list.length;
+  }
+
+  function syncHighlights(){
+    const list=state.highlights||[];
+    els.gameHighlights.hidden=!state.highlightsExpanded;
+    els.highlightsToggle.setAttribute('aria-expanded',String(state.highlightsExpanded));
+    els.highlightsToggle.setAttribute('aria-label',
+      (state.highlightsExpanded?'收合':'展開')+'全部 '+list.length+' 則本場焦點');
+    els.highlightsToggleText.textContent=state.highlightsExpanded?'收合':'全部';
+    renderHighlightTicker();
+    if(!state.highlightsExpanded)return;
+    els.gameHighlights.innerHTML=list.length?list.map(x=>
       '<article class="highlight-item '+x.tone+'">'+
-        '<div class="highlight-top"><span class="highlight-icon">'+x.icon+'</span><div class="highlight-title">'+esc(x.title)+'</div></div>'+
+        '<div class="highlight-top"><span class="highlight-icon" aria-hidden="true">'+x.icon+'</span>'+
+        '<div class="highlight-title">'+esc(x.title)+'</div></div>'+
         '<div class="highlight-desc">'+esc(x.desc)+'</div>'+
         (x.meta?'<div class="highlight-meta">'+esc(x.meta)+'</div>':'')+
       '</article>'
-    ).join('');
+    ).join(''):'<div class="empty" style="grid-column:1/-1">目前還沒有符合條件的焦點事件</div>';
+  }
+
+  function renderHighlights(feed){
+    const gamePk=feed.gameData?.game?.pk??state.selectedGamePk;
+    if(gamePk!==state.highlightGamePk){
+      state.highlightGamePk=gamePk;
+      state.highlightIndex=0;
+      state.highlightsExpanded=false;
+    }
+    const oldId=state.highlights[state.highlightIndex]?.id;
+    state.highlights=buildHighlightItems(feed);
+    const retained=state.highlights.findIndex(item=>item.id===oldId);
+    if(retained>=0)state.highlightIndex=retained;
+    else if(state.highlightIndex>=state.highlights.length)state.highlightIndex=0;
+    syncHighlights();
+  }
+
+  function advanceHighlights(){
+    if(state.highlightsExpanded||state.highlights.length<=1||document.hidden)return;
+    state.highlightIndex=(state.highlightIndex+1)%state.highlights.length;
+    renderHighlightTicker();
   }
 
   function renderLineScore(ls,away,home){
@@ -1089,6 +1261,12 @@
       <div class="event-score">${esc(score)}</div>
     </div>`;
   }
+
+  els.highlightsToggle.addEventListener('click',()=>{
+    state.highlightsExpanded=!state.highlightsExpanded;
+    syncHighlights();
+  });
+  setInterval(advanceHighlights,5000);
 
   els.refreshBtn.addEventListener('click',()=>loadSchedule(true));
   els.dateInput.addEventListener('change',()=>loadSchedule(false));
