@@ -225,13 +225,24 @@ GET /v1/schedule
 ```text
 https://statsapi.mlb.com/api/v1/schedule
 ?sportId=1
-&date=YYYY-MM-DD
+&startDate=YYYY-MM-DD
+&endDate=YYYY-MM-DD
 &hydrate=team,linescore
 ```
 
+日期選擇器以**使用者裝置的當地日期**為準。
+
+由於 MLB API 的 schedule 日期不一定等於使用者所在地的日曆日期，程式會針對使用者選擇的日期：
+
+1. 前後各多抓一天的 MLB 賽程。
+2. 將每場比賽的 `gameDate` 轉換成瀏覽器 / iPhone 的當地時區。
+3. 只保留換算後日期等於使用者所選日期的比賽。
+
+例如使用者在台灣選擇 `10/07`，即使該場比賽在 MLB 官方賽程中屬於美國的 `10/06`，只要換算成台灣時間後是 `10/07`，網站就會顯示該場比賽。
+
 用途：
 
-- 取得指定日期 MLB 比賽
+- 取得使用者當地日期對應的 MLB 比賽
 - 判斷有哪些季後賽比賽
 - 取得 Game PK
 - 取得主客隊
