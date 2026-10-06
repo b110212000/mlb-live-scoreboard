@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "MLB 即時戰況",
+  "short_name": "MLB 戰況",
+  "description": "MLB 季後賽即時比分、逐局、對決與本場焦點",
+  "lang": "zh-Hant-TW",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#06111f",
+  "theme_color": "#06111f",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
