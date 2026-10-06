@@ -1766,11 +1766,69 @@
   loadSchedule(false);
   setInterval(()=>{if(state.view==='live')loadSchedule(true)},REFRESH_MS);
   setInterval(()=>{if(state.view==='bracket')loadBracket(true)},60000);
-  if('serviceWorker' in navigator){
-    window.addEventListener('load',()=>{
-      navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
-    });
+  async function disableLegacyPwaCache(){
+    let hadController=false;
+    try{
+      if('serviceWorker' in navigator){
+        hadController=!!navigator.serviceWorker.controller;
+        const regs=await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(reg=>reg.unregister()));
+      }
+      if('caches' in window){
+        const keys=await caches.keys();
+        await Promise.all(keys.map(key=>caches.delete(key)));
+      }
+    }catch(_){}
+    if(hadController&&!sessionStorage.getItem('pwa-cache-migrated-v2')){
+      sessionStorage.setItem('pwa-cache-migrated-v2','1');
+      const u=new URL(location.href);
+      u.searchParams.set('_refresh',Date.now());
+      location.replace(u.toString());
+      return true;
+    }
+    return false;
   }
+
+  async function freshIndexHash(){
+    const u=new URL('./index.html',location.href);
+    u.searchParams.set('_check',Date.now());
+    const r=await fetch(u.toString(),{cache:'no-store'});
+    if(!r.ok)throw new Error('version check failed');
+    const text=await r.text();
+    let h=2166136261;
+    for(let i=0;i<text.length;i++){
+      h^=text.charCodeAt(i);
+      h=Math.imul(h,16777619);
+    }
+    return (h>>>0).toString(16);
+  }
+
+  async function checkForAppUpdate(){
+    try{
+      const hash=await freshIndexHash();
+      const prev=localStorage.getItem('mlb-index-hash');
+      if(!prev){
+        localStorage.setItem('mlb-index-hash',hash);
+        return;
+      }
+      if(prev!==hash){
+        localStorage.setItem('mlb-index-hash',hash);
+        const u=new URL(location.href);
+        u.searchParams.set('_v',Date.now());
+        location.replace(u.toString());
+      }
+    }catch(_){}
+  }
+
+  window.addEventListener('load',async()=>{
+    const reloading=await disableLegacyPwaCache();
+    if(!reloading)checkForAppUpdate();
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden)checkForAppUpdate();
+  });
+  window.addEventListener('focus',checkForAppUpdate);
+  setInterval(checkForAppUpdate,60000);
 })();
 </script>
 </body>
