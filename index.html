@@ -138,6 +138,21 @@
     .pitch-dot.ball{background:var(--green)}
     .pitch-data{font-size:13px;line-height:1.8;color:#d8e5f2}
     .pitch-data strong{color:#fff}
+    .highlights-card{margin-top:14px;padding:18px;overflow:hidden}
+    .highlights-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .highlights-head .section-title{margin:0}
+    .highlights-note{font-size:11px;color:var(--muted);white-space:nowrap}
+    .highlights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .highlight-item{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:13px;padding:13px 14px;background:linear-gradient(135deg,#10253b,#0a1829);min-width:0}
+    .highlight-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+    .highlight-item.hot::before{background:var(--red)}
+    .highlight-item.warn::before{background:var(--yellow)}
+    .highlight-item.good::before{background:var(--green)}
+    .highlight-top{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+    .highlight-icon{font-size:17px;line-height:1}
+    .highlight-title{font-size:14px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .highlight-desc{font-size:13px;line-height:1.55;color:#d8e5f2}
+    .highlight-meta{font-size:10px;color:var(--muted);margin-top:6px}
     .table-card{margin-top:14px;padding:18px;overflow:hidden}
     .scroll{overflow-x:auto}
     table{width:100%;border-collapse:collapse;min-width:720px}
@@ -329,6 +344,14 @@
       .zone-wrap{transform:scale(.88);transform-origin:center}
       .pitch-data{font-size:12px;line-height:1.65}
 
+      .highlights-card{margin-top:10px;border-radius:0;padding:13px 12px}
+      .highlights-head{margin-bottom:9px}
+      .highlights-note{font-size:9px}
+      .highlights-grid{grid-template-columns:1fr;gap:7px}
+      .highlight-item{padding:10px 11px}
+      .highlight-title{font-size:13px}
+      .highlight-desc{font-size:12px}
+      .highlight-meta{font-size:9px}
       .table-card{margin-top:10px;border-radius:0}
       .scroll{
         margin:0 -12px;
@@ -508,6 +531,16 @@
       </section>
     </div>
 
+    <section class="card highlights-card">
+      <div class="highlights-head">
+        <h2 class="section-title">🔥 本場焦點</h2>
+        <div class="highlights-note">依即時賽事資料自動整理</div>
+      </div>
+      <div id="gameHighlights" class="highlights-grid">
+        <div class="empty" style="grid-column:1/-1">等待焦點事件</div>
+      </div>
+    </section>
+
     <section class="card table-card">
       <h2 class="section-title">逐局比分</h2>
       <div class="scroll">
@@ -559,7 +592,8 @@
     base1:$('base1'), base2:$('base2'), base3:$('base3'), baseSummary:$('baseSummary'),
     pitchDot:$('pitchDot'), pitchData:$('pitchData'),
     inningHead:$('inningHead'), inningBody:$('inningBody'),
-    scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents')
+    scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
+    gameHighlights:$('gameHighlights')
   };
 
   const state = {games:[], selectedGamePk:null, loading:false};
@@ -654,6 +688,7 @@
     els.inningHead.innerHTML='';els.inningBody.innerHTML='';
     els.scoringEvents.className='empty';els.scoringEvents.textContent='尚無得分紀錄';
     els.recentEvents.className='empty';els.recentEvents.textContent='尚無打席紀錄';
+    els.gameHighlights.innerHTML='<div class="empty" style="grid-column:1/-1">目前沒有可整理的焦點</div>';
     setBases(null,null,null);renderPitchLocation(null);markUpdated(true,false);
   }
 
@@ -717,6 +752,7 @@
       els.pitchEfficiency.textContent='--';els.pitchEfficiencySub.textContent='好球數 / 用球數';
     }
 
+    renderHighlights(feed);
     renderLineScore(ls,away,home);renderScoringPlays(plays);renderRecentPlays(plays);
   }
 
@@ -879,6 +915,112 @@
     const spin=p.pitchData?.breaks?.spinRate!=null?`${Math.round(p.pitchData.breaks.spinRate)} rpm`:'--';
     const result=zhPitchResult(p.details?.description||p.details?.call?.description||'--');
     els.pitchData.innerHTML=`球種：<strong>${esc(type)}</strong><br>球速：<strong>${esc(speed)}</strong><br>轉速：<strong>${esc(spin)}</strong><br>結果：<strong>${esc(result)}</strong>`;
+  }
+
+  function renderHighlights(feed){
+    const gd=feed.gameData||{}, live=feed.liveData||{}, plays=live.plays||{};
+    const all=plays.allPlays||[];
+    const awayName=gd.teams?.away?.name||'客隊';
+    const homeName=gd.teams?.home?.name||'主隊';
+    const batting=new Map(), pitcherHR=new Map(), errorEvents=[], leadEvents=[];
+    let prevAway=0, prevHome=0;
+
+    function getBat(p){
+      const id=p.matchup?.batter?.id;
+      const name=p.matchup?.batter?.fullName||'未知打者';
+      const key=id||name;
+      if(!batting.has(key)) batting.set(key,{name:name,h:0,hr:0,rbi:0,grandSlams:0});
+      return batting.get(key);
+    }
+
+    for(const p of all){
+      const event=p.result?.event||'';
+      const batter=getBat(p);
+      if(['Single','Double','Triple','Home Run'].includes(event)) batter.h++;
+      if(event==='Home Run'){
+        batter.hr++;
+        if(Number(p.result?.rbi||0)>=4) batter.grandSlams++;
+        const pitcher=p.matchup?.pitcher;
+        if(pitcher){
+          const key=pitcher.id||pitcher.fullName;
+          const item=pitcherHR.get(key)||{name:pitcher.fullName||'投手',count:0};
+          item.count++; pitcherHR.set(key,item);
+        }
+      }
+      batter.rbi+=Number(p.result?.rbi||0);
+
+      if(event==='Field Error'||/error/i.test(p.result?.description||'')){
+        const fieldingTeam=p.about?.halfInning==='top'?homeName:awayName;
+        errorEvents.push({team:fieldingTeam,inning:String(p.about?.inning??'-')+'局'+(p.about?.halfInning==='top'?'上':'下'),desc:zhDescription(p.result?.description)||'發生守備失誤'});
+      }
+
+      const aw=Number(p.result?.awayScore??prevAway), hm=Number(p.result?.homeScore??prevHome);
+      const beforeDiff=prevAway-prevHome, afterDiff=aw-hm;
+      if((beforeDiff<0&&afterDiff>0)||(beforeDiff>0&&afterDiff<0)){
+        leadEvents.push({type:'goahead',team:afterDiff>0?awayName:homeName,inning:p.about?.inning,half:p.about?.halfInning,score:aw+'-'+hm});
+      }else if(beforeDiff!==0&&afterDiff===0){
+        leadEvents.push({type:'tie',team:p.about?.halfInning==='top'?awayName:homeName,inning:p.about?.inning,half:p.about?.halfInning,score:aw+'-'+hm});
+      }else if(beforeDiff===0&&afterDiff!==0&&(aw!==prevAway||hm!==prevHome)){
+        leadEvents.push({type:'lead',team:afterDiff>0?awayName:homeName,inning:p.about?.inning,half:p.about?.halfInning,score:aw+'-'+hm});
+      }
+      prevAway=aw; prevHome=hm;
+    }
+
+    const items=[];
+    const push=(priority,icon,title,desc,meta,tone)=>items.push({priority:priority,icon:icon,title:title,desc:desc,meta:meta||'',tone:tone||''});
+
+    for(const b of batting.values()){
+      if(b.grandSlams>0) push(100,'🚀',b.name+' 滿貫砲',b.name+' 本場轟出滿貫全壘打，目前累計 '+b.rbi+' 分打點。','關鍵長打','hot');
+      if(b.hr>=3) push(98,'🔥',b.name+' 三響砲',b.name+' 今天已經敲出 '+b.hr+' 支全壘打，火力完全爆發。','單場多轟','hot');
+      else if(b.hr===2) push(95,'🔥',b.name+' 雙響砲',b.name+' 本場已擊出 2 支全壘打，共貢獻 '+b.rbi+' 分打點。','單場雙轟','hot');
+      else if(b.hr===1) push(72,'💣',b.name+' 開轟',b.name+' 本場擊出全壘打'+(b.rbi?'，目前累計 '+b.rbi+' 分打點':'')+'。','全壘打','');
+      if(b.rbi>=4) push(90,'⚡',b.name+' '+b.rbi+' 分打點',b.name+' 今天已經貢獻 '+b.rbi+' 分打點，是目前最具破壞力的打者之一。','打點爆發','good');
+      if(b.h>=4) push(86,'🎯',b.name+' '+b.h+' 安猛打',b.name+' 本場已敲出 '+b.h+' 支安打，持續製造進攻機會。','多安打','good');
+      else if(b.h===3) push(78,'🎯',b.name+' 猛打賞',b.name+' 今天已經完成單場 3 安。','3 安打','good');
+    }
+
+    for(const p of pitcherHR.values()){
+      if(p.count>=3) push(93,'📉',p.name+' 挨了 '+p.count+' 轟',p.name+' 本場已被敲出 '+p.count+' 支全壘打，長打壓制出現明顯問題。','投手危機','warn');
+      else if(p.count===2) push(82,'📉',p.name+' 單場挨 2 轟',p.name+' 今天已經被對手敲出 2 支全壘打。','投手挨轟','warn');
+    }
+
+    if(errorEvents.length){
+      const byTeam={};
+      errorEvents.forEach(e=>{if(!byTeam[e.team]) byTeam[e.team]=[];byTeam[e.team].push(e);});
+      Object.entries(byTeam).forEach(([team,list])=>{
+        if(list.length>=2) push(88,'⚠️',team+' 守備不穩',team+' 本場已發生 '+list.length+' 次守備失誤，可能直接影響比賽走勢。','守備失誤','warn');
+        else push(62,'⚠️',team+' 發生守備失誤',list[0].desc,list[0].inning,'warn');
+      });
+    }
+
+    const latestLead=leadEvents.at(-1);
+    if(latestLead){
+      const half=latestLead.half==='top'?'上':'下';
+      const where=String(latestLead.inning??'-')+' 局'+half;
+      if(latestLead.type==='goahead') push(97,'🔄',latestLead.team+' 逆轉超前',where+'完成逆轉，目前比分 '+latestLead.score+'。','比分轉折','hot');
+      else if(latestLead.type==='tie') push(92,'⚖️',latestLead.team+' 追平比賽',where+'將比分追成 '+latestLead.score+'。','追平戰局','good');
+      else push(80,'⬆️',latestLead.team+' 取得領先',where+'取得領先，目前比分 '+latestLead.score+'。','領先變化','good');
+    }
+
+    items.sort((a,b)=>b.priority-a.priority);
+    const dedup=[], seen=new Set();
+    for(const item of items){
+      if(seen.has(item.title)) continue;
+      seen.add(item.title); dedup.push(item);
+      if(dedup.length>=6) break;
+    }
+
+    if(!dedup.length){
+      els.gameHighlights.innerHTML='<div class="empty" style="grid-column:1/-1">目前尚未出現值得特別整理的焦點事件</div>';
+      return;
+    }
+    els.gameHighlights.innerHTML=dedup.map(x=>
+      '<article class="highlight-item '+x.tone+'">'+
+        '<div class="highlight-top"><span class="highlight-icon">'+x.icon+'</span><div class="highlight-title">'+esc(x.title)+'</div></div>'+
+        '<div class="highlight-desc">'+esc(x.desc)+'</div>'+
+        (x.meta?'<div class="highlight-meta">'+esc(x.meta)+'</div>':'')+
+      '</article>'
+    ).join('');
   }
 
   function renderLineScore(ls,away,home){
