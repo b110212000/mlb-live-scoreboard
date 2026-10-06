@@ -630,6 +630,7 @@
     .series-record{font-size:10px;font-weight:800;color:#c8d8e8;white-space:nowrap}
     .series-winner .series-abbr,.series-winner .series-record{color:#8bf0b9}
     .series-status{margin-top:6px;padding-top:6px;border-top:1px solid rgba(122,153,181,.18);font-size:9px;color:var(--muted);line-height:1.35;text-align:center}
+    .series-score{display:inline-block;margin-left:3px;font-size:13px;font-weight:950;color:#fff;letter-spacing:.03em;font-variant-numeric:tabular-nums}
     .ws-column{align-self:center}
     .ws-title{text-align:center;font-weight:950;font-size:17px;margin-bottom:8px;color:#ffd47c}
     .ws-trophy{text-align:center;font-size:32px;line-height:1;margin-bottom:8px}
@@ -662,6 +663,7 @@
       .series-abbr{font-size:10px}
       .series-record{grid-column:2;font-size:8px;margin-top:-2px}
       .series-status{font-size:8px;margin-top:4px;padding-top:4px}
+      .series-score{font-size:12px}
       .round-title{font-size:8px}
       .league-title{font-size:12px}
       .league-badge{width:24px;height:24px}
@@ -959,8 +961,10 @@
       'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="#203449"/><circle cx="50" cy="37" r="18" fill="#6d8298"/><path d="M18 95c5-25 20-37 32-37s27 12 32 37" fill="#6d8298"/></svg>');
   }
   function gameLabel(g){
-    const a=g.teams?.away?.team?.teamName||g.teams?.away?.team?.name||'客隊';
-    const h=g.teams?.home?.team?.teamName||g.teams?.home?.team?.name||'主隊';
+    const away=g.teams?.away?.team||{};
+    const home=g.teams?.home?.team||{};
+    const a=teamAbbr(away);
+    const h=teamAbbr(home);
     return a+' '+(g.teams?.away?.score??0)+' - '+(g.teams?.home?.score??0)+' '+h;
   }
   function gameLocalDateTime(g){
@@ -1693,14 +1697,17 @@
         '<span class="series-record">'+t.wins+'勝'+t.losses+'敗</span>'+
       '</div>';
     }).join('');
-    let status='尚未開打';
-    if(s.winner)status=(s.winner.abbreviation||s.winner.name)+' '+s.winner.wins+'–'+(s.teamList.find(t=>t!==s.winner)?.wins||0)+' 晉級';
-    else if(a.wins===b.wins&&a.wins>0)status='系列賽 '+a.wins+'–'+b.wins+' 平手';
-    else if(a.wins!==b.wins){
+    let statusHTML='尚未開打';
+    if(s.winner){
+      const other=s.teamList.find(t=>t!==s.winner);
+      statusHTML=esc(s.winner.abbreviation||s.winner.name)+' 晉級 <span class="series-score">'+s.winner.wins+'–'+(other?.wins||0)+'</span>';
+    }else if(a.wins===b.wins&&a.wins>0){
+      statusHTML='系列賽平手 <span class="series-score">'+a.wins+'–'+b.wins+'</span>';
+    }else if(a.wins!==b.wins){
       const lead=a.wins>b.wins?a:b,trail=lead===a?b:a;
-      status=(lead.abbreviation||lead.name)+' 系列賽領先 '+lead.wins+'–'+trail.wins;
+      statusHTML=esc(lead.abbreviation||lead.name)+' 系列賽領先 <span class="series-score">'+lead.wins+'–'+trail.wins+'</span>';
     }
-    return '<div class="series-card '+(s.winner?'clinched':'')+'">'+rows+'<div class="series-status">'+esc(status)+'</div></div>';
+    return '<div class="series-card '+(s.winner?'clinched':'')+'">'+rows+'<div class="series-status">'+statusHTML+'</div></div>';
   }
   function roundColumnHTML(title,list,count){
     const arr=[...list];
