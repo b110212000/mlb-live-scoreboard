@@ -973,15 +973,36 @@
     return date+' '+time+' · 當地時間';
   }
 
+  function shiftLocalDateString(dateText,days){
+    const parts=String(dateText).split('-').map(Number);
+    if(parts.length!==3||parts.some(v=>!Number.isFinite(v)))return dateText;
+    const d=new Date(parts[0],parts[1]-1,parts[2]+days,12,0,0);
+    return localDateString(d);
+  }
+  function gameLocalDateKey(g){
+    if(!g?.gameDate)return '';
+    const d=new Date(g.gameDate);
+    return Number.isNaN(d.getTime())?'':localDateString(d);
+  }
+
   async function loadSchedule(keepSelection=true){
     if(state.loading) return;
     state.loading=true;
     showError('');
     try{
       const date=els.dateInput.value||localDateString();
-      const data=await getJSON(`${API}/v1/schedule?sportId=1&date=${encodeURIComponent(date)}&hydrate=team,linescore`);
+
+      // MLB 的 schedule 日期不一定等於使用者所在地的日曆日期。
+      // 前後各多抓一天，再依瀏覽器 / iPhone 的當地時區重新歸類。
+      const startDate=shiftLocalDateString(date,-1);
+      const endDate=shiftLocalDateString(date,1);
+      const data=await getJSON(`${API}/v1/schedule?sportId=1&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&hydrate=team,linescore`);
       const all=(data.dates||[]).flatMap(d=>d.games||[]);
-      state.games=all.filter(g=>POSTSEASON.has(g.gameType));
+      const unique=[...new Map(all.map(g=>[g.gamePk,g])).values()];
+      state.games=unique
+        .filter(g=>POSTSEASON.has(g.gameType)&&gameLocalDateKey(g)===date)
+        .sort((a,b)=>new Date(a.gameDate)-new Date(b.gameDate));
+
       if(!keepSelection||!state.games.some(g=>g.gamePk===state.selectedGamePk)){
         const live=state.games.find(g=>g.status?.abstractGameState==='Live');
         state.selectedGamePk=(live||state.games[0])?.gamePk??null;
@@ -990,7 +1011,7 @@
       if(state.selectedGamePk) await loadGame(state.selectedGamePk);
       else renderNoGame(date);
     }catch(err){
-      showError(`無法取得 MLB 即時資料：${err.message}。若你是直接雙擊 HTML 開啟，可改用 Mac 的 python3 -m http.server 8080。`);
+      showError(`無法取得 MLB 即時資料：${err.message}`);
       markUpdated(false,false);
     }finally{
       state.loading=false;
