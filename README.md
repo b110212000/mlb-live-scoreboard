@@ -18,6 +18,9 @@
 - 本場焦點事件
 - 季後賽淘汰賽戰況
 - 系列賽目前勝敗與晉級狀態
+- 對戰名單：兩隊 active roster、先發打線、先發投手
+- 打者例行賽 AVG / OBP / SLG / OPS / HR / RBI
+- 投手例行賽 ERA / WHIP / FIP* / K/9 / BB/9 / W-L
 - 比賽時間依使用者裝置時區自動換算
 - iPhone / iPad 加入主畫面
 - 下拉重新整理
@@ -312,7 +315,86 @@ gamePk
 
 ---
 
-## 3. 季後賽戰況
+## 3. 對戰名單
+
+對戰名單頁會依目前選中的比賽，同時顯示兩隊 active roster。
+
+### Team Roster
+
+Endpoint：
+
+```http
+GET /v1/teams/{teamId}/roster
+```
+
+目前使用的主要參數：
+
+```text
+rosterType=active
+season=YYYY
+date=YYYY-MM-DD
+hydrate=person(stats(group=[hitting,pitching],type=[season],season=YYYY))
+```
+
+用途：
+
+- 取得球隊 active roster
+- 球衣背號
+- 守備位置
+- 球員基本資料
+- 當季例行賽打擊 / 投球成績
+
+如果 roster 回應沒有完整帶回球員 stats，前端會再使用：
+
+```http
+GET /v1/people?personIds=...
+```
+
+並用相同 stats hydrate 一次補齊球員 season stats。
+
+### 本場先發
+
+先發打線與先發投手由目前選中比賽的 Live Game Feed / Boxscore 判斷：
+
+```http
+GET /v1.1/game/{gamePk}/feed/live
+```
+
+主要使用：
+
+```text
+liveData.boxscore.teams.away/home.battingOrder
+liveData.boxscore.teams.away/home.pitchers
+gameData.probablePitchers
+```
+
+若 MLB 尚未公布先發打線，頁面仍會先顯示兩隊 active roster，並標示「先發打線尚未公布」。
+
+### 顯示指標
+
+打者：
+
+```text
+AVG / OBP / SLG / OPS / HR / RBI
+```
+
+投手：
+
+```text
+ERA / WHIP / FIP* / K/9 / BB/9 / W-L
+```
+
+`FIP*` 不是 MLB Stats API 的直接欄位，目前以前端依例行賽的 HR、BB、HBP、K、IP 計算：
+
+```text
+FIP* = (13×HR + 3×(BB+HBP) - 2×K) / IP + 3.10
+```
+
+其中 3.10 為目前頁面採用的固定估算常數，因此畫面使用 `FIP*` 標示，避免誤認為官方直接提供的 FIP。
+
+---
+
+## 4. 季後賽戰況
 
 季後賽戰況頁同樣使用：
 
