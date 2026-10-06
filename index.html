@@ -959,10 +959,10 @@
     let prevAway=0,prevHome=0,seq=0;
     const halfName=h=>h==='top'?'上':h==='bottom'?'下':'';
     const when=p=>String(p.about?.inning??'-')+'局'+halfName(p.about?.halfInning);
-    const add=(id,priority,icon,title,desc,meta,tone,order)=>{
+    const add=(id,priority,icon,title,desc,meta,tone,order,inningSort=null)=>{
       if(seen.has(id))return;
       seen.add(id);
-      items.push({id,priority,icon,title,desc,meta:meta||'',tone:tone||'',order:order??seq});
+      items.push({id,priority,icon,title,desc,meta:meta||'',tone:tone||'',order:order??seq,inningSort:Number.isFinite(Number(inningSort))?Number(inningSort):null});
     };
     const bFor=p=>{
       const id=p.matchup?.batter?.id, name=p.matchup?.batter?.fullName;
@@ -1011,7 +1011,7 @@
         if(Number.isFinite(Number(speed))&&Number(speed)>0)extra.push(Number(speed).toFixed(1)+' mph');
         add('hr:'+id,84,'💣',batterName+' '+hrType,
           batterName+' 從 '+pitcherName+' 手中擊出'+hrType+'。'+(extra.length?'擊球資訊：'+extra.join('、')+'。':''),
-          inning,'hot',n);
+          inning,'hot',n,p.about?.inning);
       }
       if(pitcher&&(event==='Strikeout'||etype.startsWith('strikeout')))pitcher.strikeouts++;
       const isError=event==='Field Error'||etype==='field_error'||/\b(fielding|throwing) error\b/i.test(p.result?.description||'');
@@ -1020,17 +1020,17 @@
         errors[defending].push({id,inning,n});
         const team=defending==='home'?homeName:awayName;
         add('error:'+id,79,'⚠️',team+' 發生守備失誤',
-          inning+'，'+team+' 出現守備失誤，讓攻方有機會延續進攻。',inning,'warn',n);
+          inning+'，'+team+' 出現守備失誤，讓攻方有機會延續進攻。',inning,'warn',n,p.about?.inning);
       }
       if(rbi>=2&&!isHR){
         add('multiRbi:'+id,69,'⚡',batterName+' 單次貢獻 '+rbi+' 打點',
-          batterName+' 在'+inning+'的一次攻勢中送回 '+rbi+' 分。',inning,'good',n);
+          batterName+' 在'+inning+'的一次攻勢中送回 '+rbi+' 分。',inning,'good',n,p.about?.inning);
       }
       const isDP=/double.play|grounded.into.dp/i.test(event+' '+etype);
       if(isDP){
         const fielding=p.about?.halfInning==='top'?homeName:awayName;
         add('dp:'+id,53,'🧤',fielding+' 策動雙殺',
-          inning+'，'+fielding+'完成雙殺守備，迅速拿下兩個出局數。',inning,'good',n);
+          inning+'，'+fielding+'完成雙殺守備，迅速拿下兩個出局數。',inning,'good',n,p.about?.inning);
       }
 
       // 盜壘資訊多半位於跑者紀錄，不能只靠打席 event。
@@ -1050,7 +1050,7 @@
       for(const steal of steals){
         const parts=steal.split('|');
         add('steal:'+id+':'+steal,59,'🏃',parts[0]+' 盜壘成功',
-          inning+'，'+parts[0]+'完成盜壘'+(parts[1]?'，抵達'+({ '2B':'二壘','3B':'三壘',score:'本壘'}[parts[1]]||parts[1]):'')+'。',inning,'good',n);
+          inning+'，'+parts[0]+'完成盜壘'+(parts[1]?'，抵達'+({ '2B':'二壘','3B':'三壘',score:'本壘'}[parts[1]]||parts[1]):'')+'。',inning,'good',n,p.about?.inning);
       }
 
       const awRaw=Number(p.result?.awayScore),hmRaw=Number(p.result?.homeScore);
@@ -1061,17 +1061,17 @@
         scoreChanges.push({aw,hm,prevAway,prevHome,inning:p.about?.inning,half:p.about?.halfInning,id,n});
         if(before!==0&&after===0){
           add('tie:'+id,96,'⚖️',nameForScore+' 追平比賽',
-            inning+'，'+nameForScore+'將比分追成 '+aw+'：'+hm+'。',inning,'hot',n);
+            inning+'，'+nameForScore+'將比分追成 '+aw+'：'+hm+'。',inning,'hot',n,p.about?.inning);
         }else if(before!==after&&after!==0){
           const leader=after>0?awayName:homeName;
           const reversed=before!==0&&before!==after;
           add('lead:'+id,reversed?100:80,reversed?'🔄':'⬆️',leader+(reversed?' 逆轉超前':' 取得領先'),
-            inning+'，'+leader+(reversed?'完成逆轉':'取得領先')+'，比分 '+aw+'：'+hm+'。',inning,reversed?'hot':'good',n);
+            inning+'，'+leader+(reversed?'完成逆轉':'取得領先')+'，比分 '+aw+'：'+hm+'。',inning,reversed?'hot':'good',n,p.about?.inning);
         }
         if(!isHR&&rbi<2){
           const eventZh=zhEventName(event)||'得分攻勢';
           add('score:'+id,61,'🏟️',nameForScore+' 再添分數',
-            inning+'，'+(b?.name?b.name+' '+eventZh+'，':'')+'比分來到 '+aw+'：'+hm+'。',inning,'',n);
+            inning+'，'+(b?.name?b.name+' '+eventZh+'，':'')+'比分來到 '+aw+'：'+hm+'。',inning,'',n,p.about?.inning);
         }
       }
       prevAway=aw;prevHome=hm;
@@ -1115,7 +1115,7 @@
         if(Number.isFinite(runs)&&runs>=3){
           const name=side==='away'?awayName:homeName;
           add('bigInning:'+side+':'+inn.num,91,'🚨',name+' 單局攻下 '+runs+' 分',
-            String(inn.num)+'局'+(side==='away'?'上':'下')+'，'+name+'單局灌進 '+runs+' 分。','單局攻勢','hot');
+            String(inn.num)+'局'+(side==='away'?'上':'下')+'，'+name+'單局灌進 '+runs+' 分。','單局攻勢','hot',seq,inn.num);
         }
       }
     }
@@ -1134,9 +1134,17 @@
     if(isFinal&&last&&last.half==='bottom'&&Number(last.inning)>=9&&
        last.hm>last.aw&&last.prevHome<=last.prevAway){
       add('walkoff',110,'🎉',homeName+' 再見勝利',
-        String(last.inning)+'局下，'+homeName+'攻下致勝分，以 '+last.hm+'：'+last.aw+' 結束比賽。','再見時刻','hot',last.n);
+        String(last.inning)+'局下，'+homeName+'攻下致勝分，以 '+last.hm+'：'+last.aw+' 結束比賽。','再見時刻','hot',last.n,last.inning);
     }
-    return items.sort((a,b)=>b.priority-a.priority||b.order-a.order);
+    return items.sort((a,b)=>{
+      const aNoInning=a.inningSort==null, bNoInning=b.inningSort==null;
+      // 1) 沒有特定局數的整場統計／里程碑放最上面
+      if(aNoInning!==bNoInning)return aNoInning?-1:1;
+      // 2) 有局數時，越後面的局數越上面
+      if(!aNoInning&&a.inningSort!==b.inningSort)return b.inningSort-a.inningSort;
+      // 3) 同一局依較晚發生的事件優先，再以重要度排序
+      return (b.order-a.order)||(b.priority-a.priority);
+    });
   }
 
   function renderHighlightTicker(){
