@@ -72,8 +72,13 @@
       background:#28435d;
       border-color:#45627d;
       box-shadow:0 2px 8px rgba(0,0,0,.18);
-      font-weight:750
+      font-weight:750;
+      display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+      gap:2px;line-height:1.2
     }
+    .game-tab-main{font-size:13px;font-weight:850}
+    .game-tab-time{font-size:10px;font-weight:650;color:#c5d4e2;letter-spacing:.01em}
+    .game-tab.active .game-tab-time{color:#e8f8ff}
     .game-tab:hover{background:#31516f;border-color:#65839f}
     .game-tab.active{
       color:#fff;
@@ -956,7 +961,15 @@
   function gameLabel(g){
     const a=g.teams?.away?.team?.teamName||g.teams?.away?.team?.name||'客隊';
     const h=g.teams?.home?.team?.teamName||g.teams?.home?.team?.name||'主隊';
-    return `${a} ${g.teams?.away?.score??0} - ${g.teams?.home?.score??0} ${h}`;
+    return a+' '+(g.teams?.away?.score??0)+' - '+(g.teams?.home?.score??0)+' '+h;
+  }
+  function gameLocalDateTime(g){
+    if(!g?.gameDate)return '';
+    const d=new Date(g.gameDate);
+    if(Number.isNaN(d.getTime()))return '';
+    const date=new Intl.DateTimeFormat(undefined,{month:'numeric',day:'numeric'}).format(d);
+    const time=new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit',hour12:false}).format(d);
+    return date+' '+time+' · 當地時間';
   }
 
   async function loadSchedule(keepSelection=true){
@@ -986,7 +999,10 @@
   function renderTabs(){
     if(!state.games.length){els.gameTabs.innerHTML='';return}
     els.gameTabs.innerHTML=state.games.map(g=>
-      `<button type="button" class="game-tab ${g.gamePk===state.selectedGamePk?'active':''}" data-pk="${g.gamePk}">${esc(gameLabel(g))}</button>`
+      '<button type="button" class="game-tab '+(g.gamePk===state.selectedGamePk?'active':'')+'" data-pk="'+g.gamePk+'">'+
+        '<span class="game-tab-main">'+esc(gameLabel(g))+'</span>'+
+        '<span class="game-tab-time">'+esc(gameLocalDateTime(g))+'</span>'+
+      '</button>'
     ).join('');
     els.gameTabs.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',async()=>{
       state.selectedGamePk=Number(btn.dataset.pk);renderTabs();await loadGame(state.selectedGamePk);
