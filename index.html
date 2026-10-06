@@ -92,7 +92,13 @@
     .teams{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:20px;align-items:center}
     .team{display:flex;align-items:center;gap:14px;min-width:0}.team>div{min-width:0}
     .team.home{justify-content:flex-end;text-align:right}
-    .logo{width:76px;height:76px;object-fit:contain;flex:none}
+    .logo{
+      width:76px;height:76px;object-fit:contain;flex:none;
+      padding:8px;border-radius:50%;
+      background:rgba(248,251,255,.96);
+      border:1px solid rgba(255,255,255,.22);
+      box-shadow:0 3px 12px rgba(0,0,0,.22)
+    }
     .team-name{font-size:clamp(20px,3vw,30px);font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .team-sub{color:var(--muted);font-size:13px;margin-top:4px}
     .bigscore{display:flex;align-items:center;gap:14px;font-size:clamp(44px,8vw,78px);font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
@@ -268,7 +274,7 @@
         grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
         gap:10px;
       }
-      .logo{width:60px;height:60px}
+      .logo{width:60px;height:60px;padding:7px}
       .team-name{font-size:18px}
       .bigscore{font-size:54px;gap:10px}
     }
@@ -337,7 +343,7 @@
         min-width:0;
       }
       .team.home{flex-direction:column-reverse}
-      .logo{width:46px;height:46px}
+      .logo{width:46px;height:46px;padding:5px}
       .team-name{
         width:100%;
         font-size:13px;
@@ -467,7 +473,7 @@
       .controls{grid-template-columns:minmax(0,1fr) 38px}
       .live-chip{grid-column:1 / -1}
       .bigscore{font-size:36px;min-width:82px}
-      .logo{width:42px;height:42px}
+      .logo{width:42px;height:42px;padding:5px}
       .team-name{font-size:12px}
       .pitch-summary{grid-template-columns:1fr}
       .diamond-area{grid-template-columns:136px minmax(0,1fr)}
