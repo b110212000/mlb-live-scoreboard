@@ -538,15 +538,133 @@
       .highlights-card{margin-bottom:10px!important}
       .diamond-area{align-items:start}
     }
+
+    /* 功能選單 */
+    .brand-group{display:flex;align-items:flex-start;gap:10px;min-width:0}
+    .feature-menu-wrap{position:relative;flex:none}
+    .feature-menu-button{
+      width:38px;height:38px;min-width:38px;min-height:38px;padding:0;
+      display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+      border-color:#31506c;background:#10263d
+    }
+    .feature-menu-button i{display:block;width:16px;height:2px;border-radius:2px;background:#e8f6ff}
+    .feature-menu{
+      position:absolute;left:0;top:calc(100% + 8px);z-index:80;width:210px;padding:7px;
+      border:1px solid #31506c;border-radius:12px;background:#081624;
+      box-shadow:0 16px 38px rgba(0,0,0,.42)
+    }
+    .feature-menu[hidden]{display:none!important}
+    .feature-menu-item{
+      width:100%;min-height:42px;display:flex;align-items:center;gap:10px;
+      padding:9px 10px;border:0;border-radius:9px;background:transparent;color:#dbe9f6;text-align:left
+    }
+    .feature-menu-item:hover{background:#102b45}
+    .feature-menu-item.active{background:#143552;color:#fff;font-weight:850}
+    .feature-menu-icon{width:24px;text-align:center;font-size:16px}
+    .feature-menu-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
+    .feature-menu-copy small{font-size:10px;font-weight:500;color:var(--muted)}
+    .app-view[hidden]{display:none!important}
+
+    /* 季後賽戰況 */
+    .bracket-shell{padding:18px;margin-top:4px;overflow:hidden}
+    .bracket-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+    .bracket-header h2{margin:2px 0 0;font-size:24px}
+    .bracket-eyebrow{font-size:11px;color:var(--accent);font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .bracket-status{font-size:12px;color:var(--muted);text-align:right}
+    .bracket-board{display:grid;grid-template-columns:minmax(0,1fr) 210px minmax(0,1fr);gap:16px;align-items:center}
+    .league-block{min-width:0}
+    .league-title{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:900;font-size:14px}
+    .league-badge{
+      width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+      background:#14314d;border:1px solid #31506c;font-size:10px
+    }
+    .league-rounds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;align-items:stretch}
+    .nl-block .league-rounds{direction:rtl}
+    .nl-block .round-column{direction:ltr}
+    .round-column{display:flex;flex-direction:column;gap:8px;min-width:0}
+    .round-title{text-align:center;color:var(--muted);font-size:10px;font-weight:800;min-height:15px}
+    .series-stack{display:flex;flex-direction:column;justify-content:space-around;gap:10px;flex:1}
+    .series-card{
+      border:1px solid #294866;border-radius:12px;background:linear-gradient(180deg,#112941,#0a1a2b);
+      padding:9px;min-width:0
+    }
+    .series-card.clinched{border-color:#567b58;background:linear-gradient(180deg,#12332e,#0a1f20)}
+    .series-card.pending{opacity:.65;border-style:dashed}
+    .series-team{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:7px;align-items:center;padding:4px 0}
+    .series-team+.series-team{border-top:1px solid rgba(122,153,181,.16)}
+    .series-logo{
+      width:27px;height:27px;object-fit:contain;padding:3px;border-radius:7px;
+      background:rgba(248,251,255,.94)
+    }
+    .series-abbr{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .series-record{font-size:10px;font-weight:800;color:#c8d8e8;white-space:nowrap}
+    .series-winner .series-abbr,.series-winner .series-record{color:#8bf0b9}
+    .series-status{margin-top:6px;padding-top:6px;border-top:1px solid rgba(122,153,181,.18);font-size:9px;color:var(--muted);line-height:1.35;text-align:center}
+    .ws-column{align-self:center}
+    .ws-title{text-align:center;font-weight:950;font-size:17px;margin-bottom:8px;color:#ffd47c}
+    .ws-trophy{text-align:center;font-size:32px;line-height:1;margin-bottom:8px}
+    .ws-column .series-card{border-color:#8d6c2d;background:linear-gradient(180deg,#302711,#16150e)}
+    .bracket-empty{padding:36px 12px;text-align:center;color:var(--muted)}
+    .round-arrow{display:none}
+
+    @media(max-width:900px){
+      .bracket-board{grid-template-columns:1fr;gap:14px}
+      .ws-column{order:2}
+      .al-block{order:1}.nl-block{order:3}
+      .nl-block .league-rounds{direction:ltr}
+      .league-title{justify-content:center}
+      .ws-column{width:min(100%,420px);justify-self:center}
+    }
+    @media(max-width:600px){
+      .feature-menu{position:fixed;left:10px;top:calc(env(safe-area-inset-top) + 58px);width:220px}
+      .feature-menu-button{width:34px;height:34px;min-width:34px;min-height:34px}
+      .brand-group{gap:8px}
+      .bracket-shell{padding:12px 10px;border-radius:0}
+      .bracket-header{margin-bottom:12px}
+      .bracket-header h2{font-size:20px}
+      .bracket-status{font-size:10px}
+      .league-rounds{gap:5px}
+      .round-column{gap:5px}
+      .series-stack{gap:6px}
+      .series-card{padding:6px 5px;border-radius:9px}
+      .series-team{grid-template-columns:22px minmax(0,1fr);gap:4px;padding:3px 0}
+      .series-logo{width:22px;height:22px;padding:2px;border-radius:6px}
+      .series-abbr{font-size:10px}
+      .series-record{grid-column:2;font-size:8px;margin-top:-2px}
+      .series-status{font-size:8px;margin-top:4px;padding-top:4px}
+      .round-title{font-size:8px}
+      .league-title{font-size:12px}
+      .league-badge{width:24px;height:24px}
+      .ws-title{font-size:15px}
+      .ws-trophy{font-size:25px}
+    }
+
 </style>
 </head>
 <body>
   <main class="wrap">
     <div class="topbar">
       <div class="topbar-title">
-        <div>
-          <h1>MLB 季後賽即時戰況</h1>
-          <div class="subtitle">即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄</div>
+        <div class="brand-group">
+          <div class="feature-menu-wrap">
+            <button id="featureMenuButton" class="feature-menu-button" type="button" aria-expanded="false" aria-controls="featureMenu" aria-label="功能列表">
+              <i></i><i></i><i></i>
+            </button>
+            <div id="featureMenu" class="feature-menu" hidden>
+              <button class="feature-menu-item active" type="button" data-view="live">
+                <span class="feature-menu-icon">⚾</span>
+                <span class="feature-menu-copy"><b>即時比賽</b><small>比分・對決・本場焦點</small></span>
+              </button>
+              <button class="feature-menu-item" type="button" data-view="bracket">
+                <span class="feature-menu-icon">🏆</span>
+                <span class="feature-menu-copy"><b>季後賽戰況</b><small>淘汰賽進度・系列賽勝敗</small></span>
+              </button>
+            </div>
+          </div>
+          <div>
+            <h1 id="appTitle">MLB 季後賽即時戰況</h1>
+            <div id="appSubtitle" class="subtitle">即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄</div>
+          </div>
         </div>
         <button id="topControlsToggle" class="collapse-toggle" type="button"
           aria-controls="topControls" aria-expanded="true" aria-label="收合日期與更新">
@@ -563,6 +681,7 @@
       </div>
     </div>
 
+    <div id="liveView" class="app-view">
     <div id="gameTabs"></div>
     <div id="errorBox" class="error"></div>
 
@@ -707,6 +826,20 @@
       <h2 class="section-title">最近打席</h2>
       <div id="recentEvents" class="empty">尚無打席紀錄</div>
     </section>
+    </div>
+
+    <div id="bracketView" class="app-view" hidden>
+      <section class="card bracket-shell">
+        <div class="bracket-header">
+          <div>
+            <div id="bracketYearText" class="bracket-eyebrow">POSTSEASON</div>
+            <h2>季後賽戰況</h2>
+          </div>
+          <div id="bracketStatus" class="bracket-status">準備載入</div>
+        </div>
+        <div id="bracketBoard" class="bracket-empty">載入季後賽戰況中…</div>
+      </section>
+    </div>
 
         <div class="foot">
       資料來源：MLB Stats API。頁面每 5 秒更新一次。
@@ -741,10 +874,13 @@
     scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
     gameHighlights:$('gameHighlights'), highlightTicker:$('highlightTicker'),
     highlightCounter:$('highlightCounter'), highlightsToggle:$('highlightsToggle'),
-    topControls:$('topControls'), topControlsToggle:$('topControlsToggle')
+    topControls:$('topControls'), topControlsToggle:$('topControlsToggle'),
+    featureMenuButton:$('featureMenuButton'), featureMenu:$('featureMenu'),
+    appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'),
+    bracketBoard:$('bracketBoard'), bracketStatus:$('bracketStatus'), bracketYearText:$('bracketYearText')
   };
 
-  const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false};
+  const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false,view:'live',topControlsExpanded:true,bracketYear:null,bracketLoading:false};
 
   function localDateString(d=new Date()){
     const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
@@ -1398,11 +1534,206 @@
     </div>`;
   }
 
+
+  function postseasonYear(){
+    const raw=els.dateInput.value||localDateString();
+    const y=Number(String(raw).slice(0,4));
+    return Number.isFinite(y)?y:new Date().getFullYear();
+  }
+  function playoffRoundName(type){
+    return ({F:'外卡',D:'分區系列賽',L:'聯盟冠軍賽',W:'世界大賽'})[type]||type;
+  }
+  function playoffNeedWins(type){
+    return type==='F'?2:type==='D'?3:4;
+  }
+  function playoffLeague(game){
+    if(game.gameType==='W')return 'WS';
+    const text=String(game.seriesDescription||'')+' '+String(game.description||'');
+    if(/American League|\bAL(?:WC|DS|CS)?\b/i.test(text))return 'AL';
+    if(/National League|\bNL(?:WC|DS|CS)?\b/i.test(text))return 'NL';
+    return 'OTHER';
+  }
+  function scheduleTeam(t){
+    const team=t?.team||{};
+    return {
+      id:team.id||null,
+      name:team.name||team.teamName||'待定',
+      abbreviation:team.abbreviation||team.teamCode?.toUpperCase()||teamAbbr(team)
+    };
+  }
+  function seriesKey(game){
+    const a=game.teams?.away?.team?.id||('A'+game.gamePk);
+    const h=game.teams?.home?.team?.id||('H'+game.gamePk);
+    return game.gameType+':'+[String(a),String(h)].sort().join('-');
+  }
+  function buildPostseasonSeries(games){
+    const groups=new Map();
+    for(const g of games){
+      if(!['F','D','L','W'].includes(g.gameType))continue;
+      const key=seriesKey(g);
+      if(!groups.has(key)){
+        groups.set(key,{
+          key,type:g.gameType,league:playoffLeague(g),description:g.seriesDescription||playoffRoundName(g.gameType),
+          games:[],firstDate:g.gameDate||'',teams:new Map()
+        });
+      }
+      const s=groups.get(key);
+      s.games.push(g);
+      if(g.gameDate&&(!s.firstDate||g.gameDate<s.firstDate))s.firstDate=g.gameDate;
+      for(const side of ['away','home']){
+        const tm=scheduleTeam(g.teams?.[side]);
+        if(tm.id||tm.name!=='待定'){
+          const tkey=String(tm.id||tm.name);
+          if(!s.teams.has(tkey))s.teams.set(tkey,{...tm,wins:0,losses:0});
+        }
+      }
+    }
+
+    const series=[];
+    for(const s of groups.values()){
+      for(const g of s.games){
+        const final=g.status?.abstractGameState==='Final'||/Final|Completed Game Early/i.test(g.status?.detailedState||'');
+        if(!final)continue;
+        const aw=Number(g.teams?.away?.score),hm=Number(g.teams?.home?.score);
+        if(!Number.isFinite(aw)||!Number.isFinite(hm)||aw===hm)continue;
+        const winnerSide=aw>hm?'away':'home', loserSide=winnerSide==='away'?'home':'away';
+        const w=scheduleTeam(g.teams?.[winnerSide]),l=scheduleTeam(g.teams?.[loserSide]);
+        const wk=String(w.id||w.name),lk=String(l.id||l.name);
+        if(!s.teams.has(wk))s.teams.set(wk,{...w,wins:0,losses:0});
+        if(!s.teams.has(lk))s.teams.set(lk,{...l,wins:0,losses:0});
+        s.teams.get(wk).wins++; s.teams.get(lk).losses++;
+      }
+      const teams=[...s.teams.values()].sort((a,b)=>b.wins-a.wins||a.name.localeCompare(b.name));
+      while(teams.length<2)teams.push({id:null,name:'待定',abbreviation:'TBD',wins:0,losses:0});
+      s.teamList=teams.slice(0,2);
+      s.needWins=playoffNeedWins(s.type);
+      s.winner=s.teamList.find(t=>t.wins>=s.needWins)||null;
+      s.completedGames=s.games.filter(g=>g.status?.abstractGameState==='Final').length;
+      series.push(s);
+    }
+    return series.sort((a,b)=>String(a.firstDate).localeCompare(String(b.firstDate)));
+  }
+  function seriesCardHTML(s){
+    if(!s)return '<div class="series-card pending"><div class="series-status">對戰組合待定</div></div>';
+    const a=s.teamList[0],b=s.teamList[1];
+    const top=a.wins>=b.wins?a:b, bottom=top===a?b:a;
+    const rows=[top,bottom].map(t=>{
+      const winner=s.winner&&String(s.winner.id||s.winner.name)===String(t.id||t.name);
+      return '<div class="series-team '+(winner?'series-winner':'')+'">'+
+        '<img class="series-logo" src="'+esc(teamLogo(t.id))+'" alt="">'+
+        '<span class="series-abbr">'+esc(t.abbreviation||'TBD')+'</span>'+
+        '<span class="series-record">'+t.wins+'勝'+t.losses+'敗</span>'+
+      '</div>';
+    }).join('');
+    let status='尚未開打';
+    if(s.winner)status=(s.winner.abbreviation||s.winner.name)+' '+s.winner.wins+'–'+(s.teamList.find(t=>t!==s.winner)?.wins||0)+' 晉級';
+    else if(a.wins===b.wins&&a.wins>0)status='系列賽 '+a.wins+'–'+b.wins+' 平手';
+    else if(a.wins!==b.wins){
+      const lead=a.wins>b.wins?a:b,trail=lead===a?b:a;
+      status=(lead.abbreviation||lead.name)+' 系列賽領先 '+lead.wins+'–'+trail.wins;
+    }
+    return '<div class="series-card '+(s.winner?'clinched':'')+'">'+rows+'<div class="series-status">'+esc(status)+'</div></div>';
+  }
+  function roundColumnHTML(title,list,count){
+    const arr=[...list];
+    while(arr.length<count)arr.push(null);
+    return '<div class="round-column"><div class="round-title">'+esc(title)+'</div><div class="series-stack">'+
+      arr.slice(0,count).map(seriesCardHTML).join('')+'</div></div>';
+  }
+  function renderLeagueBracket(league,series){
+    const wc=series.filter(s=>s.league===league&&s.type==='F');
+    const ds=series.filter(s=>s.league===league&&s.type==='D');
+    const cs=series.filter(s=>s.league===league&&s.type==='L');
+    const name=league==='AL'?'美國聯盟':'國家聯盟';
+    const badge=league==='AL'?'AL':'NL';
+    const columns=[
+      roundColumnHTML('外卡',wc,2),
+      roundColumnHTML(league+'DS',ds,2),
+      roundColumnHTML(league+'CS',cs,1)
+    ];
+    if(league==='NL')columns.reverse();
+    return '<section class="league-block '+(league==='NL'?'nl-block':'al-block')+'">'+
+      '<div class="league-title"><span class="league-badge">'+badge+'</span>'+name+'</div>'+
+      '<div class="league-rounds">'+columns.join('')+'</div></section>';
+  }
+  function renderBracket(games,year){
+    const series=buildPostseasonSeries(games);
+    if(!series.length){
+      els.bracketBoard.className='bracket-empty';
+      els.bracketBoard.textContent=year+' 年目前沒有可顯示的季後賽系列賽資料';
+      return;
+    }
+    const ws=series.find(s=>s.type==='W')||null;
+    els.bracketBoard.className='bracket-board';
+    els.bracketBoard.innerHTML=
+      renderLeagueBracket('AL',series)+
+      '<section class="ws-column"><div class="ws-trophy">🏆</div><div class="ws-title">WORLD SERIES</div>'+seriesCardHTML(ws)+'</section>'+
+      renderLeagueBracket('NL',series);
+  }
+  async function loadBracket(force=false){
+    const year=postseasonYear();
+    if(state.bracketLoading)return;
+    if(!force&&state.bracketYear===year&&els.bracketBoard.dataset.loaded==='1')return;
+    state.bracketLoading=true;
+    state.bracketYear=year;
+    els.bracketYearText.textContent=year+' POSTSEASON';
+    els.bracketStatus.textContent='更新中…';
+    els.bracketBoard.className='bracket-empty';
+    els.bracketBoard.textContent='載入季後賽戰況中…';
+    try{
+      const data=await getJSON(API+'/v1/schedule?sportId=1&startDate='+year+'-09-20&endDate='+year+'-11-15&hydrate=team');
+      const games=(data.dates||[]).flatMap(d=>d.games||[]).filter(g=>['F','D','L','W'].includes(g.gameType));
+      renderBracket(games,year);
+      els.bracketBoard.dataset.loaded='1';
+      els.bracketStatus.textContent='共 '+games.length+' 場季後賽賽程 · '+new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
+    }catch(err){
+      els.bracketBoard.className='bracket-empty';
+      els.bracketBoard.textContent='季後賽戰況載入失敗：'+err.message;
+      els.bracketStatus.textContent='讀取失敗';
+    }finally{
+      state.bracketLoading=false;
+    }
+  }
+  function setFeatureMenuOpen(open){
+    els.featureMenu.hidden=!open;
+    els.featureMenuButton.setAttribute('aria-expanded',String(open));
+  }
+  function switchView(view){
+    state.view=view;
+    const bracket=view==='bracket';
+    els.liveView.hidden=bracket;
+    els.bracketView.hidden=!bracket;
+    els.featureMenu.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===view));
+    els.appTitle.textContent=bracket?'MLB 季後賽戰況':'MLB 季後賽即時戰況';
+    els.appSubtitle.textContent=bracket?'外卡・分區系列賽・聯盟冠軍賽・世界大賽':'即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄';
+    els.topControlsToggle.hidden=bracket;
+    if(bracket){
+      els.topControls.hidden=true;
+      loadBracket();
+    }else{
+      setTopControlsExpanded(state.topControlsExpanded);
+    }
+    setFeatureMenuOpen(false);
+  }
+
   function setTopControlsExpanded(expanded){
+    state.topControlsExpanded=expanded;
     els.topControls.hidden=!expanded;
     els.topControlsToggle.setAttribute('aria-expanded',String(expanded));
     els.topControlsToggle.setAttribute('aria-label',expanded?'收合日期與更新':'展開日期與更新');
   }
+  els.featureMenuButton.addEventListener('click',e=>{
+    e.stopPropagation();
+    setFeatureMenuOpen(els.featureMenu.hidden);
+  });
+  els.featureMenu.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-view]');
+    if(btn)switchView(btn.dataset.view);
+  });
+  document.addEventListener('click',e=>{
+    if(!els.featureMenu.contains(e.target)&&!els.featureMenuButton.contains(e.target))setFeatureMenuOpen(false);
+  });
+
   els.topControlsToggle.addEventListener('click',()=>{
     setTopControlsExpanded(els.topControlsToggle.getAttribute('aria-expanded')!=='true');
   });
@@ -1430,10 +1761,12 @@
   setInterval(advanceHighlights,5000);
 
   els.refreshBtn.addEventListener('click',()=>loadSchedule(true));
-  els.dateInput.addEventListener('change',()=>loadSchedule(false));
+  els.dateInput.addEventListener('change',()=>{loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
   els.dateInput.value=localDateString();
+  switchView('live');
   loadSchedule(false);
-  setInterval(()=>loadSchedule(true),REFRESH_MS);
+  setInterval(()=>{if(state.view==='live')loadSchedule(true)},REFRESH_MS);
+  setInterval(()=>{if(state.view==='bracket')loadBracket(true)},60000);
   if('serviceWorker' in navigator){
     window.addEventListener('load',()=>{
       navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
