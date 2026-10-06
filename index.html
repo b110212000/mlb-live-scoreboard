@@ -1651,7 +1651,6 @@
       roundColumnHTML(league+'DS',ds,2),
       roundColumnHTML(league+'CS',cs,1)
     ];
-    if(league==='NL')columns.reverse();
     return '<section class="league-block '+(league==='NL'?'nl-block':'al-block')+'">'+
       '<div class="league-title"><span class="league-badge">'+badge+'</span>'+name+'</div>'+
       '<div class="league-rounds">'+columns.join('')+'</div></section>';
