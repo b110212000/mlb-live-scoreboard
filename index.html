@@ -659,9 +659,34 @@
       .ws-trophy{font-size:25px}
     }
 
+
+    /* iPhone / PWA 下拉重新整理 */
+    .pull-refresh{
+      position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);z-index:120;
+      transform:translate(-50%,-58px);opacity:0;pointer-events:none;
+      display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;
+      background:rgba(8,22,36,.96);border:1px solid #36536f;color:#eaf4ff;
+      box-shadow:0 8px 24px rgba(0,0,0,.28);font-size:12px;font-weight:800;
+      transition:opacity .12s ease
+    }
+    .pull-refresh.visible{opacity:1}
+    .pull-refresh.refreshing .pull-refresh-icon{animation:pull-spin .7s linear infinite}
+    @keyframes pull-spin{to{transform:rotate(360deg)}}
+
+    /* Padres：主比分區使用官方棕金配色提高辨識度 */
+    .logo[data-team-id="135"]{
+      background:#ffc425;
+      border-color:#e6aa12;
+      box-shadow:0 3px 14px rgba(255,196,37,.24),0 3px 12px rgba(0,0,0,.20)
+    }
+
 </style>
 </head>
 <body>
+  <div id="pullRefresh" class="pull-refresh" aria-hidden="true">
+    <span class="pull-refresh-icon">↓</span>
+    <span id="pullRefreshText">下拉重新整理</span>
+  </div>
   <main class="wrap">
     <div class="topbar">
       <div class="topbar-title">
@@ -895,6 +920,7 @@
     gameHighlights:$('gameHighlights'), highlightTicker:$('highlightTicker'),
     highlightCounter:$('highlightCounter'), highlightsToggle:$('highlightsToggle'),
     topControls:$('topControls'), topControlsToggle:$('topControlsToggle'),
+    pullRefresh:$('pullRefresh'), pullRefreshText:$('pullRefreshText'),
     featureMenuButton:$('featureMenuButton'), featureMenu:$('featureMenu'),
     appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'),
     bracketBoard:$('bracketBoard'), bracketStatus:$('bracketStatus'), bracketYearText:$('bracketYearText')
@@ -1017,6 +1043,7 @@
     els.inning.textContent=inningLabel(ls);
     els.awayName.textContent=away.name||'客隊';els.homeName.textContent=home.name||'主隊';
     els.awayLogo.src=teamLogo(away.id);els.homeLogo.src=teamLogo(home.id);
+    els.awayLogo.dataset.teamId=String(away.id||'');els.homeLogo.dataset.teamId=String(home.id||'');
     els.awayLogo.alt=away.name||'客隊';els.homeLogo.alt=home.name||'主隊';
 
     const ar=awayLine.runs??0, hr=homeLine.runs??0;
@@ -1778,6 +1805,65 @@
     syncHighlights();
   });
   setInterval(advanceHighlights,5000);
+
+
+  // iPhone Web App：在頁面頂端往下拉，放開後重新載入整個頁面。
+  (() => {
+    const THRESHOLD=72, MAX_PULL=116;
+    let startY=null,startX=null,distance=0,tracking=false;
+
+    const reset=()=>{
+      startY=startX=null;distance=0;tracking=false;
+      els.pullRefresh.classList.remove('visible','refreshing');
+      els.pullRefresh.style.transform='translate(-50%,-58px)';
+      els.pullRefreshText.textContent='下拉重新整理';
+      els.pullRefresh.querySelector('.pull-refresh-icon').textContent='↓';
+    };
+
+    document.addEventListener('touchstart',e=>{
+      if(window.scrollY>1||e.touches.length!==1)return;
+      const t=e.touches[0];
+      startY=t.clientY;startX=t.clientX;distance=0;tracking=true;
+    },{passive:true});
+
+    document.addEventListener('touchmove',e=>{
+      if(!tracking||startY==null||e.touches.length!==1)return;
+      const t=e.touches[0],dy=t.clientY-startY,dx=t.clientX-startX;
+      if(dy<=0){reset();return;}
+      if(Math.abs(dx)>Math.abs(dy)*.8){reset();return;}
+      if(window.scrollY>1){reset();return;}
+
+      e.preventDefault();
+      distance=Math.min(MAX_PULL,dy*.58);
+      const y=-58+distance;
+      els.pullRefresh.style.transform='translate(-50%,'+y+'px)';
+      els.pullRefresh.classList.add('visible');
+      const ready=distance>=THRESHOLD;
+      els.pullRefreshText.textContent=ready?'放開重新整理':'下拉重新整理';
+      els.pullRefresh.querySelector('.pull-refresh-icon').textContent=ready?'↻':'↓';
+    },{passive:false});
+
+    const finish=()=>{
+      if(!tracking)return;
+      const shouldRefresh=distance>=THRESHOLD;
+      tracking=false;
+      if(!shouldRefresh){reset();return;}
+
+      els.pullRefresh.classList.add('visible','refreshing');
+      els.pullRefresh.style.transform='translate(-50%,10px)';
+      els.pullRefreshText.textContent='重新整理中…';
+      els.pullRefresh.querySelector('.pull-refresh-icon').textContent='↻';
+
+      setTimeout(()=>{
+        const u=new URL(location.href);
+        u.searchParams.set('_pull',Date.now());
+        location.replace(u.toString());
+      },140);
+    };
+
+    document.addEventListener('touchend',finish,{passive:true});
+    document.addEventListener('touchcancel',reset,{passive:true});
+  })();
 
   els.refreshBtn.addEventListener('click',()=>loadSchedule(true));
   els.dateInput.addEventListener('change',()=>{loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
