@@ -800,7 +800,7 @@
     .boxscore-empty{padding:24px 10px;text-align:center;color:var(--muted)}
 
     /* 牛棚負荷狀態（依近期實際用球推估） */
-    .bullpen-usage{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:-3px 4px 2px 48px}
+    .bullpen-usage{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:5px}
     .bullpen-badge{
       display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:999px;
       font-size:8px;font-weight:900;border:1px solid #31516c;white-space:nowrap
@@ -1227,6 +1227,7 @@
     els.awayLogo.removeAttribute('src');els.homeLogo.removeAttribute('src');
     resetMatchup();
     els.inningHead.innerHTML='';els.inningBody.innerHTML='';
+    els.boxScoreBoard.className='boxscore-empty';els.boxScoreBoard.textContent='目前沒有 Box Score 資料';
     els.scoringEvents.className='empty';els.scoringEvents.textContent='尚無得分紀錄';
     els.recentEvents.className='empty';els.recentEvents.textContent='尚無打席紀錄';
     state.highlights=[];state.highlightIndex=0;state.highlightGamePk=null;state.highlightsExpanded=false;
@@ -1949,6 +1950,7 @@
           '<span class="roster-pos">'+esc(abbr+' · '+rosterPositionLabel(abbr))+'</span>'+
         '</div>'+
         '<div class="roster-stats">'+metrics.map(x=>metricHTML(x[0],x[1])).join('')+'</div>'+
+        (options.usage?bullpenUsageHTML(options.usage):'')+
       '</div>'+
     '</div>';
   }
@@ -2141,7 +2143,7 @@
       '<div class="bullpen-legend">🟢 休息充足　🟡 可能受限　🔴 高負荷 / 本場已登板。僅依前 3 日登板與用球數推估，非球隊官方可用狀態。</div>'+
       '<div class="roster-list">'+(pitchers.length?pitchers.map(r=>{
         const id=Number(r.person?.id);
-        return rosterPlayerHTML(r)+bullpenUsageHTML(bullpenUsage.get(id)||{});
+        return rosterPlayerHTML(r,{usage:bullpenUsage.get(id)||{}});
       }).join(''):'<div class="roster-meta">目前沒有其他投手</div>')+'</div></div>'+
       '<div class="roster-note">打者：AVG / OBP / SLG / OPS / HR / RBI。投手：ERA / WHIP / FIP* / K/9 / BB/9 / W-L。FIP* 以例行賽數據及 3.10 常數估算。</div>'+
     '</section>';
