@@ -887,7 +887,7 @@ MLB Stats API
 - MLB API 回傳格式若日後調整，前端解析可能需要同步修改。
 - 即時資料更新速度取決於 MLB Stats API。
 - 本專案沒有保存使用者個資。
-- 本專案沒有自己的 Backend。
+- 通知功能使用 Cloudflare Worker；MLB 比賽資料仍由 MLB Stats API 提供。
 - 本專案目前沒有離線比賽資料模式。
 - 球隊 Logo、球員照片與比賽資料來源皆屬 MLB 相關資料來源。
 
