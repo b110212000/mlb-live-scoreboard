@@ -55,18 +55,20 @@
             <div id="appSubtitle" class="subtitle">即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄</div>
           </div>
         </div>
-        <button id="topControlsToggle" class="collapse-toggle" type="button"
+      </div>
+      <div class="top-controls-row">
+        <div id="topControls" class="controls">
+          <label>
+            <span class="subtitle">日期</span>
+            <input id="dateInput" type="date" />
+          </label>
+          <button id="refreshBtn" type="button">立即更新</button>
+          <div id="liveChip" class="live-chip" tabindex="0" data-tooltip="尚未更新"><span id="liveDot" class="dot off"></span><span id="updateText">尚未更新</span></div>
+        </div>
+        <button id="topControlsToggle" class="collapse-toggle top-controls-toggle" type="button"
           aria-controls="topControls" aria-expanded="true" aria-label="收合日期與更新">
           <span class="chev" aria-hidden="true">⌃</span>
         </button>
-      </div>
-      <div id="topControls" class="controls">
-        <label>
-          <span class="subtitle">日期</span>
-          <input id="dateInput" type="date" />
-        </label>
-        <button id="refreshBtn" type="button">立即更新</button>
-        <div id="liveChip" class="live-chip" tabindex="0" data-tooltip="尚未更新"><span id="liveDot" class="dot off"></span><span id="updateText">尚未更新</span></div>
       </div>
     </div>
 
