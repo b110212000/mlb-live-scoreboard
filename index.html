@@ -220,26 +220,35 @@
     .highlight-title{font-size:14px;font-weight:900;min-width:0;overflow-wrap:anywhere}
     .highlight-desc{font-size:13px;line-height:1.55;color:#d8e5f2;overflow-wrap:anywhere}
     .highlight-meta{font-size:10px;color:var(--muted);margin-top:6px}
-    .table-card{margin-top:14px;padding:18px;overflow:hidden}
-    .scroll{position:relative;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;isolation:isolate}
-    table{width:100%;border-collapse:separate;border-spacing:0;min-width:650px}
-    th,td{text-align:center;padding:10px 9px;border-bottom:1px solid var(--line);font-size:14px;background-clip:padding-box}
-    th{color:var(--muted);font-weight:650;background:#0d1d30}
-    td{background:#0b192a}
-    td.teamcell,th.teamhead{
-      position:sticky;left:0;z-index:4;text-align:left;font-weight:850;white-space:nowrap;
-      min-width:84px;width:84px;background:#18324d;border-right:1px solid #36536f;
-      box-shadow:5px 0 10px rgba(4,12,22,.28)
+    .table-card{
+      margin-top:10px;padding:0 10px 2px;overflow:hidden;
+      background:transparent!important;border:0!important;border-radius:0!important
     }
-    th.teamhead{z-index:6;background:#203d5b;color:#f2f7fb}
-    .score-team{display:flex;align-items:center;gap:7px;min-width:0}
-    .score-team-logo{
-      width:25px;height:25px;object-fit:contain;flex:none;
-      padding:3px;border-radius:7px;background:rgba(248,251,255,.94);
-      box-shadow:0 0 0 1px rgba(255,255,255,.16)
+    .table-card .scroll{
+      position:relative;overflow-x:auto;overscroll-behavior-x:contain;
+      -webkit-overflow-scrolling:touch;isolation:isolate
     }
-    .score-team-abbr{font-size:12px;font-weight:900;letter-spacing:.04em}
-    td.total{font-weight:900}
+    .table-card table{
+      width:100%;border-collapse:separate;border-spacing:0;min-width:620px;
+      font-variant-numeric:tabular-nums
+    }
+    .table-card th,.table-card td{
+      text-align:center;padding:8px 8px;border:0;border-bottom:1px solid rgba(150,169,189,.28);
+      font-size:13px;background:transparent!important;background-clip:padding-box
+    }
+    .table-card thead th{
+      color:#aebdca;font-size:11px;font-weight:650;border-bottom:0;padding-top:3px;padding-bottom:7px
+    }
+    .table-card td.teamcell,.table-card th.teamhead{
+      position:sticky;left:0;z-index:4;text-align:left;font-weight:900;white-space:nowrap;
+      min-width:54px;width:54px;background:#071321!important;border-right:0;
+      box-shadow:8px 0 12px rgba(7,19,33,.96)
+    }
+    .table-card th.teamhead{z-index:6;color:#f2f7fb}
+    .score-team{display:flex;align-items:center;min-width:0}
+    .score-team-logo{display:none}
+    .score-team-abbr{font-size:13px;font-weight:950;letter-spacing:.02em}
+    .table-card td.total{font-weight:950;color:#fff}
     .lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:14px}
     .events{padding:18px}
     .event{display:grid;grid-template-columns:72px 1fr auto;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
@@ -441,17 +450,19 @@
       .highlight-title{font-size:13px}
       .highlight-desc{font-size:12px}
       .highlight-meta{font-size:9px}
-      .table-card{margin-top:10px;border-radius:0}
-      .scroll{
-        margin:0 -12px;
-        padding:0 12px 3px;
+      .table-card{margin-top:8px;padding:0 10px 2px}
+      .table-card .scroll{
+        margin:0;
+        padding:0 0 3px;
         -webkit-overflow-scrolling:touch;
       }
-      table{min-width:590px}
-      th,td{padding:8px 7px;font-size:12px}
-      td.teamcell,th.teamhead{min-width:76px;width:76px;padding-left:8px;padding-right:8px}
-      .score-team-logo{width:21px;height:21px}
-      .score-team-abbr{font-size:11px}
+      .table-card table{min-width:590px}
+      .table-card th,.table-card td{padding:7px 7px;font-size:12px}
+      .table-card thead th{font-size:10px;padding-top:2px;padding-bottom:6px}
+      .table-card td.teamcell,.table-card th.teamhead{
+        min-width:50px;width:50px;padding-left:0;padding-right:6px
+      }
+      .score-team-abbr{font-size:12px}
 
       .events{border-radius:0}
       .event{
@@ -903,17 +914,19 @@
 
     /* 即時比賽下半部：統計 / 賽況 / 系列賽 */
     .live-detail-tabs{
-      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;
-      margin-top:12px;padding:5px;border:1px solid #294966;border-radius:12px;background:#081624
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;
+      margin-top:12px;padding:0;background:transparent
     }
     .live-detail-tab{
-      min-height:38px;padding:7px 10px;border-radius:9px;border:1px solid transparent;
-      background:transparent;color:#9fb2c5;font-size:12px;font-weight:900
+      position:relative;min-height:50px;padding:12px 6px;
+      border:0;border-radius:0;background:transparent!important;
+      color:#8292a3;font-size:14px;font-weight:850
     }
-    .live-detail-tab:hover{background:#10283f;color:#eef7ff}
-    .live-detail-tab.active{
-      background:#204867;border-color:#4d7898;color:#fff;
-      box-shadow:0 2px 8px rgba(0,0,0,.18)
+    .live-detail-tab:hover{color:#dce7f1}
+    .live-detail-tab.active{color:#fff;box-shadow:none}
+    .live-detail-tab.active::after{
+      content:"";position:absolute;left:50%;bottom:5px;transform:translateX(-50%);
+      width:22px;height:2px;border-radius:2px;background:#e8f4ff
     }
     .live-detail-panel[hidden]{display:none!important}
     .live-detail-panel>.card:first-child{margin-top:12px}
@@ -955,8 +968,8 @@
     .series-game-score.pending{font-size:10px;color:var(--muted);font-weight:800}
     .series-overview-empty{padding:30px 10px;text-align:center;color:var(--muted);font-size:12px}
     @media(max-width:600px){
-      .live-detail-tabs{margin:10px 10px 0;border-radius:10px;padding:4px}
-      .live-detail-tab{min-height:36px;font-size:11px;padding:6px}
+      .live-detail-tabs{margin:8px 10px 0;padding:0}
+      .live-detail-tab{min-height:46px;font-size:13px;padding:10px 5px}
       .series-overview-card{padding:13px 10px;border-radius:0}
       .series-overview-head h2{font-size:17px}
       .series-game-row{grid-template-columns:48px minmax(0,1fr) auto;gap:7px;padding:7px 8px;min-height:58px}
@@ -1068,8 +1081,7 @@
       </div>
     </section>
 
-    <section class="card table-card">
-      <h2 class="section-title">逐局比分</h2>
+    <section class="card table-card" aria-label="逐局比分">
       <div class="scroll">
         <table>
           <thead id="inningHead"></thead>
@@ -2205,16 +2217,23 @@
 
   function renderLineScore(ls,away,home){
     const innings=ls.innings||[], maxInning=Math.max(9,...innings.map(i=>i.num||0));
-    let head='<tr><th class="teamhead">球隊</th>';
-    for(let i=1;i<=maxInning;i++) head+=`<th>${i}</th>`;
-    head+='<th>R</th><th>H</th><th>E</th></tr>';els.inningHead.innerHTML=head;
-    const rows=[{side:'away',team:away,total:ls.teams?.away||{}},{side:'home',team:home,total:ls.teams?.home||{}}];
+    let head='<tr><th class="teamhead"></th>';
+    for(let i=1;i<=maxInning;i++) head+='<th>'+i+'</th>';
+    head+='<th>得分</th><th>安打</th><th>失誤</th></tr>';
+    els.inningHead.innerHTML=head;
+    const rows=[
+      {side:'away',team:away,total:ls.teams?.away||{}},
+      {side:'home',team:home,total:ls.teams?.home||{}}
+    ];
     els.inningBody.innerHTML=rows.map(row=>{
       const abbr=teamAbbr(row.team);
-      const logo=teamLogo(row.team?.id);
-      let tr=`<tr><td class="teamcell"><div class="score-team"><img class="score-team-logo" src="${esc(logo)}" alt=""><span class="score-team-abbr">${esc(abbr)}</span></div></td>`;
-      for(let i=1;i<=maxInning;i++){const inn=innings.find(x=>x.num===i);tr+=`<td>${inn?.[row.side]?.runs??''}</td>`}
-      return tr+`<td class="total">${row.total.runs??0}</td><td>${row.total.hits??0}</td><td>${row.total.errors??0}</td></tr>`;
+      let tr='<tr><td class="teamcell"><div class="score-team"><span class="score-team-abbr">'+esc(abbr)+'</span></div></td>';
+      for(let i=1;i<=maxInning;i++){
+        const inn=innings.find(x=>x.num===i);
+        const runs=inn?.[row.side]?.runs;
+        tr+='<td>'+(runs==null?'-':runs)+'</td>';
+      }
+      return tr+'<td class="total">'+(row.total.runs??0)+'</td><td>'+(row.total.hits??0)+'</td><td>'+(row.total.errors??0)+'</td></tr>';
     }).join('');
   }
   function renderScoringPlays(plays){
