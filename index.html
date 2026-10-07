@@ -176,7 +176,7 @@
     .pitch-visual{margin-top:15px;border-top:1px solid var(--line);padding-top:14px}
     .pitch-grid{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center}
     .zone-wrap{
-      position:relative;width:118px;height:142px;margin:auto;
+      position:relative;width:118px;height:160px;margin:auto;
       border-radius:10px;
       background:linear-gradient(rgba(138,160,183,.05),rgba(138,160,183,.05)),#071522;
       box-shadow:inset 0 0 0 1px rgba(138,160,183,.10)
@@ -189,7 +189,7 @@
     .zone i{border-right:1px solid rgba(138,160,183,.28);border-bottom:1px solid rgba(138,160,183,.28)}
     .zone i:nth-child(3n){border-right:0}.zone i:nth-child(n+7){border-bottom:0}
     .pitch-dot{
-      position:absolute;width:13px;height:13px;border-radius:50%;border:2px solid white;background:var(--red);
+      position:absolute;width:10px;height:10px;border-radius:50%;border:2px solid white;background:var(--red);
       transform:translate(-50%,-50%);left:59px;top:71px;box-shadow:0 0 0 3px rgba(0,0,0,.25);display:none;
     }
     .pitch-dot.ball{background:var(--green)}
@@ -1845,15 +1845,17 @@
 
     // 整個 zone-wrap 是投球座標畫布，不是好球帶。
     // pX / pZ 映射到完整畫布；內層 strikeZone 才代表實際好球帶。
-    const W=118,H=142;
+    const W=118,H=160;
     const X_MIN=-2,X_MAX=2,Z_MIN=0,Z_MAX=5;
     const mapX=v=>clamp((v-X_MIN)/(X_MAX-X_MIN),0,1)*W;
     const mapY=v=>(1-clamp((v-Z_MIN)/(Z_MAX-Z_MIN),0,1))*H;
 
-    // 水平以本壘板寬度加上球半徑附近的可判定範圍近似 ±0.83 ft。
+    // 好球帶框本身使用本壘板 17 吋寬度：左右各約 0.708 ft。
+    // 球本身用圓點大小呈現是否壓線，不把球半徑灌進框的寬度。
     // 垂直優先使用 MLB 每一球依打者提供的 strikeZoneBottom / strikeZoneTop。
-    const zoneLeft=mapX(-0.83);
-    const zoneRight=mapX(0.83);
+    const halfPlateFt=(17/12)/2;
+    const zoneLeft=mapX(-halfPlateFt);
+    const zoneRight=mapX(halfPlateFt);
     const szBottom=typeof pd.strikeZoneBottom==='number'?pd.strikeZoneBottom:1.5;
     const szTop=typeof pd.strikeZoneTop==='number'?pd.strikeZoneTop:3.5;
     const zoneTop=mapY(szTop);
