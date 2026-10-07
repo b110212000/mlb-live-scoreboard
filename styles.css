@@ -1925,3 +1925,20 @@
         padding:0!important;
       }
     }
+
+
+    /* v1.0.9：收合開關改為純箭頭 */
+    .collapse-toggle,
+    .highlights-toggle{
+      border:0!important;
+      background:transparent!important;
+      box-shadow:none!important;
+    }
+    .collapse-toggle:hover,
+    .collapse-toggle:focus-visible,
+    .highlights-toggle:hover,
+    .highlights-toggle:focus-visible{
+      border-color:transparent!important;
+      background:transparent!important;
+      box-shadow:none!important;
+    }
