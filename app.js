@@ -2,51 +2,65 @@
    事件綁定、初始化、更新排程與版本檢查。
    功能邏輯分散於 api.js / live.js / postseason.js / roster.js / ui.js。 */
 
+function currentAppVersion(){
+  return (document.querySelector('.app-version')?.textContent||'v0.0.0')
+    .trim()
+    .replace(/^v/i,'');
+}
+
 async function disableLegacyPwaCache(){
-  // Push 需要保留 Service Worker；这里只清除舊版 PWA Cache，
-  // 不再 unregister Service Worker，也不加入 fetch cache。
+  // Push 需要保留 Service Worker。舊 Cache 每個版本只清一次，
+  // 避免每次開啟 App 都重複掃描 / 刪除 Cache Storage。
+  const version=currentAppVersion();
   try{
+    if(localStorage.getItem('mlb-cache-cleaned-version')===version)return false;
     if('caches' in window){
       const keys=await caches.keys();
       await Promise.all(keys.map(key=>caches.delete(key)));
     }
+    localStorage.setItem('mlb-cache-cleaned-version',version);
   }catch(_){}
   return false;
 }
 
-async function freshIndexHash(){
-  const paths=['./index.html','./styles.css','./api.js','./live.js','./postseason.js','./roster.js','./notifications.js','./ui.js','./app.js','./service-worker.js'];
-  const texts=await Promise.all(paths.map(async path=>{
-    const u=new URL(path,location.href);
-    u.searchParams.set('_check',Date.now());
-    const r=await fetch(u.toString(),{cache:'no-store'});
-    if(!r.ok)throw new Error('version check failed');
-    return r.text();
-  }));
-  const text=texts.join('\n/* asset */\n');
-  let h=2166136261;
-  for(let i=0;i<text.length;i++){
-    h^=text.charCodeAt(i);
-    h=Math.imul(h,16777619);
-  }
-  return (h>>>0).toString(16);
+async function fetchRemoteVersion(){
+  const u=new URL('./version.json',location.href);
+  u.searchParams.set('_check',Date.now());
+  const r=await fetch(u.toString(),{cache:'no-store'});
+  if(!r.ok)throw new Error('version check failed');
+  const data=await r.json();
+  return String(data?.version||'').trim().replace(/^v/i,'');
 }
 
+async function deployedIndexHasVersion(version){
+  // GitHub Pages / CDN 可能短暫先更新 version.json。
+  // 只有確認新版 index.html 也已經部署，才真正 reload，避免反覆刷新舊頁。
+  const u=new URL('./index.html',location.href);
+  u.searchParams.set('_ready',version+'-'+Date.now());
+  const r=await fetch(u.toString(),{cache:'no-store'});
+  if(!r.ok)return false;
+  const html=await r.text();
+  return html.includes('<span class="app-version">v'+version+'</span>');
+}
+
+let versionCheckInFlight=false;
 async function checkForAppUpdate(){
+  if(versionCheckInFlight)return;
+  versionCheckInFlight=true;
   try{
-    const hash=await freshIndexHash();
-    const prev=localStorage.getItem('mlb-index-hash');
-    if(!prev){
-      localStorage.setItem('mlb-index-hash',hash);
-      return;
-    }
-    if(prev!==hash){
-      localStorage.setItem('mlb-index-hash',hash);
-      const u=new URL(location.href);
-      u.searchParams.set('_v',Date.now());
-      location.replace(u.toString());
-    }
-  }catch(_){}
+    const current=currentAppVersion();
+    const remote=await fetchRemoteVersion();
+    if(!remote||remote===current)return;
+    if(!await deployedIndexHasVersion(remote))return;
+
+    const u=new URL(location.href);
+    u.searchParams.set('_v',remote);
+    location.replace(u.toString());
+  }catch(_){
+    // 版本檢查失敗不影響即時比分與其他主要功能。
+  }finally{
+    versionCheckInFlight=false;
+  }
 }
 
 // PWA / 安裝事件
@@ -208,4 +222,4 @@ document.addEventListener('visibilitychange',()=>{
   if(!document.hidden)checkForAppUpdate();
 });
 window.addEventListener('focus',checkForAppUpdate);
-setInterval(checkForAppUpdate,60000);
+setInterval(checkForAppUpdate,15000);
