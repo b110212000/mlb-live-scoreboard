@@ -361,28 +361,39 @@ function buildHighlightItems(feed){
   const all=plays.allPlays||[];
   const awayName=gd.teams?.away?.name||'客隊';
   const homeName=gd.teams?.home?.name||'主隊';
+  const awayTeamId=Number(gd.teams?.away?.id)||null;
+  const homeTeamId=Number(gd.teams?.home?.id)||null;
   const batters=new Map(),pitchers=new Map(),errors={away:[],home:[]};
   const items=[],seen=new Set(),scoreChanges=[];
   let prevAway=0,prevHome=0,seq=0;
   const halfName=h=>h==='top'?'上':h==='bottom'?'下':'';
   const when=p=>String(p.about?.inning??'-')+'局'+halfName(p.about?.halfInning);
-  const add=(id,priority,icon,title,desc,meta,tone,order,inningSort=null)=>{
+  const add=(id,priority,icon,title,desc,meta,tone,order,inningSort=null,teamId=null)=>{
     if(seen.has(id))return;
     seen.add(id);
-    items.push({id,priority,icon,title,desc,meta:meta||'',tone:tone||'',order:order??seq,inningSort:Number.isFinite(Number(inningSort))?Number(inningSort):null});
+    items.push({
+      id,priority,icon,title,desc,meta:meta||'',tone:tone||'',
+      order:order??seq,
+      inningSort:Number.isFinite(Number(inningSort))?Number(inningSort):null,
+      teamId:Number(teamId)||null
+    });
   };
   const bFor=p=>{
     const id=p.matchup?.batter?.id, name=p.matchup?.batter?.fullName;
     if(!id&&!name)return null;
     const key=String(id||name);
-    if(!batters.has(key))batters.set(key,{key,name:name||'打者',hits:0,hr:0,rbi:0,single:0,double:0,triple:0,walks:0});
+    const teamId=p.about?.halfInning==='top'?awayTeamId:homeTeamId;
+    if(!batters.has(key))batters.set(key,{key,name:name||'打者',teamId,hits:0,hr:0,rbi:0,single:0,double:0,triple:0,walks:0});
+    else if(!batters.get(key).teamId)batters.get(key).teamId=teamId;
     return batters.get(key);
   };
   const pFor=p=>{
     const id=p.matchup?.pitcher?.id,name=p.matchup?.pitcher?.fullName;
     if(!id&&!name)return null;
     const key=String(id||name);
-    if(!pitchers.has(key))pitchers.set(key,{key,name:name||'投手',hrAllowed:0,strikeouts:0});
+    const teamId=p.about?.halfInning==='top'?homeTeamId:awayTeamId;
+    if(!pitchers.has(key))pitchers.set(key,{key,name:name||'投手',teamId,hrAllowed:0,strikeouts:0});
+    else if(!pitchers.get(key).teamId)pitchers.get(key).teamId=teamId;
     return pitchers.get(key);
   };
 
@@ -394,6 +405,8 @@ function buildHighlightItems(feed){
     const inning=when(p),rbi=Math.max(0,Number(p.result?.rbi)||0);
     const batterName=b?.name||'打者';
     const pitcherName=pitcher?.name||'投手';
+    const offenseTeamId=p.about?.halfInning==='top'?awayTeamId:homeTeamId;
+    const defenseTeamId=p.about?.halfInning==='top'?homeTeamId:awayTeamId;
     const nameForScore=p.about?.halfInning==='top'?awayName:homeName;
     const isHR=event==='Home Run'||etype==='home_run';
     const hitKind=({Single:'single',Double:'double',Triple:'triple','Home Run':'hr'})[event];
@@ -418,7 +431,7 @@ function buildHighlightItems(feed){
       if(Number.isFinite(Number(speed))&&Number(speed)>0)extra.push(Number(speed).toFixed(1)+' mph');
       add('hr:'+id,84,'💣',batterName+' '+hrType,
         batterName+' 從 '+pitcherName+' 手中擊出'+hrType+'。'+(extra.length?'擊球資訊：'+extra.join('、')+'。':''),
-        inning,'hot',n,p.about?.inning);
+        inning,'hot',n,p.about?.inning,offenseTeamId);
     }
     if(pitcher&&(event==='Strikeout'||etype.startsWith('strikeout')))pitcher.strikeouts++;
     const isError=event==='Field Error'||etype==='field_error'||/\b(fielding|throwing) error\b/i.test(p.result?.description||'');
@@ -427,17 +440,17 @@ function buildHighlightItems(feed){
       errors[defending].push({id,inning,n});
       const team=defending==='home'?homeName:awayName;
       add('error:'+id,79,'⚠️',team+' 發生守備失誤',
-        inning+'，'+team+' 出現守備失誤，讓攻方有機會延續進攻。',inning,'warn',n,p.about?.inning);
+        inning+'，'+team+' 出現守備失誤，讓攻方有機會延續進攻。',inning,'warn',n,p.about?.inning,defenseTeamId);
     }
     if(rbi>=2&&!isHR){
       add('multiRbi:'+id,69,'⚡',batterName+' 單次貢獻 '+rbi+' 打點',
-        batterName+' 在'+inning+'的一次攻勢中送回 '+rbi+' 分。',inning,'good',n,p.about?.inning);
+        batterName+' 在'+inning+'的一次攻勢中送回 '+rbi+' 分。',inning,'good',n,p.about?.inning,offenseTeamId);
     }
     const isDP=/double.play|grounded.into.dp/i.test(event+' '+etype);
     if(isDP){
       const fielding=p.about?.halfInning==='top'?homeName:awayName;
       add('dp:'+id,53,'🧤',fielding+' 策動雙殺',
-        inning+'，'+fielding+'完成雙殺守備，迅速拿下兩個出局數。',inning,'good',n,p.about?.inning);
+        inning+'，'+fielding+'完成雙殺守備，迅速拿下兩個出局數。',inning,'good',n,p.about?.inning,defenseTeamId);
     }
 
     // 盜壘資訊多半位於跑者紀錄，不能只靠打席 event。
@@ -457,7 +470,7 @@ function buildHighlightItems(feed){
     for(const steal of steals){
       const parts=steal.split('|');
       add('steal:'+id+':'+steal,59,'🏃',parts[0]+' 盜壘成功',
-        inning+'，'+parts[0]+'完成盜壘'+(parts[1]?'，抵達'+({ '2B':'二壘','3B':'三壘',score:'本壘'}[parts[1]]||parts[1]):'')+'。',inning,'good',n,p.about?.inning);
+        inning+'，'+parts[0]+'完成盜壘'+(parts[1]?'，抵達'+({ '2B':'二壘','3B':'三壘',score:'本壘'}[parts[1]]||parts[1]):'')+'。',inning,'good',n,p.about?.inning,offenseTeamId);
     }
 
     const awRaw=Number(p.result?.awayScore),hmRaw=Number(p.result?.homeScore);
@@ -468,17 +481,18 @@ function buildHighlightItems(feed){
       scoreChanges.push({aw,hm,prevAway,prevHome,inning:p.about?.inning,half:p.about?.halfInning,id,n});
       if(before!==0&&after===0){
         add('tie:'+id,96,'⚖️',nameForScore+' 追平比賽',
-          inning+'，'+nameForScore+'將比分追成 '+aw+'：'+hm+'。',inning,'hot',n,p.about?.inning);
+          inning+'，'+nameForScore+'將比分追成 '+aw+'：'+hm+'。',inning,'hot',n,p.about?.inning,offenseTeamId);
       }else if(before!==after&&after!==0){
         const leader=after>0?awayName:homeName;
+        const leaderTeamId=after>0?awayTeamId:homeTeamId;
         const reversed=before!==0&&before!==after;
         add('lead:'+id,reversed?100:80,reversed?'🔄':'⬆️',leader+(reversed?' 逆轉超前':' 取得領先'),
-          inning+'，'+leader+(reversed?'完成逆轉':'取得領先')+'，比分 '+aw+'：'+hm+'。',inning,reversed?'hot':'good',n,p.about?.inning);
+          inning+'，'+leader+(reversed?'完成逆轉':'取得領先')+'，比分 '+aw+'：'+hm+'。',inning,reversed?'hot':'good',n,p.about?.inning,leaderTeamId);
       }
       if(!isHR&&rbi<2){
         const eventZh=zhEventName(event)||'得分攻勢';
         add('score:'+id,61,'🏟️',nameForScore+' 再添分數',
-          inning+'，'+(b?.name?b.name+' '+eventZh+'，':'')+'比分來到 '+aw+'：'+hm+'。',inning,'',n,p.about?.inning);
+          inning+'，'+(b?.name?b.name+' '+eventZh+'，':'')+'比分來到 '+aw+'：'+hm+'。',inning,'',n,p.about?.inning,offenseTeamId);
       }
     }
     prevAway=aw;prevHome=hm;
@@ -488,30 +502,30 @@ function buildHighlightItems(feed){
     if(b.hr>=2){
       const word=b.hr===2?'雙響砲':b.hr===3?'三響砲':b.hr+'響砲';
       add('hitterMultiHR:'+b.key,105,'🔥',b.name+' '+word,
-        b.name+' 本場已敲出 '+b.hr+' 支全壘打，累計 '+b.rbi+' 分打點。','多轟里程碑','hot');
+        b.name+' 本場已敲出 '+b.hr+' 支全壘打，累計 '+b.rbi+' 分打點。','多轟里程碑','hot',undefined,null,b.teamId);
     }
     if(b.single&&b.double&&b.triple&&b.hr){
       add('cycle:'+b.key,115,'🏆',b.name+' 完成完全打擊',
-        b.name+' 本場集齊一壘安打、二壘安打、三壘安打與全壘打。','完全打擊','hot');
+        b.name+' 本場集齊一壘安打、二壘安打、三壘安打與全壘打。','完全打擊','hot',undefined,null,b.teamId);
     }
     if(b.hits>=3){
       add('hitMilestone:'+b.key,b.hits>=4?93:76,'🎯',b.name+' 單場 '+b.hits+' 安',
-        b.name+' 今天已敲出 '+b.hits+' 支安打'+(b.hr?'，其中包含 '+b.hr+' 支全壘打':'')+'。','打擊表現','good');
+        b.name+' 今天已敲出 '+b.hits+' 支安打'+(b.hr?'，其中包含 '+b.hr+' 支全壘打':'')+'。','打擊表現','good',undefined,null,b.teamId);
     }
     if(b.rbi>=3){
       add('rbiMilestone:'+b.key,b.rbi>=5?98:85,'⚡',b.name+' 單場 '+b.rbi+' 打點',
-        b.name+' 本場累計貢獻 '+b.rbi+' 分打點。','打點表現','good');
+        b.name+' 本場累計貢獻 '+b.rbi+' 分打點。','打點表現','good',undefined,null,b.teamId);
     }
   }
   for(const p of pitchers.values()){
     if(p.hrAllowed>=2){
       add('pitcherHR:'+p.key,p.hrAllowed>=3?94:82,'📉',p.name+' 挨了 '+p.hrAllowed+' 轟',
-        p.name+' 本場已被對手擊出 '+p.hrAllowed+' 支全壘打。','投手挨轟','warn');
+        p.name+' 本場已被對手擊出 '+p.hrAllowed+' 支全壘打。','投手挨轟','warn',undefined,null,p.teamId);
     }
     if(p.strikeouts>=5){
       add('pitcherK:'+p.key,p.strikeouts>=10?99:p.strikeouts>=8?88:68,'⚾',
         p.name+' 累計 '+p.strikeouts+' 次三振',
-        p.name+' 本場已送出 '+p.strikeouts+' 次三振。','投手壓制力','good');
+        p.name+' 本場已送出 '+p.strikeouts+' 次三振。','投手壓制力','good',undefined,null,p.teamId);
     }
   }
 
@@ -522,7 +536,7 @@ function buildHighlightItems(feed){
       if(Number.isFinite(runs)&&runs>=3){
         const name=side==='away'?awayName:homeName;
         add('bigInning:'+side+':'+inn.num,91,'🚨',name+' 單局攻下 '+runs+' 分',
-          String(inn.num)+'局'+(side==='away'?'上':'下')+'，'+name+'單局灌進 '+runs+' 分。','單局攻勢','hot',seq,inn.num);
+          String(inn.num)+'局'+(side==='away'?'上':'下')+'，'+name+'單局灌進 '+runs+' 分。','單局攻勢','hot',seq,inn.num,side==='away'?awayTeamId:homeTeamId);
       }
     }
   }
@@ -532,7 +546,7 @@ function buildHighlightItems(feed){
     if(count>=2){
       const team=side==='away'?awayName:homeName;
       add('errorTotal:'+side,89,'⚠️',team+' 累計 '+count+' 次失誤',
-        team+' 本場已有 '+count+' 次守備失誤。','守備狀態','warn');
+        team+' 本場已有 '+count+' 次守備失誤。','守備狀態','warn',undefined,null,side==='away'?awayTeamId:homeTeamId);
     }
   }
   // 最後半局的致勝分：僅在 MLB 標示比賽結束時判斷。
@@ -541,7 +555,7 @@ function buildHighlightItems(feed){
   if(isFinal&&last&&last.half==='bottom'&&Number(last.inning)>=9&&
      last.hm>last.aw&&last.prevHome<=last.prevAway){
     add('walkoff',110,'🎉',homeName+' 再見勝利',
-      String(last.inning)+'局下，'+homeName+'攻下致勝分，以 '+last.hm+'：'+last.aw+' 結束比賽。','再見時刻','hot',last.n,last.inning);
+      String(last.inning)+'局下，'+homeName+'攻下致勝分，以 '+last.hm+'：'+last.aw+' 結束比賽。','再見時刻','hot',last.n,last.inning,homeTeamId);
   }
   return items.sort((a,b)=>{
     const aNoInning=a.inningSort==null, bNoInning=b.inningSort==null;
@@ -553,6 +567,15 @@ function buildHighlightItems(feed){
     // 3) 同一局較晚發生的事件優先
     return (b.order-a.order)||(b.priority-a.priority);
   });
+}
+
+function highlightVisual(item,className){
+  if(item?.teamId){
+    return '<span class="'+className+' highlight-team-logo-shell" aria-hidden="true">'+
+      '<img class="highlight-team-logo" src="'+esc(teamLogo(item.teamId))+'" alt="" />'+
+    '</span>';
+  }
+  return '<span class="'+className+'" aria-hidden="true">'+esc(item?.icon||'⚾')+'</span>';
 }
 
 function renderHighlightTicker(){
@@ -572,7 +595,7 @@ function renderHighlightTicker(){
   els.highlightTicker.innerHTML=
     '<div class="highlight-ticker-slide'+rotating+'">'+
       '<div class="highlight-ticker-title">'+
-        '<span class="highlight-ticker-icon" aria-hidden="true">'+item.icon+'</span>'+
+        highlightVisual(item,'highlight-ticker-icon')+
         '<span>'+esc(item.title)+'</span>'+
       '</div>'+
       '<div class="highlight-ticker-desc">'+esc(item.desc)+'</div>'+
@@ -592,7 +615,7 @@ function syncHighlights(){
     const inningText=(x.meta||'')+' '+(x.desc||'');
     const halfClass=inningText.includes('局上')?' top-half':inningText.includes('局下')?' bottom-half':'';
     return '<article class="highlight-item '+x.tone+halfClass+'">'+
-      '<div class="highlight-top"><span class="highlight-icon" aria-hidden="true">'+x.icon+'</span>'+
+      '<div class="highlight-top">'+highlightVisual(x,'highlight-icon')+
       '<div class="highlight-title">'+esc(x.title)+'</div></div>'+
       '<div class="highlight-desc">'+esc(x.desc)+'</div>'+
       (x.meta?'<div class="highlight-meta">'+esc(x.meta)+'</div>':'')+
