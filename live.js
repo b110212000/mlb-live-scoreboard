@@ -165,7 +165,7 @@ function renderGame(feed){
   }
 
   renderHighlights(feed);
-  renderLineScore(ls,away,home);renderBoxScore(feed);renderScoringPlays(plays);renderRecentPlays(plays);
+  renderLineScore(ls,away,home);renderBoxScore(feed);renderScoringPlays(plays);renderRecentPlays(plays,{away,home},feed.gamePk??gd.game?.pk??state.selectedGamePk);
   if(state.liveDetailTab==='series')loadCurrentSeries();
   if(state.liveDetailTab==='status')requestAnimationFrame(()=>syncLiveDetailHeight());
 }
@@ -816,10 +816,49 @@ function renderScoringPlays(plays){
   if(!scoring.length){els.scoringEvents.className='empty';els.scoringEvents.textContent='尚無得分紀錄';return}
   els.scoringEvents.className='';els.scoringEvents.innerHTML=scoring.map(p=>eventHTML(p,true)).join('');
 }
-function renderRecentPlays(plays){
+function renderRecentPlays(plays,teams={},gamePk=state.selectedGamePk){
+  if(state.recentHalfGamePk!==gamePk){
+    state.recentHalfGamePk=gamePk;
+    state.recentHalfOpen=new Map();
+  }else{
+    els.recentEvents.querySelectorAll('[data-recent-half]').forEach(group=>{
+      state.recentHalfOpen.set(group.dataset.recentHalf,group.open);
+    });
+  }
   const all=(plays.allPlays||[]).slice(-8).reverse();
   if(!all.length){els.recentEvents.className='empty';els.recentEvents.textContent='尚無打席紀錄';return}
-  els.recentEvents.className='';els.recentEvents.innerHTML=all.map(p=>eventHTML(p,false)).join('');
+  const groups=new Map();
+  for(const play of all){
+    const inning=play.about?.inning??'-';
+    const half=play.about?.halfInning;
+    const side=half==='top'?'away':half==='bottom'?'home':null;
+    const key=String(inning)+'-'+(side||'unknown');
+    if(!groups.has(key))groups.set(key,{inning,half,side,plays:[]});
+    groups.get(key).plays.push(play);
+  }
+  els.recentEvents.className='recent-halves';
+  els.recentEvents.innerHTML=[...groups].map(([key,group])=>{
+    const team=teams[group.side]||{};
+    const name=team.name||team.teamName||(group.side==='away'?'客隊':group.side==='home'?'主隊':'球隊未定');
+    const label=group.inning+' 局'+zhHalfInning(group.half);
+    const expanded=state.recentHalfOpen.get(key)!==false;
+    const logo=team.id?'<span class="recent-half-logo"><img src="'+esc(teamLogo(team.id))+'" alt="" loading="lazy"></span>':'';
+    return '<details class="recent-half" data-recent-half="'+esc(key)+'"'+(expanded?' open':'')+'>'+
+      '<summary class="recent-half-head">'+logo+
+        '<span class="recent-half-team">'+esc(name)+'</span>'+
+        '<span class="recent-half-inning">'+esc(label)+'</span>'+
+        '<span class="recent-half-chevron" aria-hidden="true">⌃</span>'+
+      '</summary>'+
+      '<div class="recent-half-plays">'+group.plays.map(p=>eventHTML(p,false)).join('')+'</div>'+
+    '</details>';
+  }).join('');
+  els.recentEvents.querySelectorAll('[data-recent-half]').forEach(group=>{
+    group.addEventListener('toggle',()=>{
+      if(!group.isConnected)return;
+      state.recentHalfOpen.set(group.dataset.recentHalf,group.open);
+      if(state.liveDetailTab==='status')requestAnimationFrame(()=>syncLiveDetailHeight());
+    });
+  });
 }
 function zhHalfInning(v){
   return v==='top'?'上':v==='bottom'?'下':'';
