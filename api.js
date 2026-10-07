@@ -28,7 +28,7 @@ const els = {
   currentSeriesGames:$('currentSeriesGames'),
   gameHighlights:$('gameHighlights'), highlightTicker:$('highlightTicker'),
   highlightCounter:$('highlightCounter'), highlightsToggle:$('highlightsToggle'),
-  topControls:$('topControls'), topControlsToggle:$('topControlsToggle'),
+  topControls:$('topControls'),
   pullRefresh:$('pullRefresh'), pullRefreshText:$('pullRefreshText'),
   featureMenuButton:$('featureMenuButton'), featureMenu:$('featureMenu'),
   appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'), rosterView:$('rosterView'), installView:$('installView'), notificationView:$('notificationView'),
@@ -42,7 +42,7 @@ const els = {
 };
 
 const outDots=[...document.querySelectorAll('[data-out-dot]')];
-const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false,view:'live',topControlsExpanded:true,bracketYear:null,bracketLoading:false,rosterLoading:false,currentFeed:null,currentFeedGamePk:null,rosterCache:new Map(),bullpenCache:new Map(),liveDetailTab:'status',seriesLoading:false,seriesCache:new Map(),currentSeriesGames:[]};
+const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false,view:'live',bracketYear:null,bracketLoading:false,rosterLoading:false,currentFeed:null,currentFeedGamePk:null,rosterCache:new Map(),bullpenCache:new Map(),liveDetailTab:'status',seriesLoading:false,seriesCache:new Map(),currentSeriesGames:[]};
 let deferredInstallPrompt=null;
 
 function localDateString(d=new Date()){
