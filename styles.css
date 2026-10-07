@@ -1311,3 +1311,8 @@
         grid-column:1 / -1;
       }
     }
+
+
+    /* 日期列不提供收合：保留既有初始化流程，只隱藏開關 */
+    .top-controls-row{width:100%;min-width:0}
+    #topControlsToggle{display:none!important}
