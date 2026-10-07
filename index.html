@@ -799,6 +799,45 @@
 
     /* 完整 Box Score */
     .boxscore-card{overflow:hidden}
+    .boxscore-subsection-title{
+      margin:2px 0 9px;font-size:11px;font-weight:900;color:#dce9f5;
+      letter-spacing:.02em
+    }
+    .player-stats-title{margin-top:16px}
+    .team-stats-empty{
+      padding:22px 10px;text-align:center;color:var(--muted);
+      border:1px solid #243f59;border-radius:12px;background:#091827
+    }
+    .team-stats-card{
+      overflow:hidden;border:1px solid #294966;border-radius:13px;background:#091827
+    }
+    .team-stats-head{
+      display:grid;grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr);
+      align-items:center;padding:9px 12px;background:#132c45;border-bottom:1px solid #294966
+    }
+    .team-stats-head-team{
+      min-width:0;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:900
+    }
+    .team-stats-head-team.home{justify-content:flex-end;text-align:right}
+    .team-stats-head-team img{
+      width:30px;height:30px;object-fit:contain;padding:4px;border-radius:8px;
+      background:rgba(248,251,255,.97);flex:none
+    }
+    .team-stats-head-team span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .team-stats-vs{text-align:center;font-size:9px;color:var(--muted);font-weight:850}
+    .team-stats-grid{display:flex;flex-direction:column}
+    .team-stat-row{
+      display:grid;grid-template-columns:minmax(0,1fr) 86px minmax(0,1fr);
+      align-items:center;min-height:38px;padding:0 12px;
+      border-top:1px solid rgba(82,112,140,.18)
+    }
+    .team-stat-row:first-child{border-top:0}
+    .team-stat-value{
+      font-size:15px;font-weight:900;color:#f4f8fb;font-variant-numeric:tabular-nums
+    }
+    .team-stat-value.away{text-align:left}
+    .team-stat-value.home{text-align:right}
+    .team-stat-label{text-align:center;font-size:9px;color:#93a8bc;font-weight:800}
     .boxscore-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
     .boxscore-team{min-width:0;border:1px solid #243f59;border-radius:12px;overflow:hidden;background:#091827}
     .boxscore-team-head{
@@ -840,6 +879,13 @@
       .boxscore-board{grid-template-columns:1fr}
     }
     @media(max-width:600px){
+      .boxscore-subsection-title{padding:0 1px}
+      .team-stats-head{grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);padding:8px 9px}
+      .team-stats-head-team{font-size:10px;gap:5px}
+      .team-stats-head-team img{width:27px;height:27px;padding:3px}
+      .team-stat-row{grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);min-height:34px;padding:0 9px}
+      .team-stat-value{font-size:14px}
+      .team-stat-label{font-size:8px}
       .boxscore-table{min-width:480px}
       .boxscore-table th,.boxscore-table td{padding:6px 5px;font-size:9px}
       .boxscore-table th:first-child,.boxscore-table td:first-child{min-width:118px;max-width:118px}
@@ -1260,6 +1306,9 @@
         </button>
       </div>
       <div class="collapse-body" data-collapse-body>
+        <div class="boxscore-subsection-title">隊伍數據</div>
+        <div id="teamStatsBoard" class="team-stats-empty">等待比賽資料</div>
+        <div class="boxscore-subsection-title player-stats-title">球員數據</div>
         <div id="boxScoreBoard" class="boxscore-empty">等待比賽資料</div>
       </div>
     </section>
@@ -1486,7 +1535,7 @@
     latestPlay:$('latestPlay'), pitchSequence:$('pitchSequence'),
     base1:$('base1'), base2:$('base2'), base3:$('base3'), baseSummary:$('baseSummary'),
     pitchDot:$('pitchDot'), pitchData:$('pitchData'), strikeZone:$('strikeZone'),
-    inningHead:$('inningHead'), inningBody:$('inningBody'), boxScoreBoard:$('boxScoreBoard'),
+    inningHead:$('inningHead'), inningBody:$('inningBody'), teamStatsBoard:$('teamStatsBoard'), boxScoreBoard:$('boxScoreBoard'),
     scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
     liveDetailTabs:$('liveDetailTabs'), liveDetailViewport:$('liveDetailViewport'), liveDetailTrack:$('liveDetailTrack'),
     liveDetailStats:$('liveDetailStats'), liveDetailStatus:$('liveDetailStatus'), liveDetailSeries:$('liveDetailSeries'),
@@ -1926,6 +1975,7 @@
     els.awayLogo.removeAttribute('src');els.homeLogo.removeAttribute('src');
     resetMatchup();
     els.inningHead.innerHTML='';els.inningBody.innerHTML='';
+    els.teamStatsBoard.className='team-stats-empty';els.teamStatsBoard.textContent='目前沒有隊伍統計資料';
     els.boxScoreBoard.className='boxscore-empty';els.boxScoreBoard.textContent='目前沒有 Box Score 資料';
     els.scoringEvents.className='empty';els.scoringEvents.textContent='尚無得分紀錄';
     els.recentEvents.className='empty';els.recentEvents.textContent='尚無打席紀錄';
@@ -2519,14 +2569,58 @@
       '<div class="boxscore-group"><div class="boxscore-group-title">投手</div>'+boxPitchingTable(box)+'</div>'+
     '</section>';
   }
+  function teamGameStats(box,line){
+    const batting=box?.teamStats?.batting||{};
+    return {
+      runs:line?.runs??batting.runs??0,
+      hits:line?.hits??batting.hits??0,
+      errors:line?.errors??0,
+      homeRuns:batting.homeRuns??0,
+      walks:batting.baseOnBalls??0,
+      strikeOuts:batting.strikeOuts??0,
+      leftOnBase:batting.leftOnBase??0
+    };
+  }
+  function renderTeamStats(feed){
+    const bs=feed?.liveData?.boxscore||{},ls=feed?.liveData?.linescore||{},gd=feed?.gameData||{};
+    const awayTeam=gd.teams?.away||{},homeTeam=gd.teams?.home||{};
+    const away=teamGameStats(bs.teams?.away,ls.teams?.away);
+    const home=teamGameStats(bs.teams?.home,ls.teams?.home);
+    const metrics=[
+      ['runs','得分'],
+      ['hits','安打'],
+      ['errors','失誤'],
+      ['homeRuns','全壘打'],
+      ['walks','保送'],
+      ['strikeOuts','三振'],
+      ['leftOnBase','殘壘']
+    ];
+    els.teamStatsBoard.className='team-stats-card';
+    els.teamStatsBoard.innerHTML=
+      '<div class="team-stats-head">'+
+        '<div class="team-stats-head-team away"><img src="'+esc(teamLogo(awayTeam.id))+'" alt=""><span>'+esc(teamAbbr(awayTeam))+'</span></div>'+
+        '<div class="team-stats-vs">TEAM</div>'+
+        '<div class="team-stats-head-team home"><span>'+esc(teamAbbr(homeTeam))+'</span><img src="'+esc(teamLogo(homeTeam.id))+'" alt=""></div>'+
+      '</div>'+
+      '<div class="team-stats-grid">'+metrics.map(([key,label])=>
+        '<div class="team-stat-row">'+
+          '<div class="team-stat-value away">'+esc(away[key])+'</div>'+
+          '<div class="team-stat-label">'+esc(label)+'</div>'+
+          '<div class="team-stat-value home">'+esc(home[key])+'</div>'+
+        '</div>'
+      ).join('')+'</div>';
+  }
   function renderBoxScore(feed){
     const bs=feed?.liveData?.boxscore||{},gd=feed?.gameData||{};
     const away=bs.teams?.away,home=bs.teams?.home;
     if(!away&&!home){
+      els.teamStatsBoard.className='team-stats-empty';
+      els.teamStatsBoard.textContent='目前沒有隊伍統計資料';
       els.boxScoreBoard.className='boxscore-empty';
       els.boxScoreBoard.textContent='目前沒有 Box Score 資料';
       return;
     }
+    renderTeamStats(feed);
     els.boxScoreBoard.className='boxscore-board';
     els.boxScoreBoard.innerHTML=
       boxTeamHTML(gd.teams?.away||{},away||{})+
