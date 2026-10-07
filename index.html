@@ -934,7 +934,23 @@
       content:"";position:absolute;left:50%;bottom:5px;transform:translateX(-50%);
       width:22px;height:2px;border-radius:2px;background:#e8f4ff
     }
-    .live-detail-panel[hidden]{display:none!important}
+    .live-detail-viewport{
+      position:relative;overflow:hidden;width:100%;
+      transition:height .28s cubic-bezier(.22,.61,.36,1);
+      touch-action:pan-y
+    }
+    .live-detail-track{
+      display:flex;align-items:flex-start;width:100%;
+      transform:translate3d(-100%,0,0);
+      transition:transform .30s cubic-bezier(.22,.61,.36,1);
+      will-change:transform
+    }
+    .live-detail-track.dragging{transition:none}
+    .live-detail-panel{
+      flex:0 0 100%;width:100%;min-width:0;
+      visibility:visible;pointer-events:auto
+    }
+    .live-detail-panel:not(.active){pointer-events:none}
     .live-detail-panel>.card:first-child{margin-top:12px}
 
     .series-overview-card{
@@ -1150,7 +1166,9 @@
       <button type="button" class="live-detail-tab" data-live-tab="series" role="tab" aria-selected="false">系列賽</button>
     </div>
 
-    <div id="liveDetailStats" class="live-detail-panel" data-live-panel="stats" hidden>
+    <div id="liveDetailViewport" class="live-detail-viewport">
+      <div id="liveDetailTrack" class="live-detail-track">
+    <div id="liveDetailStats" class="live-detail-panel" data-live-panel="stats">
     <section class="card collapsible-card boxscore-card" data-collapse-section>
       <div class="section-head" data-collapse-head>
         <h2 class="section-title">完整 Box Score</h2>
@@ -1257,7 +1275,7 @@
     </section>
     </div>
 
-    <div id="liveDetailSeries" class="live-detail-panel" data-live-panel="series" hidden>
+    <div id="liveDetailSeries" class="live-detail-panel" data-live-panel="series">
       <section class="card series-overview-card">
         <div class="series-overview-head">
           <div>
@@ -1270,6 +1288,9 @@
           <div class="series-overview-empty">等待系列賽資料…</div>
         </div>
       </section>
+    </div>
+
+      </div>
     </div>
     </div>
 
@@ -1379,8 +1400,8 @@
     pitchDot:$('pitchDot'), pitchData:$('pitchData'), strikeZone:$('strikeZone'),
     inningHead:$('inningHead'), inningBody:$('inningBody'), boxScoreBoard:$('boxScoreBoard'),
     scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
-    liveDetailTabs:$('liveDetailTabs'), liveDetailStats:$('liveDetailStats'),
-    liveDetailStatus:$('liveDetailStatus'), liveDetailSeries:$('liveDetailSeries'),
+    liveDetailTabs:$('liveDetailTabs'), liveDetailViewport:$('liveDetailViewport'), liveDetailTrack:$('liveDetailTrack'),
+    liveDetailStats:$('liveDetailStats'), liveDetailStatus:$('liveDetailStatus'), liveDetailSeries:$('liveDetailSeries'),
     currentSeriesTitle:$('currentSeriesTitle'), currentSeriesSummary:$('currentSeriesSummary'),
     currentSeriesGames:$('currentSeriesGames'),
     gameHighlights:$('gameHighlights'), highlightTicker:$('highlightTicker'),
@@ -1615,6 +1636,7 @@
         '<span class="series-side home">'+(h.id?'<span class="series-side-logo-shell"><img src="'+esc(teamLogo(h.id))+'" alt=""></span>':'<span class="series-tbd-logo">?</span>')+'<span class="series-side-name">'+esc(h.id?teamZhName(h):'對手待定')+'</span></span>'+
       '</button>';
     }).join('');
+    if(state.liveDetailTab==='series')requestAnimationFrame(()=>syncLiveDetailHeight());
   }
   async function loadCurrentSeries(force=false){
     if(state.seriesLoading)return;
@@ -1678,18 +1700,111 @@
       state.seriesLoading=false;
     }
   }
-  function setLiveDetailTab(tab){
-    if(!['stats','status','series'].includes(tab))tab='status';
+  const LIVE_DETAIL_TABS=['stats','status','series'];
+  function liveDetailIndex(tab){
+    const i=LIVE_DETAIL_TABS.indexOf(tab);
+    return i<0?1:i;
+  }
+  function activeLiveDetailPanel(){
+    return [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries][liveDetailIndex(state.liveDetailTab)];
+  }
+  function syncLiveDetailHeight(immediate=false){
+    const panel=activeLiveDetailPanel();
+    if(!panel||!els.liveDetailViewport)return;
+    const h=Math.max(1,panel.scrollHeight);
+    if(immediate){
+      const old=els.liveDetailViewport.style.transition;
+      els.liveDetailViewport.style.transition='none';
+      els.liveDetailViewport.style.height=h+'px';
+      void els.liveDetailViewport.offsetHeight;
+      els.liveDetailViewport.style.transition=old;
+    }else{
+      els.liveDetailViewport.style.height=h+'px';
+    }
+  }
+  function positionLiveDetailTrack(tab,animate=true){
+    const index=liveDetailIndex(tab);
+    els.liveDetailTrack.classList.toggle('dragging',!animate);
+    els.liveDetailTrack.style.transform='translate3d('+(-index*100)+'%,0,0)';
+  }
+  function setLiveDetailTab(tab,options={}){
+    if(!LIVE_DETAIL_TABS.includes(tab))tab='status';
+    const animate=options.animate!==false;
     state.liveDetailTab=tab;
     els.liveDetailTabs.querySelectorAll('[data-live-tab]').forEach(btn=>{
       const active=btn.dataset.liveTab===tab;
       btn.classList.toggle('active',active);
       btn.setAttribute('aria-selected',String(active));
     });
-    els.liveDetailStats.hidden=tab!=='stats';
-    els.liveDetailStatus.hidden=tab!=='status';
-    els.liveDetailSeries.hidden=tab!=='series';
+    [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries].forEach((panel,index)=>{
+      const active=index===liveDetailIndex(tab);
+      panel.classList.toggle('active',active);
+      panel.setAttribute('aria-hidden',String(!active));
+    });
+    positionLiveDetailTrack(tab,animate);
+    requestAnimationFrame(()=>syncLiveDetailHeight(!animate));
     if(tab==='series')loadCurrentSeries();
+  }
+
+  function initLiveDetailSwipe(){
+    const viewport=els.liveDetailViewport,track=els.liveDetailTrack;
+    let startX=0,startY=0,lastX=0,startTime=0,dragging=false,horizontal=false;
+    const blockedTarget=t=>!!t.closest('.boxscore-scroll, .scroll, input, select, textarea');
+
+    viewport.addEventListener('touchstart',e=>{
+      if(e.touches.length!==1||blockedTarget(e.target))return;
+      const t=e.touches[0];
+      startX=lastX=t.clientX;startY=t.clientY;startTime=performance.now();
+      dragging=true;horizontal=false;
+    },{passive:true});
+
+    viewport.addEventListener('touchmove',e=>{
+      if(!dragging||e.touches.length!==1)return;
+      const t=e.touches[0],dx=t.clientX-startX,dy=t.clientY-startY;
+      lastX=t.clientX;
+      if(!horizontal){
+        if(Math.abs(dx)<7&&Math.abs(dy)<7)return;
+        if(Math.abs(dy)>=Math.abs(dx)){dragging=false;return;}
+        horizontal=true;
+        track.classList.add('dragging');
+      }
+      e.preventDefault();
+      const width=Math.max(1,viewport.clientWidth);
+      const index=liveDetailIndex(state.liveDetailTab);
+      let offset=dx;
+      if((index===0&&dx>0)||(index===LIVE_DETAIL_TABS.length-1&&dx<0))offset*=0.28;
+      track.style.transform='translate3d('+(-index*width+offset)+'px,0,0)';
+    },{passive:false});
+
+    const finish=()=>{
+      if(!dragging&&!horizontal)return;
+      const dx=lastX-startX;
+      const dt=Math.max(1,performance.now()-startTime);
+      const velocity=dx/dt;
+      const width=Math.max(1,viewport.clientWidth);
+      let index=liveDetailIndex(state.liveDetailTab);
+      if(horizontal&&(Math.abs(dx)>Math.min(90,width*.20)||Math.abs(velocity)>.55)){
+        if(dx<0)index=Math.min(LIVE_DETAIL_TABS.length-1,index+1);
+        else index=Math.max(0,index-1);
+      }
+      dragging=false;horizontal=false;
+      track.classList.remove('dragging');
+      setLiveDetailTab(LIVE_DETAIL_TABS[index],{animate:true});
+    };
+
+    viewport.addEventListener('touchend',finish,{passive:true});
+    viewport.addEventListener('touchcancel',finish,{passive:true});
+
+    if('ResizeObserver' in window){
+      const ro=new ResizeObserver(()=>syncLiveDetailHeight());
+      [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries].forEach(p=>ro.observe(p));
+    }else{
+      window.addEventListener('resize',()=>syncLiveDetailHeight(true));
+    }
+    window.addEventListener('resize',()=>{
+      positionLiveDetailTrack(state.liveDetailTab,false);
+      syncLiveDetailHeight(true);
+    });
   }
   async function openSeriesGame(gamePk){
     if(state.loading){
@@ -1798,6 +1913,7 @@
     renderHighlights(feed);
     renderLineScore(ls,away,home);renderBoxScore(feed);renderScoringPlays(plays);renderRecentPlays(plays);
     if(state.liveDetailTab==='series')loadCurrentSeries();
+    if(state.liveDetailTab==='status')requestAnimationFrame(()=>syncLiveDetailHeight());
   }
 
   function findSeriesDescription(){
@@ -2318,6 +2434,7 @@
     els.boxScoreBoard.innerHTML=
       boxTeamHTML(gd.teams?.away||{},away||{})+
       boxTeamHTML(gd.teams?.home||{},home||{});
+    if(state.liveDetailTab==='stats')requestAnimationFrame(()=>syncLiveDetailHeight());
   }
 
   function renderLineScore(ls,away,home){
@@ -3162,7 +3279,8 @@
   els.dateInput.addEventListener('change',()=>{loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
   els.dateInput.value=localDateString();
   switchView('live');
-  setLiveDetailTab('status');
+  initLiveDetailSwipe();
+  setLiveDetailTab('status',{animate:false});
   loadSchedule(false);
   setInterval(()=>{if(state.view==='live')loadSchedule(true)},REFRESH_MS);
   setInterval(()=>{if(state.view==='bracket')loadBracket(true)},60000);
