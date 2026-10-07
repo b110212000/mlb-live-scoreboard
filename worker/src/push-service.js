@@ -93,6 +93,10 @@ export class PushService extends DurableObject {
       return this.createTest(request);
     }
 
+    if (request.method === "POST" && url.pathname === "/send") {
+      return this.sendBatch(request);
+    }
+
     if (request.method === "GET" && url.pathname === "/status") {
       const pending = await this.ctx.storage.get("pendingTests") || [];
       return json({
@@ -103,6 +107,46 @@ export class PushService extends DurableObject {
     }
 
     return json({ error: "NOT_FOUND" }, 404);
+  }
+
+  async sendBatch(request) {
+    const body = await request.json().catch(() => ({}));
+    const subscriptions = Array.isArray(body.subscriptions) ? body.subscriptions : [];
+    const payload = body.payload && typeof body.payload === "object" ? body.payload : null;
+
+    if (!payload || subscriptions.length === 0) {
+      return json({ error: "INVALID_PUSH_BATCH" }, 400);
+    }
+
+    const results = [];
+    for (const subscription of subscriptions) {
+      const endpoint = subscription?.endpoint || "";
+      if (!validSubscription(subscription)) {
+        results.push({ endpoint, ok: false, expired: false, statusCode: 400 });
+        continue;
+      }
+
+      try {
+        await this.send(subscription, payload);
+        results.push({ endpoint, ok: true, expired: false, statusCode: 201 });
+      } catch (error) {
+        const statusCode = Number(error?.statusCode) || 0;
+        results.push({
+          endpoint,
+          ok: false,
+          expired: statusCode === 404 || statusCode === 410,
+          statusCode,
+          message: error?.message || String(error)
+        });
+      }
+    }
+
+    return json({
+      ok: true,
+      sent: results.filter(item => item.ok).length,
+      expired: results.filter(item => item.expired).length,
+      results
+    });
   }
 
   async createTest(request) {
