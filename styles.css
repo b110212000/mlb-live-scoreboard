@@ -1534,3 +1534,19 @@
         z-index:110;
       }
     }
+
+
+    /* Footer version */
+    .foot{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .app-version{
+      margin-left:auto;
+      white-space:nowrap;
+      font-weight:800;
+      color:#c7d5e2;
+      letter-spacing:.03em;
+    }
