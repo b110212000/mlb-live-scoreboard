@@ -1049,6 +1049,87 @@
       .series-game-status,.series-game-time{font-size:14px}
       .series-game-if{font-size:9px}
     }
+
+    /* 目前對決：打者 / 壘包 / 投手整合 */
+    .matchup-card{padding:18px}
+    .matchup-stage{
+      display:grid;grid-template-columns:minmax(0,1fr) 132px minmax(0,1fr);
+      gap:14px;align-items:center;min-width:0
+    }
+    .matchup-person{
+      min-width:0;display:flex;align-items:center;gap:11px;
+      padding:4px 0;border:0!important;border-radius:0!important;
+      background:transparent!important;box-shadow:none!important
+    }
+    .matchup-person.batter-side{justify-content:flex-start;text-align:left}
+    .matchup-person.pitcher-side{justify-content:flex-end;text-align:right;flex-direction:row-reverse}
+    .matchup-person.pitcher-side .label{text-align:right}
+    .matchup-person-copy{min-width:0}
+    .matchup-person .headshot{
+      width:62px;height:62px;flex:none;border-radius:50%;object-fit:cover;
+      background:#203449;border:1px solid #38506a
+    }
+    .matchup-person .person-name{font-size:17px}
+    .matchup-person .person-meta{font-size:11px;line-height:1.35}
+    .matchup-center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}
+    .compact-count{
+      margin-bottom:2px;font-size:25px;font-weight:950;line-height:1;
+      color:#fff;font-variant-numeric:tabular-nums;letter-spacing:.02em
+    }
+    .count-dash{padding:0 3px;color:#8193a5;font-weight:700}
+    .matchup-center .diamond-wrap{position:relative;width:112px;height:94px;margin:0 auto}
+    .matchup-center .diamond{
+      width:48px;height:48px;left:50%;top:49px;border-width:2px;border-radius:6px
+    }
+    .matchup-center .base{
+      width:18px;height:18px;border-width:2px;border-radius:3px
+    }
+    .matchup-center .b2{left:50%;top:10px;transform:translateX(-50%) rotate(45deg)}
+    .matchup-center .b1{right:17px;top:39px}
+    .matchup-center .b3{left:17px;top:39px}
+    .outs-dots{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:0}
+    .out-dot{
+      width:9px;height:9px;border-radius:50%;display:block;
+      border:1px solid #718397;background:#243548;transition:.15s
+    }
+    .out-dot.on{background:#ffce63;border-color:#ffe09a;box-shadow:0 0 8px rgba(255,206,99,.35)}
+    .outs-value{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    .runner-summary{
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+      margin-top:14px;padding:9px 0 2px;border-top:1px solid rgba(90,119,146,.22);
+      line-height:1.35
+    }
+    .runner-summary>div{min-width:0;text-align:center}
+    .runner-summary span{display:block;font-size:9px;color:var(--muted);margin-bottom:2px}
+    .runner-summary strong{
+      display:block;font-size:11px;color:#e9f1f8;font-weight:800;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    }
+    .matchup-card .pitch-summary{margin-top:12px}
+    .matchup-card .pitch-visual{margin-top:12px}
+    @media(max-width:600px){
+      .matchup-card{padding:14px 10px}
+      .matchup-stage{grid-template-columns:minmax(0,1fr) 100px minmax(0,1fr);gap:5px}
+      .matchup-person{
+        flex-direction:column!important;gap:5px;align-items:flex-start;
+      }
+      .matchup-person.pitcher-side{align-items:flex-end}
+      .matchup-person .headshot{width:48px;height:48px}
+      .matchup-person .label{font-size:8px;margin-bottom:1px}
+      .matchup-person .person-name{font-size:12px;max-width:100%}
+      .matchup-person .person-meta{font-size:8px;max-width:100%}
+      .compact-count{font-size:21px}
+      .matchup-center .diamond-wrap{width:92px;height:82px}
+      .matchup-center .diamond{width:42px;height:42px;top:44px}
+      .matchup-center .base{width:16px;height:16px}
+      .matchup-center .b2{top:8px}
+      .matchup-center .b1{right:12px;top:36px}
+      .matchup-center .b3{left:12px;top:36px}
+      .out-dot{width:8px;height:8px}
+      .runner-summary{gap:4px;margin-top:11px}
+      .runner-summary strong{font-size:9px}
+    }
+
 </style>
 </head>
 <body>
@@ -1183,62 +1264,56 @@
     </div>
 
     <div id="liveDetailStatus" class="live-detail-panel" data-live-panel="status">
-    <section class="card collapsible-card" data-collapse-section>
-      <div class="section-head" data-collapse-head>
-        <h2>壘上與投球位置</h2>
-        <button class="collapse-toggle" type="button" aria-expanded="true" aria-label="收合壘上與投球位置"><span class="chev" aria-hidden="true">⌃</span></button>
-      </div>
-      <div class="collapse-body" data-collapse-body>
-        <div class="diamond-area">
-          <div class="diamond-wrap" aria-label="壘包狀況">
-            <div class="diamond"></div>
-            <div id="base2" class="base b2"></div>
-            <div id="base1" class="base b1"></div>
-            <div id="base3" class="base b3"></div>
-          </div>
-          <div id="baseSummary" class="base-summary">壘上 <b>0</b> 人<br>一壘：--<br>二壘：--<br>三壘：--</div>
-        </div>
-        <div class="pitch-visual">
-          <div class="pitch-grid">
-            <div class="zone-wrap" aria-label="最近一球進壘點">
-              <div id="strikeZone" class="zone"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-              <div id="pitchDot" class="pitch-dot"></div>
-            </div>
-            <div id="pitchData" class="pitch-data">目前沒有可顯示的投球座標。</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card collapsible-card" data-collapse-section>
+    <section class="card collapsible-card matchup-card" data-collapse-section>
       <div class="section-head" data-collapse-head>
         <h2>目前對決</h2>
         <button class="collapse-toggle" type="button" aria-expanded="true" aria-label="收合目前對決"><span class="chev" aria-hidden="true">⌃</span></button>
       </div>
       <div class="collapse-body" data-collapse-body>
-        <div class="matchup">
-          <div class="person">
+        <div class="matchup-stage">
+          <div class="matchup-person batter-side">
             <img id="batterPhoto" class="headshot" alt="" />
-            <div>
+            <div class="matchup-person-copy">
               <div class="label">Batter / 打者</div>
               <div id="batterName" class="person-name">--</div>
               <div id="batterMeta" class="person-meta">等待比賽資料</div>
             </div>
           </div>
-          <div class="person">
+
+          <div class="matchup-center">
+            <div class="compact-count" aria-label="球數">
+              <span id="balls">0</span><span class="count-dash">-</span><span id="strikes">0</span>
+            </div>
+            <div class="diamond-wrap" aria-label="壘包狀況">
+              <div class="diamond"></div>
+              <div id="base2" class="base b2"></div>
+              <div id="base1" class="base b1"></div>
+              <div id="base3" class="base b3"></div>
+            </div>
+            <div class="outs-dots" aria-label="出局數">
+              <span class="out-dot" data-out-dot="1"></span>
+              <span class="out-dot" data-out-dot="2"></span>
+              <span class="out-dot" data-out-dot="3"></span>
+              <span id="outs" class="outs-value" aria-hidden="true">0</span>
+            </div>
+          </div>
+
+          <div class="matchup-person pitcher-side">
             <img id="pitcherPhoto" class="headshot" alt="" />
-            <div>
+            <div class="matchup-person-copy">
               <div class="label">Pitcher / 投手</div>
               <div id="pitcherName" class="person-name">--</div>
               <div id="pitcherMeta" class="person-meta">總用球 -- · 本打席 -- 球</div>
             </div>
           </div>
         </div>
-        <div class="countrow">
-          <div class="countbox"><strong id="balls">0</strong><span>壞球 BALL</span></div>
-          <div class="countbox"><strong id="strikes">0</strong><span>好球 STRIKE</span></div>
-          <div class="countbox"><strong id="outs">0</strong><span>出局 OUT</span></div>
+
+        <div id="baseSummary" class="base-summary runner-summary">
+          <div><span>一壘</span><strong>--</strong></div>
+          <div><span>二壘</span><strong>--</strong></div>
+          <div><span>三壘</span><strong>--</strong></div>
         </div>
+
         <div class="pitch-summary">
           <div class="mini-card">
             <div class="k">最近一球</div>
@@ -1251,6 +1326,17 @@
             <div id="pitchEfficiencySub" class="s">好球數 / 用球數</div>
           </div>
         </div>
+
+        <div class="pitch-visual">
+          <div class="pitch-grid">
+            <div class="zone-wrap" aria-label="最近一球進壘點">
+              <div id="strikeZone" class="zone"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div id="pitchDot" class="pitch-dot"></div>
+            </div>
+            <div id="pitchData" class="pitch-data">目前沒有可顯示的投球座標。</div>
+          </div>
+        </div>
+
         <div id="latestPlay" class="latest">尚無最新打席資訊</div>
         <div>
           <div class="label" style="margin-top:11px">本打席投球序列</div>
@@ -1417,6 +1503,7 @@
     shareAppBtn:$('shareAppBtn'), copyAppBtn:$('copyAppBtn'), copyAppHint:$('copyAppHint'), installGuide:$('installGuide')
   };
 
+  const outDots=[...document.querySelectorAll('[data-out-dot]')];
   const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false,view:'live',topControlsExpanded:true,bracketYear:null,bracketLoading:false,rosterLoading:false,currentFeed:null,currentFeedGamePk:null,rosterCache:new Map(),bullpenCache:new Map(),liveDetailTab:'status',seriesLoading:false,seriesCache:new Map(),currentSeriesGames:[]};
   let deferredInstallPrompt=null;
 
@@ -1856,7 +1943,7 @@
     els.lastPitchMain.textContent='--';els.lastPitchSub.textContent='等待投球資料';
     els.pitchEfficiency.textContent='--';els.pitchEfficiencySub.textContent='好球數 / 用球數';
     els.latestPlay.textContent='尚無最新打席資訊';els.pitchSequence.innerHTML='';
-    els.balls.textContent='0';els.strikes.textContent='0';els.outs.textContent='0';
+    els.balls.textContent='0';els.strikes.textContent='0';setOuts(0);
   }
 
   function renderGame(feed){
@@ -1891,7 +1978,7 @@
 
     els.balls.textContent=ls.balls??cp.count?.balls??0;
     els.strikes.textContent=ls.strikes??cp.count?.strikes??0;
-    els.outs.textContent=ls.outs??cp.count?.outs??0;
+    setOuts(ls.outs??cp.count?.outs??0);
 
     setBases(ls.offense?.first,ls.offense?.second,ls.offense?.third);
     els.latestPlay.textContent=zhDescription(cp.result?.description)||zhPitchResult(latestEventDescription(cp))||'目前沒有打席說明';
@@ -1930,8 +2017,16 @@
   }
   function setBases(r1,r2,r3){
     [[els.base1,r1],[els.base2,r2],[els.base3,r3]].forEach(([el,r])=>el.classList.toggle('on',!!r));
-    const count=[r1,r2,r3].filter(Boolean).length;
-    els.baseSummary.innerHTML=`壘上 <b>${count}</b> 人<br>一壘：${esc(r1?.fullName||'--')}<br>二壘：${esc(r2?.fullName||'--')}<br>三壘：${esc(r3?.fullName||'--')}`;
+    els.baseSummary.innerHTML=
+      '<div><span>一壘</span><strong>'+esc(r1?.fullName||'--')+'</strong></div>'+
+      '<div><span>二壘</span><strong>'+esc(r2?.fullName||'--')+'</strong></div>'+
+      '<div><span>三壘</span><strong>'+esc(r3?.fullName||'--')+'</strong></div>';
+  }
+  function setOuts(value){
+    const outs=Math.max(0,Math.min(3,Number(value)||0));
+    els.outs.textContent=String(outs);
+    outDots.forEach((dot,index)=>dot.classList.toggle('on',index<outs));
+    document.querySelector('.outs-dots')?.setAttribute('aria-label',outs+' 出局');
   }
   function getPitcherStats(boxscore,pitcherId){
     if(!boxscore||!pitcherId) return {};
