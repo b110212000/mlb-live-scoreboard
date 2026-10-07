@@ -392,7 +392,7 @@ export class GameMonitor extends DurableObject {
       title: "MLB 比分更新",
       body: `${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}${inning ? " · " + inning : ""}`,
       tag: `game-score-${snapshot.gamePk}-${snapshot.awayScore}-${snapshot.homeScore}-${Date.now()}`,
-      url: "./?view=live",
+      url: `./?view=live&gamePk=${snapshot.gamePk}`,
       gamePk: snapshot.gamePk,
       stage: "score"
     });
@@ -420,7 +420,7 @@ export class GameMonitor extends DurableObject {
       title: `${teamLabel(snapshot)}｜訂閱成功`,
       body: "已開啟這場比賽通知：開賽前提醒、比賽開始、比分更新及比賽結束。",
       tag: `game-subscribed-${snapshot.gamePk}`,
-      url: "./?view=live",
+      url: `./?view=live&gamePk=${snapshot.gamePk}`,
       gamePk: snapshot.gamePk,
       stage: "subscription"
     });
@@ -437,7 +437,7 @@ export class GameMonitor extends DurableObject {
         title: "MLB 即將開賽",
         body: `${teamLabel(snapshot)} 將在 5 分鐘內開賽。`,
         tag: `game-pregame-${snapshot.gamePk}`,
-        url: "./?view=live",
+        url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "pregame5"
       });
@@ -448,7 +448,7 @@ export class GameMonitor extends DurableObject {
         title: "MLB 比賽開始",
         body: `${teamLabel(snapshot)} 已經開賽。`,
         tag: `game-start-${snapshot.gamePk}`,
-        url: "./?view=live",
+        url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "start"
       });
@@ -468,7 +468,7 @@ export class GameMonitor extends DurableObject {
         title: "MLB 比賽結束",
         body: `終場：${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}`,
         tag: `game-final-${snapshot.gamePk}`,
-        url: "./?view=live",
+        url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "final"
       });

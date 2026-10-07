@@ -186,20 +186,21 @@ setInterval(advanceHighlights,5000);
   document.addEventListener('touchcancel',reset,{passive:true});
 })();
 
-els.refreshBtn.addEventListener('click',()=>loadSchedule(true));
-els.dateInput.addEventListener('change',()=>{loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
+els.refreshBtn.addEventListener('click',()=>state.notificationGamePending?loadInitialGame():loadSchedule(true));
+els.dateInput.addEventListener('change',()=>{clearNotificationRoute();loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
 els.dateInput.value=localDateString();
 
 // 賽事資料是核心功能：先啟動資料載入，再初始化其他非必要 UI。
 // 這樣即使某個附加 UI 發生錯誤，也不會讓整個即時比分停在「尚未更新」。
-loadSchedule(false).catch(err=>{
+loadInitialGame().catch(err=>{
   console.error('Initial schedule load failed',err);
   showError('初始賽事資料載入失敗：'+(err?.message||String(err)));
 });
 
 try{
   const requestedView=new URL(location.href).searchParams.get('view');
-  const initialView=['live','bracket','roster','install','notifications'].includes(requestedView)?requestedView:'live';
+  const initialView=new URL(location.href).searchParams.has('gamePk')?'live':
+    (['live','bracket','roster','install','notifications'].includes(requestedView)?requestedView:'live');
   switchView(initialView);
   initLiveDetailSwipe();
   setLiveDetailTab('status',{animate:false});
@@ -208,7 +209,10 @@ try{
   showError('部分介面初始化失敗，但賽事資料仍會繼續載入：'+(err?.message||String(err)));
 }
 
-setInterval(()=>{if(state.view==='live')loadSchedule(true)},REFRESH_MS);
+setInterval(()=>{if(state.view==='live'){
+  if(state.notificationGamePending)loadInitialGame();
+  else loadSchedule(true);
+}},REFRESH_MS);
 setInterval(()=>{if(state.view==='bracket')loadBracket(true)},60000);
 setInterval(()=>{if(state.view==='roster')loadMatchupRoster(true)},60000);
 setInterval(()=>{if(state.view==='live'&&state.liveDetailTab==='series')loadCurrentSeries(true)},60000);
@@ -223,3 +227,11 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('focus',checkForAppUpdate);
 setInterval(checkForAppUpdate,15000);
+
+
+// 保持 Push-only Service Worker 最新；無需重新訂閱或重新詢問權限。
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./service-worker.js',{scope:'./',updateViaCache:'none'})
+    .then(registration=>registration.update())
+    .catch(error=>console.warn('Push worker update failed',error));
+}

@@ -66,7 +66,7 @@ export default {
         ok: true,
         service: "mlb-score-notify",
         phase: "game-watch-notifications",
-        version: "1.2.0",
+        version: "1.3.0",
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,

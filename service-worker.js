@@ -24,7 +24,13 @@ self.addEventListener('push',event=>{
   }
 
   const title=payload.title||'MLB 戰況';
-  const targetUrl=new URL(payload.url||'./',self.registration.scope).href;
+  const target=new URL(payload.url||'./',self.registration.scope);
+  const gamePk=Number(payload.gamePk);
+  if(Number.isSafeInteger(gamePk)&&gamePk>0){
+    target.searchParams.set('view','live');
+    target.searchParams.set('gamePk',String(gamePk));
+  }
+  const targetUrl=target.href;
 
   event.waitUntil(self.registration.showNotification(title,{
     body:payload.body||'',
@@ -41,11 +47,13 @@ self.addEventListener('notificationclick',event=>{
   event.waitUntil((async()=>{
     const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     for(const client of windows){
+      // 同一 GitHub Pages 網域可能有其他專案，只重用本 App 的視窗。
+      if(!client.url?.startsWith(self.registration.scope))continue;
       if('focus' in client){
         try{
-          await client.navigate(targetUrl);
+          const navigated=await client.navigate(targetUrl);
+          if(navigated)return navigated.focus();
         }catch(_){}
-        return client.focus();
       }
     }
     return self.clients.openWindow(targetUrl);

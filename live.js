@@ -1,7 +1,7 @@
 /* MLB Live Scoreboard - live.js
    即時賽事、投打資訊、好球帶、焦點、隊伍/球員 Box Score 與得分事件。 */
 
-async function loadSchedule(keepSelection=true){
+async function loadSchedule(keepSelection=true,requestedGamePk=null){
   if(state.loading) return;
   state.loading=true;
   showError('');
@@ -19,6 +19,12 @@ async function loadSchedule(keepSelection=true){
       .filter(g=>POSTSEASON.has(g.gameType)&&gameLocalDateKey(g)===date)
       .sort((a,b)=>new Date(a.gameDate)-new Date(b.gameDate));
 
+    if(requestedGamePk!=null){
+      if(!state.games.some(g=>g.gamePk===requestedGamePk)){
+        throw new Error('通知指定的比賽不在該日賽程中，請稍後重新整理');
+      }
+      state.selectedGamePk=requestedGamePk;
+    }
     if(!keepSelection||!state.games.some(g=>g.gamePk===state.selectedGamePk)){
       const live=state.games.find(g=>g.status?.abstractGameState==='Live');
       state.selectedGamePk=(live||state.games[0])?.gamePk??null;
@@ -26,9 +32,11 @@ async function loadSchedule(keepSelection=true){
     renderTabs();
     if(state.selectedGamePk) await loadGame(state.selectedGamePk);
     else renderNoGame(date);
+    return true;
   }catch(err){
     showError(`無法取得 MLB 即時資料：${err.message}`);
     markUpdated(false,false);
+    return false;
   }finally{
     state.loading=false;
   }
@@ -857,4 +865,51 @@ function eventHTML(play,showScore){
     <div class="event-desc">${esc(desc)}</div>
     <div class="event-score">${esc(score)}</div>
   </div>`;
+}
+
+/* 通知直達：先以比賽 ID 取得真正開賽時間，再換算使用者當地日期。 */
+async function loadInitialGame(){
+  if(state.loading)return;
+  const url=new URL(location.href);
+  const raw=url.searchParams.get('gamePk');
+  if(raw===null)return loadSchedule(false);
+  const gamePk=/^[1-9]\d*$/.test(raw)?Number(raw):NaN;
+  if(!Number.isSafeInteger(gamePk)){
+    await loadSchedule(false);
+    showError('通知的比賽編號無效');
+    return;
+  }
+  state.notificationGamePending=true;
+  state.loading=true;
+  try{
+    const feed=await getJSON(API+'/v1.1/game/'+gamePk+'/feed/live');
+    const actualPk=Number(feed?.gamePk??feed?.gameData?.game?.pk);
+    if(actualPk!==gamePk)throw new Error('通知的比賽資料不符');
+    const gameDate=feed?.gameData?.datetime?.dateTime;
+    const date=gameLocalDateKey({gameDate});
+    if(!date)throw new Error('無法取得這場比賽的開賽日期');
+    els.dateInput.value=date;
+    state.selectedGamePk=gamePk;
+    state.currentFeed=feed;
+    state.currentFeedGamePk=gamePk;
+    renderGame(feed);
+    markUpdated(true,feed.gameData?.status?.abstractGameState==='Live');
+    state.loading=false;
+    if(!await loadSchedule(true,gamePk))return;
+    // 通知路由只消費一次，避免後續手動切換後重新整理又跳回舊場次。
+    clearNotificationRoute();
+  }catch(error){
+    showError('無法開啟通知比賽：'+(error?.message||String(error)));
+    markUpdated(false,false);
+  }finally{
+    state.loading=false;
+  }
+}
+
+function clearNotificationRoute(){
+  state.notificationGamePending=false;
+  const url=new URL(location.href);
+  url.searchParams.delete('gamePk');
+  url.searchParams.delete('gameDate');
+  history.replaceState(null,'',url.toString());
 }
