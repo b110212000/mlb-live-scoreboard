@@ -1744,11 +1744,12 @@
       width:auto!important;
       min-width:0!important;
     }
-    .date-picker-control{
+    #topControls.controls .date-picker-control{
       position:relative;
       display:flex!important;
       align-items:center;
       justify-content:center;
+      flex:0 0 42px!important;
       width:42px!important;
       height:42px!important;
       min-width:42px!important;
@@ -1807,7 +1808,8 @@
         width:calc(100% - 20px);
         gap:6px;
       }
-      .date-picker-control{
+      #topControls.controls .date-picker-control{
+        flex-basis:40px!important;
         width:40px!important;
         height:40px!important;
         min-width:40px!important;
