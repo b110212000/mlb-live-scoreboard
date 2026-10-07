@@ -191,12 +191,33 @@ function playoffLeague(game){
   if(/National League|\bNL(?:WC|DS|CS)?\b/i.test(text))return 'NL';
   return 'OTHER';
 }
+const MLB_TEAM_ABBR={
+  108:'LAA',109:'ARI',110:'BAL',111:'BOS',112:'CHC',113:'CIN',114:'CLE',115:'COL',
+  116:'DET',117:'HOU',118:'KC',119:'LAD',120:'WSH',121:'NYM',133:'ATH',134:'PIT',
+  135:'SD',136:'SEA',137:'SF',138:'STL',139:'TB',140:'TEX',141:'TOR',142:'MIN',
+  143:'PHI',144:'ATL',145:'CWS',146:'MIA',147:'NYY',158:'MIL'
+};
+const MLB_TEAM_IDS=new Set(Object.keys(MLB_TEAM_ABBR).map(Number));
+
 function scheduleTeam(t){
   const team=t?.team||{};
+  const id=Number(team.id);
+  const realTeam=MLB_TEAM_IDS.has(id);
+
+  if(!realTeam){
+    return {
+      id:null,
+      name:'待定',
+      abbreviation:'TBD',
+      placeholder:true
+    };
+  }
+
   return {
-    id:team.id||null,
+    id,
     name:team.name||team.teamName||'待定',
-    abbreviation:team.abbreviation||team.teamCode?.toUpperCase()||teamAbbr(team)
+    abbreviation:MLB_TEAM_ABBR[id]||team.abbreviation||team.teamCode?.toUpperCase()||'TBD',
+    placeholder:false
   };
 }
 function normalizePostseasonSeries(data){
