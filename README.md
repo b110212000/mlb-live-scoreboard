@@ -763,9 +763,26 @@ sportId=1
 
 ## 網站版本
 
-網站會檢查 `index.html` 是否有更新。
+網站使用 `version.json` 做輕量版本檢查，不再每次下載所有 CSS / JavaScript 計算 hash。
 
-當 GitHub Pages 已部署新版，而使用者重新回到 App 時，網站會檢查版本並重新載入，以降低 iPhone Web App 使用舊 CSS / JavaScript 的問題。
+檢查時機：
+
+```text
+開啟頁面
+切回 App / 視窗重新取得焦點
+每 15 秒
+```
+
+平常每次只讀取一個很小的 `version.json`。偵測到新版後，會先確認新版 `index.html` 已經部署完成，再重新載入頁面。
+
+所有前端 CSS / JavaScript URL 也會附帶版本參數，例如：
+
+```text
+styles.css?v=1.0.1
+app.js?v=1.0.1
+```
+
+因此新版部署後可以直接避開瀏覽器舊資源快取，尤其是 iPhone 主畫面 Web App。
 
 另外也支援：
 
@@ -829,21 +846,7 @@ JavaScript 依下列順序載入：
 
 `app.js` 現在只負責啟動應用，不再放主要功能邏輯。
 
-網站版本檢查會同時比對：
-
-```text
-index.html
-styles.css
-api.js
-live.js
-postseason.js
-roster.js
-notifications.js
-ui.js
-app.js
-```
-
-因此只修改 CSS 或任一 JavaScript 檔案時，iPhone 主畫面版本仍可偵測新版。
+網站版本由 `version.json` 統一發布；每次版本異動時，同步更新頁尾版號與前端資源的版本參數。
 
 
 ---
@@ -894,7 +897,7 @@ MLB Stats API
 
 ## 版本號規則
 
-目前版本：`v1.0.0`
+目前版本：`v1.0.1`
 
 版本格式：
 
