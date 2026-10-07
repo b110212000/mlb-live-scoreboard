@@ -1459,8 +1459,12 @@
     const homeLeague=Number(gd?.teams?.home?.league?.id);
     const league=awayLeague===104&&homeLeague===104?'國家聯盟':
       awayLeague===103&&homeLeague===103?'美國聯盟':'';
-    const round=({F:'外卡系列賽',D:'分區系列賽',L:'聯盟冠軍系列賽',P:'季後賽'})[type]||seriesName(type);
+    const round=({F:'外卡系列賽',D:'分區賽',L:'冠軍賽',P:'季後賽'})[type]||seriesName(type);
     return league+round;
+  }
+  function seriesGameNumber(n){
+    const zh=['一','二','三','四','五','六','七'];
+    return '第'+(zh[n-1]||String(n))+'場';
   }
   function seriesPairKey(a,b){
     return [Number(a),Number(b)].filter(Number.isFinite).sort((x,y)=>x-y).join('-');
@@ -1501,7 +1505,7 @@
       const status=g.status?.detailedState||g.status?.abstractGameState||'';
       const score=hasScore?String(aScore)+'–'+String(hScore):status||'尚未開打';
       return '<button type="button" class="series-game-row '+(g.gamePk===state.selectedGamePk?'current':'')+'" data-series-game-pk="'+g.gamePk+'">'+
-        '<span class="series-game-no">第 '+(index+1)+' 場</span>'+
+        '<span class="series-game-no">'+seriesGameNumber(index+1)+'</span>'+
         '<span class="series-game-main">'+
           '<span class="series-game-matchup">'+
             '<span class="series-game-team"><img src="'+esc(teamLogo(a.id))+'" alt=""><span>'+esc(teamZhName(a))+'</span></span>'+
