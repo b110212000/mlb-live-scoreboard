@@ -1130,6 +1130,52 @@
       .runner-summary strong{font-size:9px}
     }
 
+
+    /* 主比分改為兩列式比分板，與投打三欄視覺區隔 */
+    .scoreboard{
+      overflow:hidden;border-radius:15px;
+      background:linear-gradient(180deg,#0d2033,#091725);
+      border:1px solid #29445e
+    }
+    .scoreboard-row{
+      display:grid;grid-template-columns:60px minmax(0,1fr) auto;
+      gap:14px;align-items:center;min-height:84px;padding:11px 16px
+    }
+    .scoreboard-divider{height:1px;margin:0 16px;background:rgba(125,153,178,.22)}
+    .score-logo-shell{
+      width:56px;height:56px;display:flex;align-items:center;justify-content:center;
+      padding:7px;border-radius:13px;background:rgba(248,251,255,.97);
+      border:1px solid rgba(255,255,255,.24);box-shadow:0 3px 10px rgba(0,0,0,.20);
+      overflow:visible
+    }
+    .score-logo-shell .logo{width:100%;height:100%;object-fit:contain}
+    .score-team-copy{min-width:0}
+    .score-team-name{
+      font-size:18px;font-weight:900;color:#f4f8fb;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    }
+    .score-team-meta{
+      margin-top:4px;font-size:11px;color:#92a6b9;font-weight:650;
+      font-variant-numeric:tabular-nums
+    }
+    .score-value{
+      min-width:62px;text-align:right;font-size:46px;font-weight:950;line-height:1;
+      color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.03em
+    }
+    .scoreboard-row.home-row{background:rgba(255,255,255,.018)}
+    @media(max-width:600px){
+      .scoreboard{border-radius:13px}
+      .scoreboard-row{
+        grid-template-columns:47px minmax(0,1fr) auto;
+        min-height:68px;gap:10px;padding:8px 11px
+      }
+      .scoreboard-divider{margin:0 11px}
+      .score-logo-shell{width:45px;height:45px;padding:5px;border-radius:11px}
+      .score-team-name{font-size:14px}
+      .score-team-meta{font-size:9px;margin-top:2px}
+      .score-value{font-size:36px;min-width:44px}
+    }
+
 </style>
 </head>
 <body>
@@ -1213,21 +1259,23 @@
           <button id="heroRosterBtn" class="matchup-roster-btn" type="button">對戰名單</button>
         </div>
       </div>
-      <div class="teams">
-        <div class="team">
-          <span class="logo-shell"><img id="awayLogo" class="logo" alt="" /></span>
-          <div>
-            <div id="awayName" class="team-name">客隊</div>
-            <div id="awayRhe" class="team-sub">R 0 · H 0 · E 0</div>
+      <div class="scoreboard">
+        <div class="scoreboard-row away-row">
+          <span class="score-logo-shell"><img id="awayLogo" class="logo" alt="" /></span>
+          <div class="score-team-copy">
+            <div id="awayName" class="score-team-name">客隊</div>
+            <div id="awayRhe" class="score-team-meta">R 0 · H 0 · E 0</div>
           </div>
+          <div id="awayScore" class="score-value">0</div>
         </div>
-        <div id="bigScore" class="bigscore"><span>0</span><span class="dash">–</span><span>0</span></div>
-        <div class="team home">
-          <div>
-            <div id="homeName" class="team-name">主隊</div>
-            <div id="homeRhe" class="team-sub">R 0 · H 0 · E 0</div>
+        <div class="scoreboard-divider"></div>
+        <div class="scoreboard-row home-row">
+          <span class="score-logo-shell"><img id="homeLogo" class="logo" alt="" /></span>
+          <div class="score-team-copy">
+            <div id="homeName" class="score-team-name">主隊</div>
+            <div id="homeRhe" class="score-team-meta">R 0 · H 0 · E 0</div>
           </div>
-          <span class="logo-shell"><img id="homeLogo" class="logo" alt="" /></span>
+          <div id="homeScore" class="score-value">0</div>
         </div>
       </div>
     </section>
@@ -1475,7 +1523,7 @@
     error:$('errorBox'), liveDot:$('liveDot'), updateText:$('updateText'), liveChip:$('liveChip'),
     series:$('seriesText'), state:$('statePill'), inning:$('inningText'),
     awayLogo:$('awayLogo'), homeLogo:$('homeLogo'), awayName:$('awayName'), homeName:$('homeName'),
-    awayRhe:$('awayRhe'), homeRhe:$('homeRhe'), bigScore:$('bigScore'),
+    awayRhe:$('awayRhe'), homeRhe:$('homeRhe'), awayScore:$('awayScore'), homeScore:$('homeScore'),
     batterPhoto:$('batterPhoto'), pitcherPhoto:$('pitcherPhoto'),
     batterName:$('batterName'), batterMeta:$('batterMeta'), pitcherName:$('pitcherName'), pitcherMeta:$('pitcherMeta'),
     balls:$('balls'), strikes:$('strikes'), outs:$('outs'),
@@ -1919,7 +1967,7 @@
   function renderNoGame(date){
     els.series.textContent=`${date} 沒有 MLB 季後賽賽事`;
     els.state.textContent='NO GAME';els.inning.textContent='--';
-    els.bigScore.innerHTML='<span>0</span><span class="dash">–</span><span>0</span>';
+    els.awayScore.textContent='0';els.homeScore.textContent='0';
     els.awayName.textContent='客隊';els.homeName.textContent='主隊';
     els.awayLogo.removeAttribute('src');els.homeLogo.removeAttribute('src');
     resetMatchup();
@@ -1959,7 +2007,7 @@
     els.awayLogo.alt=away.name||'客隊';els.homeLogo.alt=home.name||'主隊';
 
     const ar=awayLine.runs??0, hr=homeLine.runs??0;
-    els.bigScore.innerHTML=`<span>${ar}</span><span class="dash">–</span><span>${hr}</span>`;
+    els.awayScore.textContent=String(ar);els.homeScore.textContent=String(hr);
     els.awayRhe.textContent=`R ${ar} · H ${awayLine.hits??0} · E ${awayLine.errors??0}`;
     els.homeRhe.textContent=`R ${hr} · H ${homeLine.hits??0} · E ${homeLine.errors??0}`;
 
