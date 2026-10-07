@@ -1550,3 +1550,18 @@
       color:#c7d5e2;
       letter-spacing:.03em;
     }
+
+
+    /* 即時比賽控制列位於 sticky Title 下方 */
+    #liveView > .top-controls-row{
+      margin:0 0 10px;
+      padding:0;
+      width:100%;
+      min-width:0;
+    }
+    @media(max-width:600px){
+      #liveView > .top-controls-row{
+        margin:0 10px 8px;
+        width:calc(100% - 20px);
+      }
+    }
