@@ -931,54 +931,91 @@
     .live-detail-panel[hidden]{display:none!important}
     .live-detail-panel>.card:first-child{margin-top:12px}
 
-    .series-overview-card{margin-top:12px;padding:17px;min-width:0}
+    .series-overview-card{
+      margin-top:12px;padding:0 18px 4px;min-width:0;
+      background:#24262b!important;border:1px solid #4a4d54!important;border-radius:18px!important;
+      box-shadow:0 10px 28px rgba(0,0,0,.20)
+    }
     .series-overview-head{
-      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-      padding-bottom:12px;border-bottom:1px solid var(--line)
+      display:block;text-align:center;padding:18px 8px 13px;
+      border-bottom:0
     }
-    .series-overview-eyebrow{font-size:9px;color:var(--accent);font-weight:900;letter-spacing:.09em}
-    .series-overview-head h2{margin:3px 0 4px;font-size:20px}
-    .series-overview-summary{font-size:12px;color:#d6e5f2;font-weight:800}
-    .current-series-games{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+    .series-overview-eyebrow{display:none}
+    .series-overview-head h2{
+      margin:0;font-size:19px;font-weight:900;letter-spacing:.01em;color:#f3f4f6
+    }
+    .series-overview-summary{display:none}
+    .current-series-games{display:flex;flex-direction:column;gap:0;margin:0}
     .series-game-row{
-      width:100%;min-height:62px;padding:8px 10px;border-radius:12px;border:1px solid #294866;
-      background:linear-gradient(180deg,#102941,#0b1b2c);color:#eef6fd;
-      display:grid;grid-template-columns:60px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left
+      width:100%;min-height:126px;padding:13px 4px 14px;border:0;border-top:1px solid rgba(255,255,255,.12);
+      border-radius:0;background:transparent!important;color:#f6f7f9;
+      display:grid;
+      grid-template-columns:minmax(74px,1fr) 42px minmax(92px,.9fr) 42px minmax(74px,1fr);
+      grid-template-rows:auto 1fr;
+      grid-template-areas:
+        "label label label label label"
+        "away ascore center hscore home";
+      column-gap:8px;row-gap:8px;align-items:center;text-align:center
     }
-    .series-game-row:hover{background:linear-gradient(180deg,#173550,#10243a);border-color:#4e7696}
+    .series-game-row:first-child{border-top:0}
+    .series-game-row:hover{background:rgba(255,255,255,.035)!important}
     .series-game-row.current{
-      border-color:#67cdef;background:linear-gradient(180deg,#153b56,#102941);
-      box-shadow:0 0 0 1px rgba(85,216,255,.16)
+      background:rgba(255,255,255,.025)!important;
+      box-shadow:inset 3px 0 0 rgba(85,216,255,.75)
     }
-    .series-game-no{font-size:11px;font-weight:950;color:#8bdcff;white-space:nowrap}
-    .series-game-main{min-width:0}
-    .series-game-matchup{
-      display:flex;align-items:center;gap:7px;min-width:0;font-size:12px;font-weight:900
+    .series-game-label{
+      grid-area:label;text-align:center;font-size:11px;color:#9499a3;font-weight:650;
+      min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
     }
-    .series-game-team{display:flex;align-items:center;gap:5px;min-width:0}
-    .series-game-team img{
-      width:24px;height:24px;object-fit:contain;padding:2px;border-radius:6px;background:rgba(248,251,255,.95);flex:none
+    .series-side{
+      min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px
     }
-    .series-game-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .series-game-vs{font-size:9px;color:var(--muted);font-weight:700;flex:none}
-    .series-game-meta{margin-top:3px;font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .series-game-score{
-      min-width:58px;text-align:right;font-size:20px;font-weight:950;font-variant-numeric:tabular-nums;white-space:nowrap
+    .series-side.away{grid-area:away}
+    .series-side.home{grid-area:home}
+    .series-side img{
+      width:46px;height:46px;object-fit:contain;display:block;
+      padding:3px;border-radius:10px;background:transparent
     }
-    .series-game-score.pending{font-size:10px;color:var(--muted);font-weight:800}
+    .series-side-name{
+      width:100%;font-size:10px;color:#aeb1b8;font-weight:700;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+    }
+    .series-game-side-score{
+      font-size:36px;font-weight:900;line-height:1;color:#f8f8fa;
+      font-variant-numeric:tabular-nums
+    }
+    .series-game-side-score.away{grid-area:ascore}
+    .series-game-side-score.home{grid-area:hscore}
+    .series-game-side-score.pending{color:transparent}
+    .series-game-center{
+      grid-area:center;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px
+    }
+    .series-game-status{font-size:15px;font-weight:900;color:#fff;white-space:nowrap}
+    .series-game-status.live{font-size:15px}
+    .series-game-time{font-size:15px;font-weight:800;color:#f0f1f3;white-space:nowrap}
+    .series-game-if{font-size:10px;color:#969aa3;white-space:nowrap}
     .series-overview-empty{padding:30px 10px;text-align:center;color:var(--muted);font-size:12px}
     @media(max-width:600px){
       .live-detail-tabs{margin:8px 10px 0;padding:0}
       .live-detail-tab{min-height:46px;font-size:13px;padding:10px 5px}
-      .series-overview-card{padding:13px 10px;border-radius:0}
+      .series-overview-card{
+        margin:8px 18px 0;padding:0 12px 3px;border-left:1px solid #4a4d54!important;
+        border-right:1px solid #4a4d54!important;border-radius:18px!important
+      }
+      .series-overview-head{padding:17px 5px 12px}
       .series-overview-head h2{font-size:17px}
-      .series-game-row{grid-template-columns:48px minmax(0,1fr) auto;gap:7px;padding:7px 8px;min-height:58px}
-      .series-game-no{font-size:10px}
-      .series-game-team img{width:21px;height:21px}
-      .series-game-matchup{gap:5px;font-size:11px}
-      .series-game-score{font-size:17px;min-width:48px}
+      .series-game-row{
+        min-height:120px;padding:12px 0 13px;
+        grid-template-columns:minmax(66px,1fr) 34px minmax(80px,.9fr) 34px minmax(66px,1fr);
+        column-gap:5px;row-gap:7px
+      }
+      .series-game-label{font-size:10px}
+      .series-side img{width:42px;height:42px}
+      .series-side-name{font-size:9px}
+      .series-game-side-score{font-size:32px}
+      .series-game-status,.series-game-time{font-size:14px}
+      .series-game-if{font-size:9px}
     }
-
 </style>
 </head>
 <body>
@@ -1478,6 +1515,35 @@
     const zh=['一','二','三','四','五','六','七'];
     return '第'+(zh[n-1]||String(n))+'場';
   }
+  function seriesGameDateText(g){
+    if(!g?.gameDate)return '';
+    const d=new Date(g.gameDate);
+    if(Number.isNaN(d.getTime()))return '';
+    return new Intl.DateTimeFormat(undefined,{month:'numeric',day:'numeric'}).format(d);
+  }
+  function seriesGameClockText(g){
+    if(!g?.gameDate)return '';
+    const d=new Date(g.gameDate);
+    if(Number.isNaN(d.getTime()))return '';
+    return new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit',hour12:true}).format(d);
+  }
+  function seriesGameStatusInfo(g,index,type){
+    const abstract=g.status?.abstractGameState||'';
+    const detailed=g.status?.detailedState||'';
+    const final=abstract==='Final'||/final|game over|completed/i.test(detailed);
+    const live=abstract==='Live'||/progress|live|inning/i.test(detailed);
+    const need=playoffNeedWins(type);
+    const conditional=index+1>need;
+
+    if(final)return {kind:'final',status:'終場',time:'',conditional:false};
+    if(live)return {kind:'live',status:'進行中',time:'',conditional:false};
+    return {
+      kind:'preview',
+      status:'',
+      time:seriesGameClockText(g)||'時間未定',
+      conditional
+    };
+  }
   function seriesPairKey(a,b){
     return [Number(a),Number(b)].filter(Number.isFinite).sort((x,y)=>x-y).join('-');
   }
@@ -1501,6 +1567,7 @@
   }
   function renderCurrentSeries(gd,games){
     const away=gd?.teams?.away||{},home=gd?.teams?.home||{};
+    const type=gd?.game?.gameType||'';
     els.currentSeriesTitle.textContent=currentSeriesName(gd);
     els.currentSeriesSummary.textContent=seriesStanding(games,away,home);
     state.currentSeriesGames=games;
@@ -1513,20 +1580,20 @@
     els.currentSeriesGames.innerHTML=games.map((g,index)=>{
       const a=g.teams?.away?.team||{},h=g.teams?.home?.team||{};
       const aScore=g.teams?.away?.score,hScore=g.teams?.home?.score;
-      const hasScore=aScore!=null&&hScore!=null;
-      const status=g.status?.detailedState||g.status?.abstractGameState||'';
-      const score=hasScore?String(aScore)+'–'+String(hScore):status||'尚未開打';
+      const info=seriesGameStatusInfo(g,index,type);
+      const showScore=info.kind!=='preview'&&aScore!=null&&hScore!=null;
+      const label=seriesGameNumber(index+1)+'比賽'+(info.kind==='preview'&&seriesGameDateText(g)?' · '+seriesGameDateText(g):'');
+      const center=info.kind==='preview'
+        ? '<span class="series-game-time">'+esc(info.time)+'</span>'+(info.conditional?'<span class="series-game-if">如有需要</span>':'')
+        : '<span class="series-game-status '+(info.kind==='live'?'live':'')+'">'+esc(info.status)+'</span>';
+
       return '<button type="button" class="series-game-row '+(g.gamePk===state.selectedGamePk?'current':'')+'" data-series-game-pk="'+g.gamePk+'">'+
-        '<span class="series-game-no">'+seriesGameNumber(index+1)+'</span>'+
-        '<span class="series-game-main">'+
-          '<span class="series-game-matchup">'+
-            '<span class="series-game-team"><img src="'+esc(teamLogo(a.id))+'" alt=""><span>'+esc(teamZhName(a))+'</span></span>'+
-            '<span class="series-game-vs">vs</span>'+
-            '<span class="series-game-team"><img src="'+esc(teamLogo(h.id))+'" alt=""><span>'+esc(teamZhName(h))+'</span></span>'+
-          '</span>'+
-          '<span class="series-game-meta">'+esc(seriesGameTime(g)+(status?' · '+status:''))+'</span>'+
-        '</span>'+
-        '<span class="series-game-score '+(hasScore?'':'pending')+'">'+esc(score)+'</span>'+
+        '<span class="series-game-label">'+esc(label)+'</span>'+
+        '<span class="series-side away"><img src="'+esc(teamLogo(a.id))+'" alt=""><span class="series-side-name">'+esc(teamZhName(a))+'</span></span>'+
+        '<span class="series-game-side-score away '+(showScore?'':'pending')+'">'+(showScore?esc(aScore):'0')+'</span>'+
+        '<span class="series-game-center">'+center+'</span>'+
+        '<span class="series-game-side-score home '+(showScore?'':'pending')+'">'+(showScore?esc(hScore):'0')+'</span>'+
+        '<span class="series-side home"><img src="'+esc(teamLogo(h.id))+'" alt=""><span class="series-side-name">'+esc(teamZhName(h))+'</span></span>'+
       '</button>';
     }).join('');
   }
