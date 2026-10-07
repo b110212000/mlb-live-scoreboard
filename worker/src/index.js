@@ -1,4 +1,5 @@
 export { GameMonitor } from "./game-monitor.js";
+export { PushService } from "./push-service.js";
 
 function corsHeaders(env) {
   return {
@@ -22,6 +23,16 @@ function json(data, env, status = 200) {
 async function forwardToGameMonitor(request, env, gamePk, path) {
   const id = env.GAME_MONITOR.idFromName(String(gamePk));
   const stub = env.GAME_MONITOR.get(id);
+
+  const target = new URL(request.url);
+  target.pathname = path;
+
+  return stub.fetch(new Request(target.toString(), request));
+}
+
+async function forwardToPushService(request, env, path) {
+  const id = env.PUSH_SERVICE.idFromName("global");
+  const stub = env.PUSH_SERVICE.get(id);
 
   const target = new URL(request.url);
   target.pathname = path;
@@ -58,8 +69,30 @@ export default {
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,
-        pushEnabled: false
+        pushEnabled: true,
+        pushTestEnabled: true
       }, env);
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/push/public-key") {
+      return withCors(
+        await forwardToPushService(request, env, "/public-key"),
+        env
+      );
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/push/test") {
+      return withCors(
+        await forwardToPushService(request, env, "/test"),
+        env
+      );
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/push/status") {
+      return withCors(
+        await forwardToPushService(request, env, "/status"),
+        env
+      );
     }
 
     if (request.method === "POST" && url.pathname === "/api/monitor/start") {
@@ -145,6 +178,9 @@ export default {
       error: "NOT_FOUND",
       routes: [
         "GET /health",
+        "GET /api/push/public-key",
+        "POST /api/push/test",
+        "GET /api/push/status",
         "POST /api/monitor/start",
         "GET /api/monitor/:gamePk",
         "POST /api/monitor/:gamePk/check",
