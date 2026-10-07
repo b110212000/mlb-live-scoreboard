@@ -7,18 +7,27 @@
     "enabled": true
   },
   "vars": {
-    "FRONTEND_ORIGIN": "https://b110212000.github.io"
+    "FRONTEND_ORIGIN": "https://b110212000.github.io",
+    "VAPID_SUBJECT": "https://b110212000.github.io"
   },
   "durable_objects": {
     "bindings": [
       {
         "name": "GAME_MONITOR",
         "class_name": "GameMonitor"
+      },
+      {
+        "name": "PUSH_SERVICE",
+        "class_name": "PushService"
       }
     ]
   },
   "exports": {
     "GameMonitor": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "PushService": {
       "type": "durable-object",
       "storage": "sqlite"
     }
