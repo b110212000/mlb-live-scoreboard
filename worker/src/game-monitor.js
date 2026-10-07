@@ -49,6 +49,8 @@ function normalizeSubscriber(item) {
     endpoint: subscription.endpoint,
     subscription,
     sent: {
+      // 舊訂閱不補發成功通知，新訂閱明確以 false 建立。
+      subscription: item.sent?.subscription !== false,
       pregame5: Boolean(item.sent?.pregame5),
       start: Boolean(item.sent?.start),
       final: Boolean(item.sent?.final)
@@ -222,6 +224,7 @@ export class GameMonitor extends DurableObject {
       endpoint: subscription.endpoint,
       subscription,
       sent: existing?.sent || {
+        subscription: false,
         pregame5: live || (Number.isFinite(gameTime) && now >= gameTime),
         start: live,
         final: false
@@ -413,6 +416,16 @@ export class GameMonitor extends DurableObject {
     const final = isFinalGame(snapshot);
     const gameTime = Date.parse(snapshot.gameDate || "");
 
+    next = await this.sendMarkedEvent(next, "subscription", {
+      title: `${teamLabel(snapshot)}｜訂閱成功`,
+      body: "已開啟這場比賽通知：開賽前提醒、比賽開始、比分更新及比賽結束。",
+      tag: `game-subscribed-${snapshot.gamePk}`,
+      url: "./?view=live",
+      gamePk: snapshot.gamePk,
+      stage: "subscription"
+    });
+    await this.putSubscribers(next);
+
     if (
       !live &&
       !final &&
@@ -533,7 +546,11 @@ export class GameMonitor extends DurableObject {
       } else if (scheduleNext) {
         const monitorEnabled = await this.ctx.storage.get("monitorEnabled") === true;
         if (monitorEnabled || subscribers.length > 0) {
-          const nextAt = this.nextAlarmAt(snapshot);
+          const scheduledAt = this.nextAlarmAt(snapshot);
+          const pendingConfirmation = subscribers.some(item => item.sent?.subscription === false);
+          const nextAt = pendingConfirmation
+            ? Math.min(scheduledAt ?? Infinity, Date.now() + ERROR_RETRY_MS)
+            : scheduledAt;
           if (nextAt != null) await this.ctx.storage.setAlarm(nextAt);
         } else {
           await this.ctx.storage.deleteAlarm();
@@ -589,4 +606,5 @@ export class GameMonitor extends DurableObject {
     }
   }
 }
+
 
