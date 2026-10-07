@@ -639,10 +639,16 @@
     .series-card.pending{opacity:.65;border-style:dashed}
     .series-team{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:7px;align-items:center;padding:4px 0}
     .series-team+.series-team{border-top:1px solid rgba(122,153,181,.16)}
-    .series-logo{
-      width:27px;height:27px;object-fit:contain;padding:3px;border-radius:7px;
-      background:rgba(248,251,255,.94)
+    .series-logo-shell{
+      width:29px;height:29px;display:flex;align-items:center;justify-content:center;
+      padding:4px;border-radius:8px;background:rgba(248,251,255,.97);
+      border:1px solid rgba(255,255,255,.22);overflow:visible
     }
+    .series-logo{
+      width:100%;height:100%;object-fit:contain;display:block;
+      padding:0;border:0;border-radius:0;background:transparent
+    }
+    .series-tbd-mini{font-size:12px;font-weight:950;color:#66788a}
     .series-abbr{font-size:12px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .series-record{font-size:10px;font-weight:800;color:#c8d8e8;white-space:nowrap}
     .series-winner .series-abbr,.series-winner .series-record{color:#8bf0b9}
@@ -972,9 +978,15 @@
     }
     .series-side.away{grid-area:away}
     .series-side.home{grid-area:home}
-    .series-side img{
-      width:46px;height:46px;object-fit:contain;display:block;
-      padding:3px;border-radius:10px;background:transparent
+    .series-side-logo-shell{
+      width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex:none;
+      padding:6px;border-radius:50%;background:rgba(248,251,255,.97);
+      border:1px solid rgba(255,255,255,.28);box-shadow:0 3px 10px rgba(0,0,0,.24);
+      overflow:visible
+    }
+    .series-side-logo-shell img{
+      width:100%;height:100%;object-fit:contain;display:block;
+      padding:0;border:0;border-radius:0;background:transparent
     }
     .series-tbd-logo{
       width:46px;height:46px;display:flex;align-items:center;justify-content:center;
@@ -1014,7 +1026,8 @@
         column-gap:5px;row-gap:7px
       }
       .series-game-label{font-size:10px}
-      .series-side img,.series-tbd-logo{width:42px;height:42px}
+      .series-side-logo-shell,.series-tbd-logo{width:44px;height:44px}
+      .series-side-logo-shell{padding:5px}
       .series-side-name{font-size:9px}
       .series-game-side-score{font-size:32px}
       .series-game-status,.series-game-time{font-size:14px}
@@ -1595,11 +1608,11 @@
 
       return '<button type="button" class="series-game-row '+(g.gamePk===state.selectedGamePk?'current':'')+'" data-series-game-pk="'+g.gamePk+'">'+
         '<span class="series-game-label">'+esc(label)+'</span>'+
-        '<span class="series-side away">'+(a.id?'<img src="'+esc(teamLogo(a.id))+'" alt="">':'<span class="series-tbd-logo">?</span>')+'<span class="series-side-name">'+esc(a.id?teamZhName(a):'對手待定')+'</span></span>'+
+        '<span class="series-side away">'+(a.id?'<span class="series-side-logo-shell"><img src="'+esc(teamLogo(a.id))+'" alt=""></span>':'<span class="series-tbd-logo">?</span>')+'<span class="series-side-name">'+esc(a.id?teamZhName(a):'對手待定')+'</span></span>'+
         '<span class="series-game-side-score away '+(showScore?'':'pending')+'">'+(showScore?esc(aScore):'0')+'</span>'+
         '<span class="series-game-center">'+center+'</span>'+
         '<span class="series-game-side-score home '+(showScore?'':'pending')+'">'+(showScore?esc(hScore):'0')+'</span>'+
-        '<span class="series-side home">'+(h.id?'<img src="'+esc(teamLogo(h.id))+'" alt="">':'<span class="series-tbd-logo">?</span>')+'<span class="series-side-name">'+esc(h.id?teamZhName(h):'對手待定')+'</span></span>'+
+        '<span class="series-side home">'+(h.id?'<span class="series-side-logo-shell"><img src="'+esc(teamLogo(h.id))+'" alt=""></span>':'<span class="series-tbd-logo">?</span>')+'<span class="series-side-name">'+esc(h.id?teamZhName(h):'對手待定')+'</span></span>'+
       '</button>';
     }).join('');
   }
@@ -2825,7 +2838,7 @@
     const rows=[top,bottom].map(t=>{
       const winner=s.winner&&String(s.winner.id||s.winner.name)===String(t.id||t.name);
       return '<div class="series-team '+(winner?'series-winner':'')+'">'+
-        '<img class="series-logo" src="'+esc(teamLogo(t.id))+'" alt="">'+
+        (t.id?'<span class="series-logo-shell"><img class="series-logo" src="'+esc(teamLogo(t.id))+'" alt=""></span>':'<span class="series-logo-shell"><span class="series-tbd-mini">?</span></span>')+
         '<span class="series-abbr">'+esc(t.abbreviation||'TBD')+'</span>'+
         '<span class="series-record">'+t.wins+'勝'+t.losses+'敗</span>'+
       '</div>';
