@@ -558,16 +558,25 @@ function buildHighlightItems(feed){
 function renderHighlightTicker(){
   const list=state.highlights||[];
   if(!list.length){
-    els.highlightTicker.innerHTML='<span class="highlight-ticker-desc">目前還沒有符合條件的焦點事件</span>';
+    els.highlightTicker.innerHTML=
+      '<div class="highlight-ticker-slide">'+
+        '<div class="highlight-ticker-title">等待焦點事件</div>'+
+        '<div class="highlight-ticker-desc">目前還沒有符合條件的焦點事件</div>'+
+      '</div>';
     els.highlightCounter.textContent='0 / 0';
     return;
   }
   state.highlightIndex=((state.highlightIndex%list.length)+list.length)%list.length;
   const item=list[state.highlightIndex];
+  const rotating=list.length>1?' is-rotating':'';
   els.highlightTicker.innerHTML=
-    '<span class="highlight-ticker-icon" aria-hidden="true">'+item.icon+'</span>'+
-    '<span class="highlight-ticker-title">'+esc(item.title)+'</span>'+
-    '<span class="highlight-ticker-desc">· '+esc(item.desc)+'</span>';
+    '<div class="highlight-ticker-slide'+rotating+'">'+
+      '<div class="highlight-ticker-title">'+
+        '<span class="highlight-ticker-icon" aria-hidden="true">'+item.icon+'</span>'+
+        '<span>'+esc(item.title)+'</span>'+
+      '</div>'+
+      '<div class="highlight-ticker-desc">'+esc(item.desc)+'</div>'+
+    '</div>';
   els.highlightCounter.textContent=(state.highlightIndex+1)+' / '+list.length;
 }
 
