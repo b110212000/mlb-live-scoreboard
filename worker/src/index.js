@@ -69,7 +69,7 @@ export default {
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,
-        pushEnabled: true,
+        pushEnabled: false,
         pushTestEnabled: true
       }, env);
     }
