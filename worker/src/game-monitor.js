@@ -424,7 +424,7 @@ export class GameMonitor extends DurableObject {
       Number(previous.homeScore) !== Number(snapshot.homeScore)
     );
 
-    if (scoreChanged && !final) {
+    if (scoreChanged) {
       next = await this.sendScoreEvent(next, snapshot);
     }
 
