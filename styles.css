@@ -1316,3 +1316,33 @@
     /* 日期列不提供收合：保留既有初始化流程，只隱藏開關 */
     .top-controls-row{width:100%;min-width:0}
     #topControlsToggle{display:none!important}
+
+
+    /* 季後賽手機版：Logo 欄位與實際 Logo 尺寸一致，避免壓到球隊縮寫 */
+    @media(max-width:600px){
+      .series-team{
+        grid-template-columns:28px minmax(0,1fr);
+        column-gap:7px;
+      }
+      .series-logo-shell{
+        width:28px;
+        height:28px;
+        min-width:28px;
+        min-height:28px;
+        padding:4px;
+        overflow:hidden;
+      }
+      .series-logo{
+        width:100%;
+        height:100%;
+        padding:0;
+        border-radius:0;
+      }
+      .series-abbr{
+        min-width:0;
+        padding-left:0;
+      }
+      .series-record{
+        grid-column:2;
+      }
+    }
