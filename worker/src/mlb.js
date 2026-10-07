@@ -29,6 +29,8 @@ export async function fetchGameSnapshot(gamePk) {
     detailedState: status.detailedState || "",
     awayScore: Number(linescore?.teams?.away?.runs ?? 0),
     homeScore: Number(linescore?.teams?.home?.runs ?? 0),
+    currentInning: linescore?.currentInning ?? null,
+    inningState: linescore?.inningState || "",
     scoringCount: scoringIndexes.length,
     latestScoringIndex,
     latestScoringPlay
