@@ -69,7 +69,7 @@ export default {
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,
-        pushEnabled: false,
+        pushEnabled: true,
         pushTestEnabled: true
       }, env);
     }
@@ -169,7 +169,7 @@ export default {
     if (request.method === "GET" && statusMatch) {
       const gamePk = Number(statusMatch[1]);
       return withCors(
-        await forwardToGameMonitor(request, env, gamePk, "/status"),
+        await forwardToGameMonitor(request, env, gamePk, "/watch/status"),
         env
       );
     }
