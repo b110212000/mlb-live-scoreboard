@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./app-icon.svg" type="image/svg+xml" />
   <title>MLB 季後賽即時戰況 Pro</title>
-  <link rel="stylesheet" href="./styles.css?v=1.0.4">
+  <link rel="stylesheet" href="./styles.css?v=1.0.5">
 </head>
 <body>
   <div id="pullRefresh" class="pull-refresh" aria-hidden="true">
@@ -55,6 +55,15 @@
             <div id="appSubtitle" class="subtitle">即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄</div>
           </div>
         </div>
+        <div id="liveTitleActions" class="title-live-actions" aria-label="即時比賽更新狀態">
+          <div id="liveChip" class="live-chip title-status-dot" tabindex="0" data-tooltip="尚未更新">
+            <span id="liveDot" class="dot off"></span>
+            <span id="updateText" class="visually-hidden">尚未更新</span>
+          </div>
+          <button id="refreshBtn" class="title-refresh-button" type="button" aria-label="立即更新" title="立即更新">
+            <span aria-hidden="true">↻</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -65,8 +74,6 @@
             <span class="subtitle">日期</span>
             <input id="dateInput" type="date" />
           </label>
-          <button id="refreshBtn" type="button">立即更新</button>
-          <div id="liveChip" class="live-chip" tabindex="0" data-tooltip="尚未更新"><span id="liveDot" class="dot off"></span><span id="updateText">尚未更新</span></div>
         </div>
         <button id="topControlsToggle" class="collapse-toggle top-controls-toggle" type="button"
           aria-controls="topControls" aria-expanded="true" aria-label="收合日期與更新">
@@ -403,16 +410,16 @@
 
         <div class="foot">
       <span>資料來源：MLB Stats API · 每 5 秒更新</span>
-      <span class="app-version">v1.0.4</span>
+      <span class="app-version">v1.0.5</span>
     </div>
   </main>
 
-<script src="./api.js?v=1.0.4"></script>
-<script src="./live.js?v=1.0.4"></script>
-<script src="./postseason.js?v=1.0.4"></script>
-<script src="./roster.js?v=1.0.4"></script>
-<script src="./notifications.js?v=1.0.4"></script>
-<script src="./ui.js?v=1.0.4"></script>
-<script src="./app.js?v=1.0.4"></script>
+<script src="./api.js?v=1.0.5"></script>
+<script src="./live.js?v=1.0.5"></script>
+<script src="./postseason.js?v=1.0.5"></script>
+<script src="./roster.js?v=1.0.5"></script>
+<script src="./notifications.js?v=1.0.5"></script>
+<script src="./ui.js?v=1.0.5"></script>
+<script src="./app.js?v=1.0.5"></script>
 </body>
 </html>
