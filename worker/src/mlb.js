@@ -11,7 +11,8 @@ export async function fetchGameSnapshot(gamePk) {
   }
 
   const feed = await response.json();
-  const status = feed?.gameData?.status || {};
+  const gameData = feed?.gameData || {};
+  const status = gameData.status || {};
   const linescore = feed?.liveData?.linescore || {};
   const plays = feed?.liveData?.plays || {};
   const allPlays = plays.allPlays || [];
@@ -23,14 +24,25 @@ export async function fetchGameSnapshot(gamePk) {
     ? null
     : allPlays[latestScoringIndex] || null;
 
+  const away = gameData?.teams?.away || {};
+  const home = gameData?.teams?.home || {};
+
   return {
     gamePk: Number(gamePk),
+    gameDate: gameData?.datetime?.dateTime || gameData?.gameDate || "",
     abstractState: status.abstractGameState || "",
     detailedState: status.detailedState || "",
+    awayTeamId: Number(away.id) || null,
+    homeTeamId: Number(home.id) || null,
+    awayName: away.name || away.teamName || "客隊",
+    homeName: home.name || home.teamName || "主隊",
+    awayAbbr: away.abbreviation || away.teamCode?.toUpperCase?.() || "",
+    homeAbbr: home.abbreviation || home.teamCode?.toUpperCase?.() || "",
     awayScore: Number(linescore?.teams?.away?.runs ?? 0),
     homeScore: Number(linescore?.teams?.home?.runs ?? 0),
     currentInning: linescore?.currentInning ?? null,
     inningState: linescore?.inningState || "",
+    isTopInning: linescore?.isTopInning ?? null,
     scoringCount: scoringIndexes.length,
     latestScoringIndex,
     latestScoringPlay
