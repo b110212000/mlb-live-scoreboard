@@ -96,3 +96,33 @@ The next phase will add:
 - frontend reserve/cancel notification controls
 
 The VAPID private key must be stored as a Cloudflare secret and must never be committed to this public repository.
+
+
+## Web Push test phase
+
+A dedicated `PushService` Durable Object now validates Web Push before MLB game subscriptions are enabled.
+
+The frontend notification page performs this sequence:
+
+1. Request notification permission from a user click.
+2. Register the push-only `service-worker.js`.
+3. Fetch the server VAPID public key.
+4. Create a browser `PushSubscription`.
+5. Call `POST /api/push/test`.
+6. Cloudflare immediately sends the first real Web Push notification.
+7. `PushService` stores a one-time test and schedules a Durable Object alarm for 30 seconds later.
+8. The alarm sends the second real Web Push notification.
+
+The VAPID key pair is generated server-side on first use and persisted in the singleton `PushService` Durable Object. Only the public key is exposed by the API; the private key is never committed to GitHub or returned to the browser.
+
+Routes:
+
+```
+GET  /api/push/public-key
+POST /api/push/test
+GET  /api/push/status
+```
+
+The service worker intentionally has no `fetch` handler and does not cache application assets. It only handles Push notifications and notification clicks, while deleting any legacy Cache Storage entries during activation.
+
+`pushTestEnabled: true` means the test flow is available. `pushEnabled: false` remains false until real MLB game subscriptions are connected to the push delivery layer.
