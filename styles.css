@@ -2103,3 +2103,53 @@
         font-size:42px!important;
       }
     }
+
+
+    /* v1.0.12：本場焦點使用隊伍 Logo */
+    .highlight-team-logo-shell{
+      display:inline-flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      flex:none!important;
+      width:24px!important;
+      height:24px!important;
+      min-width:24px!important;
+      min-height:24px!important;
+      padding:3px!important;
+      border-radius:7px!important;
+      background:rgba(248,251,255,.96)!important;
+      overflow:hidden!important;
+      line-height:1!important;
+    }
+    .highlight-team-logo{
+      display:block!important;
+      width:100%!important;
+      height:100%!important;
+      max-width:100%!important;
+      max-height:100%!important;
+      object-fit:contain!important;
+      margin:0!important;
+      padding:0!important;
+    }
+    .highlight-top .highlight-team-logo-shell{
+      width:28px!important;
+      height:28px!important;
+      min-width:28px!important;
+      min-height:28px!important;
+      border-radius:8px!important;
+    }
+
+    @media(max-width:600px){
+      .highlight-team-logo-shell{
+        width:22px!important;
+        height:22px!important;
+        min-width:22px!important;
+        min-height:22px!important;
+      }
+      .highlight-top .highlight-team-logo-shell{
+        width:26px!important;
+        height:26px!important;
+        min-width:26px!important;
+        min-height:26px!important;
+      }
+    }
