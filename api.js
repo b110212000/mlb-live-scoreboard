@@ -31,12 +31,14 @@ const els = {
   topControls:$('topControls'), topControlsToggle:$('topControlsToggle'),
   pullRefresh:$('pullRefresh'), pullRefreshText:$('pullRefreshText'),
   featureMenuButton:$('featureMenuButton'), featureMenu:$('featureMenu'),
-  appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'), rosterView:$('rosterView'), installView:$('installView'),
+  appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'), rosterView:$('rosterView'), installView:$('installView'), notificationView:$('notificationView'),
   bracketBoard:$('bracketBoard'), bracketStatus:$('bracketStatus'), bracketYearText:$('bracketYearText'),
   heroRosterBtn:$('heroRosterBtn'), rosterBackBtn:$('rosterBackBtn'), rosterBoard:$('rosterBoard'),
   rosterMatchupTitle:$('rosterMatchupTitle'), rosterMeta:$('rosterMeta'),
   installStatus:$('installStatus'), installAppBtn:$('installAppBtn'), installAppHint:$('installAppHint'),
-  shareAppBtn:$('shareAppBtn'), copyAppBtn:$('copyAppBtn'), copyAppHint:$('copyAppHint'), installGuide:$('installGuide')
+  shareAppBtn:$('shareAppBtn'), copyAppBtn:$('copyAppBtn'), copyAppHint:$('copyAppHint'), installGuide:$('installGuide'),
+  notificationStatus:$('notificationStatus'), notificationPermission:$('notificationPermission'), notificationSubscription:$('notificationSubscription'),
+  notificationLastTest:$('notificationLastTest'), notificationTestMessage:$('notificationTestMessage'), testNotificationBtn:$('testNotificationBtn')
 };
 
 const outDots=[...document.querySelectorAll('[data-out-dot]')];
