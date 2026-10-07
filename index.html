@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./app-icon.svg" type="image/svg+xml" />
   <title>MLB 季後賽即時戰況 Pro</title>
-  <link rel="stylesheet" href="./styles.css?v=1.0.13">
+  <link rel="stylesheet" href="./styles.css?v=1.1.0">
 </head>
 <body>
   <div id="pullRefresh" class="pull-refresh" aria-hidden="true">
@@ -123,7 +123,15 @@
             <div id="awayRhe" class="team-sub">R 0 · H 0 · E 0</div>
           </div>
         </div>
-        <div id="bigScore" class="bigscore"><span>0</span><span>0</span></div>
+        <div class="score-center">
+          <button id="gameWatchBtn" class="game-watch-button" type="button" aria-pressed="false" aria-label="訂閱這場比賽通知" title="訂閱這場比賽通知" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+              <path d="M10 21h4"></path>
+            </svg>
+          </button>
+          <div id="bigScore" class="bigscore"><span>0</span><span>0</span></div>
+        </div>
         <div class="team home">
           <div>
             <div id="homeName" class="team-name">主隊</div>
@@ -409,16 +417,16 @@
 
         <div class="foot">
       <span>資料來源：MLB Stats API · 每 5 秒更新</span>
-      <span class="app-version">v1.0.13</span>
+      <span class="app-version">v1.1.0</span>
     </div>
   </main>
 
-<script src="./api.js?v=1.0.13"></script>
-<script src="./live.js?v=1.0.13"></script>
-<script src="./postseason.js?v=1.0.13"></script>
-<script src="./roster.js?v=1.0.13"></script>
-<script src="./notifications.js?v=1.0.13"></script>
-<script src="./ui.js?v=1.0.13"></script>
-<script src="./app.js?v=1.0.13"></script>
+<script src="./api.js?v=1.1.0"></script>
+<script src="./live.js?v=1.1.0"></script>
+<script src="./postseason.js?v=1.1.0"></script>
+<script src="./roster.js?v=1.1.0"></script>
+<script src="./notifications.js?v=1.1.0"></script>
+<script src="./ui.js?v=1.1.0"></script>
+<script src="./app.js?v=1.1.0"></script>
 </body>
 </html>
