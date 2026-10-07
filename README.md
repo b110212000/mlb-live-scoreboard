@@ -810,6 +810,7 @@ api.js           → 共用設定、DOM/state、HTTP 與基礎資料工具
 live.js          → 即時比賽、投打、好球帶、焦點、Box Score、得分事件
 postseason.js    → 系列賽與季後賽戰況
 roster.js        → 對戰名單、球員數據、先發與牛棚負荷
+notifications.js  → Web Push 訂閱與測試通知
 ui.js            → Tab 滑動、功能選單、畫面切換、安裝 / 分享
 app.js           → 事件綁定、初始化、更新排程、版本檢查
 ```
@@ -821,6 +822,7 @@ JavaScript 依下列順序載入：
 <script src="./live.js"></script>
 <script src="./postseason.js"></script>
 <script src="./roster.js"></script>
+<script src="./notifications.js"></script>
 <script src="./ui.js"></script>
 <script src="./app.js"></script>
 ```
@@ -836,6 +838,7 @@ api.js
 live.js
 postseason.js
 roster.js
+notifications.js
 ui.js
 app.js
 ```
