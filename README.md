@@ -798,6 +798,27 @@ sportId=1
 
 ---
 
+# 專案檔案結構
+
+前端程式已拆成三個主要檔案：
+
+```text
+index.html   → 畫面結構 / HTML
+styles.css   → 所有 CSS 樣式
+app.js       → MLB API、資料處理、互動與畫面更新邏輯
+```
+
+`index.html` 只負責載入：
+
+```html
+<link rel="stylesheet" href="./styles.css">
+<script src="./app.js"></script>
+```
+
+網站版本檢查也會同時比對 `index.html`、`styles.css`、`app.js`，避免只更新 CSS 或 JavaScript 時 iPhone 主畫面版本仍停留在舊版。
+
+---
+
 # 技術
 
 目前不使用 Framework。
