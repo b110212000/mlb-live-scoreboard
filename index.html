@@ -2727,7 +2727,8 @@
     return type==='F'?2:type==='D'?3:4;
   }
   function playoffLeague(game){
-    if(game.gameType==='W')return 'WS';
+    const type=game.gameType||game._postseasonSeriesGameType;
+    if(type==='W')return 'WS';
     const text=String(game.seriesDescription||'')+' '+String(game.description||'');
     if(/American League|\bAL(?:WC|DS|CS)?\b/i.test(text))return 'AL';
     if(/National League|\bNL(?:WC|DS|CS)?\b/i.test(text))return 'NL';
@@ -2772,11 +2773,12 @@
   function buildPostseasonSeries(games){
     const groups=new Map();
     for(const g of games){
-      if(!['F','D','L','W'].includes(g.gameType))continue;
-      const key=seriesKey(g);
+      const gameType=g.gameType||g._postseasonSeriesGameType;
+      if(!['F','D','L','W'].includes(gameType))continue;
+      const key=seriesKey({...g,gameType});
       if(!groups.has(key)){
         groups.set(key,{
-          key,type:g.gameType,league:playoffLeague(g),description:g.seriesDescription||playoffRoundName(g.gameType),
+          key,type:gameType,league:playoffLeague({...g,gameType}),description:g.seriesDescription||playoffRoundName(gameType),
           games:[],firstDate:g.gameDate||'',teams:new Map()
         });
       }
