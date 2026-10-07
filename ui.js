@@ -226,6 +226,7 @@ function switchView(view){
   }
 
   els.topControlsToggle.hidden=!live;
+  els.liveTitleActions.hidden=!live;
   if(bracket){
     els.topControls.hidden=true;
     loadBracket();
