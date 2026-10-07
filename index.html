@@ -175,10 +175,16 @@
     .base-summary b{color:#fff}
     .pitch-visual{margin-top:15px;border-top:1px solid var(--line);padding-top:14px}
     .pitch-grid{display:grid;grid-template-columns:132px 1fr;gap:14px;align-items:center}
-    .zone-wrap{position:relative;width:118px;height:142px;margin:auto}
+    .zone-wrap{
+      position:relative;width:118px;height:142px;margin:auto;
+      border-radius:10px;
+      background:linear-gradient(rgba(138,160,183,.05),rgba(138,160,183,.05)),#071522;
+      box-shadow:inset 0 0 0 1px rgba(138,160,183,.10)
+    }
     .zone{
-      position:absolute;left:22px;top:22px;width:74px;height:98px;border:2px solid #8aa0b7;background:rgba(255,255,255,.02);
+      position:absolute;border:2px solid #a9bfd3;background:rgba(255,255,255,.025);
       display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+      box-shadow:0 0 0 1px rgba(0,0,0,.22)
     }
     .zone i{border-right:1px solid rgba(138,160,183,.28);border-bottom:1px solid rgba(138,160,183,.28)}
     .zone i:nth-child(3n){border-right:0}.zone i:nth-child(n+7){border-bottom:0}
@@ -1036,7 +1042,7 @@
         <div class="pitch-visual">
           <div class="pitch-grid">
             <div class="zone-wrap" aria-label="最近一球進壘點">
-              <div class="zone"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div id="strikeZone" class="zone"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
               <div id="pitchDot" class="pitch-dot"></div>
             </div>
             <div id="pitchData" class="pitch-data">目前沒有可顯示的投球座標。</div>
@@ -1213,7 +1219,7 @@
     pitchEfficiency:$('pitchEfficiency'), pitchEfficiencySub:$('pitchEfficiencySub'),
     latestPlay:$('latestPlay'), pitchSequence:$('pitchSequence'),
     base1:$('base1'), base2:$('base2'), base3:$('base3'), baseSummary:$('baseSummary'),
-    pitchDot:$('pitchDot'), pitchData:$('pitchData'),
+    pitchDot:$('pitchDot'), pitchData:$('pitchData'), strikeZone:$('strikeZone'),
     inningHead:$('inningHead'), inningBody:$('inningBody'), boxScoreBoard:$('boxScoreBoard'),
     scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
     gameHighlights:$('gameHighlights'), highlightTicker:$('highlightTicker'),
@@ -1573,22 +1579,48 @@
     els.lastPitchSub.textContent=result||'--';
   }
   function renderPitchLocation(p){
-    const x=p?.pitchData?.coordinates?.pX, z=p?.pitchData?.coordinates?.pZ;
+    const pd=p?.pitchData||{};
+    const x=pd.coordinates?.pX, z=pd.coordinates?.pZ;
+
+    // 整個 zone-wrap 是投球座標畫布，不是好球帶。
+    // pX / pZ 映射到完整畫布；內層 strikeZone 才代表實際好球帶。
+    const W=118,H=142;
+    const X_MIN=-2,X_MAX=2,Z_MIN=0,Z_MAX=5;
+    const mapX=v=>clamp((v-X_MIN)/(X_MAX-X_MIN),0,1)*W;
+    const mapY=v=>(1-clamp((v-Z_MIN)/(Z_MAX-Z_MIN),0,1))*H;
+
+    // 水平以本壘板寬度加上球半徑附近的可判定範圍近似 ±0.83 ft。
+    // 垂直優先使用 MLB 每一球依打者提供的 strikeZoneBottom / strikeZoneTop。
+    const zoneLeft=mapX(-0.83);
+    const zoneRight=mapX(0.83);
+    const szBottom=typeof pd.strikeZoneBottom==='number'?pd.strikeZoneBottom:1.5;
+    const szTop=typeof pd.strikeZoneTop==='number'?pd.strikeZoneTop:3.5;
+    const zoneTop=mapY(szTop);
+    const zoneBottom=mapY(szBottom);
+
+    els.strikeZone.style.left=zoneLeft+'px';
+    els.strikeZone.style.top=zoneTop+'px';
+    els.strikeZone.style.width=Math.max(1,zoneRight-zoneLeft)+'px';
+    els.strikeZone.style.height=Math.max(1,zoneBottom-zoneTop)+'px';
+
     if(typeof x!=='number'||typeof z!=='number'){
       els.pitchDot.style.display='none';
       els.pitchData.textContent='目前沒有可顯示的投球座標。';
       return;
     }
-    // 將 pX 約 -2~2 ft、pZ 約 0~5 ft 映射到小圖。
-    const left=22+clamp((x+2)/4,0,1)*74;
-    const top=22+(1-clamp(z/5,0,1))*98;
-    els.pitchDot.style.left=`${left}px`;els.pitchDot.style.top=`${top}px`;els.pitchDot.style.display='block';
+
+    const left=mapX(x);
+    const top=mapY(z);
+    els.pitchDot.style.left=left+'px';
+    els.pitchDot.style.top=top+'px';
+    els.pitchDot.style.display='block';
     els.pitchDot.classList.toggle('ball',pitchResultClass(p)==='ball');
+
     const type=zhPitchType(p.details?.type?.description||'--');
-    const speed=p.pitchData?.startSpeed!=null?`${Math.round(p.pitchData.startSpeed)} mph`:'--';
-    const spin=p.pitchData?.breaks?.spinRate!=null?`${Math.round(p.pitchData.breaks.spinRate)} rpm`:'--';
+    const speed=pd.startSpeed!=null?Math.round(pd.startSpeed)+' mph':'--';
+    const spin=pd.breaks?.spinRate!=null?Math.round(pd.breaks.spinRate)+' rpm':'--';
     const result=zhPitchResult(p.details?.description||p.details?.call?.description||'--');
-    els.pitchData.innerHTML=`球種：<strong>${esc(type)}</strong><br>球速：<strong>${esc(speed)}</strong><br>轉速：<strong>${esc(spin)}</strong><br>結果：<strong>${esc(result)}</strong>`;
+    els.pitchData.innerHTML='球種：<strong>'+esc(type)+'</strong><br>球速：<strong>'+esc(speed)+'</strong><br>轉速：<strong>'+esc(spin)+'</strong><br>結果：<strong>'+esc(result)+'</strong>';
   }
 
   // 統計已完成打席、逐球記錄與官方逐局資料，產生全部符合條件的本場焦點。
