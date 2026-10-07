@@ -976,6 +976,10 @@
       width:46px;height:46px;object-fit:contain;display:block;
       padding:3px;border-radius:10px;background:transparent
     }
+    .series-tbd-logo{
+      width:46px;height:46px;display:flex;align-items:center;justify-content:center;
+      border-radius:50%;border:1px dashed #62666f;color:#989ca5;font-size:18px;font-weight:900
+    }
     .series-side-name{
       width:100%;font-size:10px;color:#aeb1b8;font-weight:700;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis
@@ -1010,7 +1014,7 @@
         column-gap:5px;row-gap:7px
       }
       .series-game-label{font-size:10px}
-      .series-side img{width:42px;height:42px}
+      .series-side img,.series-tbd-logo{width:42px;height:42px}
       .series-side-name{font-size:9px}
       .series-game-side-score{font-size:32px}
       .series-game-status,.series-game-time{font-size:14px}
@@ -1578,7 +1582,9 @@
     }
 
     els.currentSeriesGames.innerHTML=games.map((g,index)=>{
-      const a=g.teams?.away?.team||{},h=g.teams?.home?.team||{};
+      const aRaw=g.teams?.away?.team||{},hRaw=g.teams?.home?.team||{};
+      const a={...aRaw,name:aRaw.name||aRaw.teamName||'對手待定'};
+      const h={...hRaw,name:hRaw.name||hRaw.teamName||'對手待定'};
       const aScore=g.teams?.away?.score,hScore=g.teams?.home?.score;
       const info=seriesGameStatusInfo(g,index,type);
       const showScore=info.kind!=='preview'&&aScore!=null&&hScore!=null;
@@ -1589,11 +1595,11 @@
 
       return '<button type="button" class="series-game-row '+(g.gamePk===state.selectedGamePk?'current':'')+'" data-series-game-pk="'+g.gamePk+'">'+
         '<span class="series-game-label">'+esc(label)+'</span>'+
-        '<span class="series-side away"><img src="'+esc(teamLogo(a.id))+'" alt=""><span class="series-side-name">'+esc(teamZhName(a))+'</span></span>'+
+        '<span class="series-side away">'+(a.id?'<img src="'+esc(teamLogo(a.id))+'" alt="">':'<span class="series-tbd-logo">?</span>')+'<span class="series-side-name">'+esc(a.id?teamZhName(a):'對手待定')+'</span></span>'+
         '<span class="series-game-side-score away '+(showScore?'':'pending')+'">'+(showScore?esc(aScore):'0')+'</span>'+
         '<span class="series-game-center">'+center+'</span>'+
         '<span class="series-game-side-score home '+(showScore?'':'pending')+'">'+(showScore?esc(hScore):'0')+'</span>'+
-        '<span class="series-side home"><img src="'+esc(teamLogo(h.id))+'" alt=""><span class="series-side-name">'+esc(teamZhName(h))+'</span></span>'+
+        '<span class="series-side home">'+(h.id?'<img src="'+esc(teamLogo(h.id))+'" alt="">':'<span class="series-tbd-logo">?</span>')+'<span class="series-side-name">'+esc(h.id?teamZhName(h):'對手待定')+'</span></span>'+
       '</button>';
     }).join('');
   }
@@ -1625,18 +1631,29 @@
       if(!force&&cached&&Date.now()-cached.time<60000){
         games=cached.games;
       }else{
-        // 用目前球隊的 postseason schedule 抓完整系列賽。
-        // teamId 查詢會包含尚未開打、以及 "if necessary" 的未來場次，
-        // 再以相同對戰組合與 gameType 篩選目前這一輪系列賽。
+        // MLB 有專門依系列賽分組的 postseason endpoint。
+        // 直接找出包含目前 gamePk 的官方 series，能保留完整未來賽程，
+        // 包含 if necessary 與尚未完全確定對手的場次。
         const data=await getJSON(
-          API+'/v1/schedule?sportId=1&teamId='+away.id+
-          '&startDate='+season+'-09-20&endDate='+season+'-11-15&hydrate=team,linescore'
+          API+'/v1/schedule/postseason/series?season='+season+'&sportId=1'
         );
-        const targetPair=seriesPairKey(away.id,home.id);
-        games=(data.dates||[]).flatMap(d=>d.games||[])
-          .filter(g=>POSTSEASON.has(g.gameType)&&g.gameType===type&&
-            seriesPairKey(g.teams?.away?.team?.id,g.teams?.home?.team?.id)===targetPair)
-          .sort((a,b)=>new Date(a.gameDate)-new Date(b.gameDate));
+        const officialSeries=findPostseasonSeriesByGame(data,gamePk);
+        if(officialSeries){
+          games=(officialSeries.games||[])
+            .filter(g=>POSTSEASON.has(g.gameType||officialSeries._gameType))
+            .sort((a,b)=>new Date(a.gameDate)-new Date(b.gameDate));
+        }else{
+          // API 若暫時尚未把目前比賽收進 series，才退回原本的球隊賽程做法。
+          const fallback=await getJSON(
+            API+'/v1/schedule?sportId=1&teamId='+away.id+
+            '&startDate='+season+'-09-20&endDate='+season+'-11-15&hydrate=team,linescore'
+          );
+          const targetPair=seriesPairKey(away.id,home.id);
+          games=(fallback.dates||[]).flatMap(d=>d.games||[])
+            .filter(g=>POSTSEASON.has(g.gameType)&&g.gameType===type&&
+              seriesPairKey(g.teams?.away?.team?.id,g.teams?.home?.team?.id)===targetPair)
+            .sort((a,b)=>new Date(a.gameDate)-new Date(b.gameDate));
+        }
         state.seriesCache.set(key,{time:Date.now(),games});
       }
       renderCurrentSeries(gd,games);
@@ -2724,7 +2741,30 @@
       abbreviation:team.abbreviation||team.teamCode?.toUpperCase()||teamAbbr(team)
     };
   }
+  function normalizePostseasonSeries(data){
+    return (data?.series||[]).map((s,index)=>{
+      const sid=String(s.id??s.seriesId??('series-'+index));
+      const gameType=s.gameType||s.games?.[0]?.gameType||'';
+      const games=(s.games||[]).map(g=>({
+        ...g,
+        _postseasonSeriesId:sid,
+        _postseasonSeriesSort:Number(s.sortNumber??s.seriesSortNumber??index),
+        _postseasonSeriesGameType:gameType
+      }));
+      return {...s,_id:sid,_gameType:gameType,games};
+    });
+  }
+  function flattenPostseasonSeries(data){
+    return normalizePostseasonSeries(data).flatMap(s=>s.games||[]);
+  }
+  function findPostseasonSeriesByGame(data,gamePk){
+    const target=Number(gamePk);
+    return normalizePostseasonSeries(data).find(s=>(s.games||[]).some(g=>Number(g.gamePk)===target))||null;
+  }
   function seriesKey(game){
+    if(game?._postseasonSeriesId){
+      return (game.gameType||game._postseasonSeriesGameType||'P')+':'+game._postseasonSeriesId;
+    }
     const a=game.teams?.away?.team?.id||('A'+game.gamePk);
     const h=game.teams?.home?.team?.id||('H'+game.gamePk);
     return game.gameType+':'+[String(a),String(h)].sort().join('-');
@@ -2788,7 +2828,12 @@
         '<span class="series-record">'+t.wins+'勝'+t.losses+'敗</span>'+
       '</div>';
     }).join('');
-    let statusHTML='尚未開打';
+    const nextGame=s.games.find(g=>g.status?.abstractGameState!=='Final')||s.games[0]||null;
+    const nextDate=nextGame?.gameDate?seriesGameTime(nextGame):'';
+    const hasTbd=s.teamList.some(t=>!t.id||t.name==='待定'||t.abbreviation==='TBD');
+    let statusHTML=hasTbd
+      ? ('對手待定'+(nextDate?' · '+esc(nextDate):''))
+      : '尚未開打';
     if(s.winner){
       const other=s.teamList.find(t=>t!==s.winner);
       statusHTML=esc(s.winner.abbreviation||s.winner.name)+' 晉級 <span class="series-score">'+s.winner.wins+'–'+(other?.wins||0)+'</span>';
@@ -2846,8 +2891,8 @@
     els.bracketBoard.className='bracket-empty';
     els.bracketBoard.textContent='載入季後賽戰況中…';
     try{
-      const data=await getJSON(API+'/v1/schedule?sportId=1&startDate='+year+'-09-20&endDate='+year+'-11-15&hydrate=team');
-      const games=(data.dates||[]).flatMap(d=>d.games||[]).filter(g=>['F','D','L','W'].includes(g.gameType));
+      const data=await getJSON(API+'/v1/schedule/postseason/series?season='+year+'&sportId=1');
+      const games=flattenPostseasonSeries(data).filter(g=>['F','D','L','W'].includes(g.gameType||g._postseasonSeriesGameType));
       renderBracket(games,year);
       els.bracketBoard.dataset.loaded='1';
       els.bracketStatus.textContent='共 '+games.length+' 場季後賽賽程 · '+new Date().toLocaleTimeString('zh-TW',{hour12:false})+' 更新';
