@@ -1565,3 +1565,14 @@
         width:calc(100% - 20px);
       }
     }
+
+
+    /* 對齊即時比賽日期列與第一筆比賽 */
+    @media(max-width:600px){
+      #liveView > #gameTabs{
+        margin-left:10px!important;
+        margin-right:10px!important;
+        padding-left:0!important;
+        padding-right:0!important;
+      }
+    }
