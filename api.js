@@ -7,7 +7,7 @@ const REFRESH_MS = 5000;
 const $ = id => document.getElementById(id);
 
 const els = {
-  dateInput:$('dateInput'), refreshBtn:$('refreshBtn'), gameTabs:$('gameTabs'),
+  dateInput:$('dateInput'), refreshBtn:$('refreshBtn'), liveTitleActions:$('liveTitleActions'), gameTabs:$('gameTabs'),
   error:$('errorBox'), liveDot:$('liveDot'), updateText:$('updateText'), liveChip:$('liveChip'),
   series:$('seriesText'), state:$('statePill'), inning:$('inningText'),
   awayLogo:$('awayLogo'), homeLogo:$('homeLogo'), awayName:$('awayName'), homeName:$('homeName'),
