@@ -387,8 +387,6 @@ export class GameMonitor extends DurableObject {
     const now = Date.now();
     const live = isLiveGame(snapshot);
     const final = isFinalGame(snapshot);
-    const wasLive = isLiveGame(previous);
-    const wasFinal = isFinalGame(previous);
     const gameTime = Date.parse(snapshot.gameDate || "");
 
     if (
@@ -408,7 +406,7 @@ export class GameMonitor extends DurableObject {
       });
     }
 
-    if (live && !wasLive) {
+    if (live) {
       next = await this.sendMarkedEvent(next, "start", {
         title: "MLB 比賽開始",
         body: `${teamLabel(snapshot)} 已經開賽。`,
@@ -428,7 +426,7 @@ export class GameMonitor extends DurableObject {
       next = await this.sendScoreEvent(next, snapshot);
     }
 
-    if (final && !wasFinal) {
+    if (final) {
       next = await this.sendMarkedEvent(next, "final", {
         title: "MLB 比賽結束",
         body: `終場：${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}`,
@@ -494,10 +492,16 @@ export class GameMonitor extends DurableObject {
       const live = isLiveGame(snapshot);
 
       if (final) {
-        // 終場通知送完後即清除本場訂閱，避免留下無效訂閱資料。
-        await this.putSubscribers([]);
         await this.ctx.storage.put("monitorEnabled", false);
-        await this.ctx.storage.deleteAlarm();
+        const pendingFinal = subscribers.some(item => !item.sent?.final);
+        if (pendingFinal && scheduleNext) {
+          // 推送暫時失敗時保留未完成狀態，稍後重試；成功者不會重複收到。
+          await this.ctx.storage.setAlarm(Date.now() + ERROR_RETRY_MS);
+        } else {
+          // 全部終場通知完成（或訂閱已失效）後清除本場訂閱。
+          await this.putSubscribers([]);
+          await this.ctx.storage.deleteAlarm();
+        }
       } else if (scheduleNext) {
         const monitorEnabled = await this.ctx.storage.get("monitorEnabled") === true;
         if (monitorEnabled || subscribers.length > 0) {
