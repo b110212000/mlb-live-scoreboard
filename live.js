@@ -74,6 +74,7 @@ function renderNoGame(date){
   els.series.textContent=`${date} 沒有 MLB 季後賽賽事`;
   els.state.textContent='NO GAME';els.inning.textContent='--';
   els.bigScore.innerHTML='<span>0</span><span>0</span>';
+  if(els.gameWatchBtn)els.gameWatchBtn.hidden=true;
   els.awayName.textContent='客隊';els.homeName.textContent='主隊';
   els.awayLogo.removeAttribute('src');els.homeLogo.removeAttribute('src');
   resetMatchup();
@@ -117,6 +118,9 @@ function renderGame(feed){
   els.bigScore.innerHTML=`<span>${ar}</span><span>${hr}</span>`;
   els.awayRhe.textContent=`R ${ar} · H ${awayLine.hits??0} · E ${awayLine.errors??0}`;
   els.homeRhe.textContent=`R ${hr} · H ${homeLine.hits??0} · E ${homeLine.errors??0}`;
+
+  renderGameWatchButton(feed);
+  syncGameWatchStatus(gd.game?.pk??state.selectedGamePk);
 
   const batter=ls.offense?.batter||cp.matchup?.batter, pitcher=ls.defense?.pitcher||cp.matchup?.pitcher;
   els.batterName.textContent=batter?.fullName||'--';els.pitcherName.textContent=pitcher?.fullName||'--';
