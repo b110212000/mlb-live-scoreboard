@@ -25,6 +25,8 @@
 - 投手例行賽 ERA / WHIP / FIP* / K/9 / BB/9 / W-L
 - 比賽時間依使用者裝置時區自動換算
 - iPhone / iPad 加入主畫面
+- 專屬「安裝 / 分享 App」頁
+- Web Share 系統分享與複製網址
 - 下拉重新整理
 - 網站版本更新偵測
 
@@ -176,6 +178,47 @@ python -m http.server 8080
 ```text
 http://localhost:8080/
 ```
+
+---
+
+# 安裝 / 分享 App
+
+左上功能選單提供：
+
+```text
+📲 安裝 / 分享 App
+```
+
+此頁包含：
+
+- 分享這個 App
+- 複製網站網址
+- 加入主畫面的操作教學
+- 已安裝狀態偵測
+- 支援 `beforeinstallprompt` 的瀏覽器可直接叫出安裝提示
+
+分享使用瀏覽器的：
+
+```javascript
+navigator.share()
+```
+
+若裝置不支援 Web Share API，則改以 Clipboard API 複製網址。
+
+## iPhone / iPad 限制
+
+iOS 不允許網站程式直接將 Web App 自動加入桌面。
+
+因此 iPhone / iPad 仍需由使用者最後手動操作：
+
+```text
+Safari
+→ 分享
+→ 加入主畫面
+→ 加入
+```
+
+網站可以提供教學與偵測是否已在 standalone 模式執行，但無法繞過 Apple 的使用者確認流程。
 
 ---
 
