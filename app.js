@@ -175,12 +175,25 @@ setInterval(advanceHighlights,5000);
 els.refreshBtn.addEventListener('click',()=>loadSchedule(true));
 els.dateInput.addEventListener('change',()=>{loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
 els.dateInput.value=localDateString();
-const requestedView=new URL(location.href).searchParams.get('view');
-const initialView=['live','bracket','roster','install','notifications'].includes(requestedView)?requestedView:'live';
-switchView(initialView);
-initLiveDetailSwipe();
-setLiveDetailTab('status',{animate:false});
-loadSchedule(false);
+
+// 賽事資料是核心功能：先啟動資料載入，再初始化其他非必要 UI。
+// 這樣即使某個附加 UI 發生錯誤，也不會讓整個即時比分停在「尚未更新」。
+loadSchedule(false).catch(err=>{
+  console.error('Initial schedule load failed',err);
+  showError('初始賽事資料載入失敗：'+(err?.message||String(err)));
+});
+
+try{
+  const requestedView=new URL(location.href).searchParams.get('view');
+  const initialView=['live','bracket','roster','install','notifications'].includes(requestedView)?requestedView:'live';
+  switchView(initialView);
+  initLiveDetailSwipe();
+  setLiveDetailTab('status',{animate:false});
+}catch(err){
+  console.error('Optional UI initialization failed',err);
+  showError('部分介面初始化失敗，但賽事資料仍會繼續載入：'+(err?.message||String(err)));
+}
+
 setInterval(()=>{if(state.view==='live')loadSchedule(true)},REFRESH_MS);
 setInterval(()=>{if(state.view==='bracket')loadBracket(true)},60000);
 setInterval(()=>{if(state.view==='roster')loadMatchupRoster(true)},60000);
