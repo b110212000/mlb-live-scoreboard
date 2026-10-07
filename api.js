@@ -11,7 +11,7 @@ const els = {
   error:$('errorBox'), liveDot:$('liveDot'), updateText:$('updateText'), liveChip:$('liveChip'),
   series:$('seriesText'), state:$('statePill'), inning:$('inningText'),
   awayLogo:$('awayLogo'), homeLogo:$('homeLogo'), awayName:$('awayName'), homeName:$('homeName'),
-  awayRhe:$('awayRhe'), homeRhe:$('homeRhe'), bigScore:$('bigScore'),
+  awayRhe:$('awayRhe'), homeRhe:$('homeRhe'), bigScore:$('bigScore'), gameWatchBtn:$('gameWatchBtn'),
   batterPhoto:$('batterPhoto'), pitcherPhoto:$('pitcherPhoto'),
   batterName:$('batterName'), batterMeta:$('batterMeta'), pitcherName:$('pitcherName'), pitcherMeta:$('pitcherMeta'),
   balls:$('balls'), strikes:$('strikes'), outs:$('outs'),
