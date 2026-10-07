@@ -196,6 +196,7 @@ export class GameMonitor extends DurableObject {
     await this.ctx.storage.put("gamePk", gamePk);
 
     let subscribers = await this.getSubscribers();
+    const hadSubscribers = subscribers.length > 0;
     const existing = subscribers.find(item =>
       item.deviceId === deviceId || item.endpoint === subscription.endpoint
     );
@@ -223,7 +224,8 @@ export class GameMonitor extends DurableObject {
     await this.putSubscribers(subscribers);
 
     const previous = await this.ctx.storage.get("lastSnapshot");
-    if (!previous) {
+    if (!previous || !hadSubscribers) {
+      // 第一位訂閱者以「現在」作為比分基準，避免補送訂閱前已發生的得分。
       await this.ctx.storage.put("lastSnapshot", snapshot);
     }
 
