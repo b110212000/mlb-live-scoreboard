@@ -8,7 +8,8 @@ import {
 import { sendScorePush } from "./push.js";
 
 const LIVE_INTERVAL_MS = 5_000;
-const PREVIEW_INTERVAL_MS = 30_000;
+const IDLE_INTERVAL_MS = 30_000;
+const ERROR_RETRY_MS = 30_000;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -27,6 +28,18 @@ export class GameMonitor extends DurableObject {
   async fetch(request) {
     const url = new URL(request.url);
 
+    if (request.method === "POST" && url.pathname === "/monitor/start") {
+      return this.startMonitor(request);
+    }
+
+    if (request.method === "POST" && url.pathname === "/monitor/check") {
+      return this.manualCheck();
+    }
+
+    if (request.method === "DELETE" && url.pathname === "/monitor") {
+      return this.stopMonitor();
+    }
+
     if (request.method === "POST" && url.pathname === "/watch") {
       return this.watch(request);
     }
@@ -40,6 +53,57 @@ export class GameMonitor extends DurableObject {
     }
 
     return json({ error: "NOT_FOUND" }, 404);
+  }
+
+  async startMonitor(request) {
+    const body = await request.json().catch(() => ({}));
+    const gamePk = Number(body.gamePk);
+
+    if (!Number.isInteger(gamePk) || gamePk <= 0) {
+      return json({ error: "INVALID_GAME_PK" }, 400);
+    }
+
+    await this.ctx.storage.put({
+      gamePk,
+      monitorEnabled: true
+    });
+
+    const result = await this.checkGame({ scheduleNext: true });
+
+    return json({
+      ok: true,
+      monitoring: true,
+      ...result
+    });
+  }
+
+  async manualCheck() {
+    const gamePk = await this.ctx.storage.get("gamePk");
+    if (!gamePk) {
+      return json({ error: "MONITOR_NOT_INITIALIZED" }, 409);
+    }
+
+    const result = await this.checkGame({ scheduleNext: false });
+
+    return json({
+      ok: true,
+      ...result
+    });
+  }
+
+  async stopMonitor() {
+    await this.ctx.storage.put("monitorEnabled", false);
+
+    const subscribers = await this.ctx.storage.get("subscribers") || [];
+    if (subscribers.length === 0) {
+      await this.ctx.storage.deleteAlarm();
+    }
+
+    return json({
+      ok: true,
+      monitoring: subscribers.length > 0,
+      subscribers: subscribers.length
+    });
   }
 
   async watch(request) {
@@ -86,93 +150,167 @@ export class GameMonitor extends DurableObject {
     const next = subscribers.filter(item => item?.endpoint !== endpoint);
     await this.ctx.storage.put("subscribers", next);
 
-    if (next.length === 0) {
+    const monitorEnabled = await this.ctx.storage.get("monitorEnabled") === true;
+    if (next.length === 0 && !monitorEnabled) {
       await this.ctx.storage.deleteAlarm();
     }
 
     return json({
       ok: true,
       subscribers: next.length,
-      monitoring: next.length > 0
+      monitoring: monitorEnabled || next.length > 0
     });
   }
 
   async status() {
     const [
       gamePk,
+      monitorEnabled,
       subscribers,
       lastSnapshot,
       lastScoringCount,
+      lastScoringIndex,
+      lastScoringSummary,
       lastCheckedAt,
+      lastError,
       currentAlarm
     ] = await Promise.all([
       this.ctx.storage.get("gamePk"),
+      this.ctx.storage.get("monitorEnabled"),
       this.ctx.storage.get("subscribers"),
       this.ctx.storage.get("lastSnapshot"),
       this.ctx.storage.get("lastScoringCount"),
+      this.ctx.storage.get("lastScoringIndex"),
+      this.ctx.storage.get("lastScoringSummary"),
       this.ctx.storage.get("lastCheckedAt"),
+      this.ctx.storage.get("lastError"),
       this.ctx.storage.getAlarm()
     ]);
 
+    const subscriberCount = Array.isArray(subscribers) ? subscribers.length : 0;
+
     return json({
       gamePk: gamePk ?? null,
-      subscribers: Array.isArray(subscribers) ? subscribers.length : 0,
+      monitoring: monitorEnabled === true || subscriberCount > 0,
+      monitorEnabled: monitorEnabled === true,
+      subscribers: subscriberCount,
       lastScoringCount: lastScoringCount ?? 0,
+      lastScoringIndex: lastScoringIndex ?? null,
+      lastScoringSummary: lastScoringSummary ?? null,
       lastCheckedAt: lastCheckedAt ?? null,
+      lastError: lastError ?? null,
       nextAlarmAt: currentAlarm ?? null,
       lastSnapshot: lastSnapshot ?? null
     });
   }
 
-  async alarm() {
+  async checkGame({ scheduleNext = true } = {}) {
     const gamePk = await this.ctx.storage.get("gamePk");
-    const subscribers = await this.ctx.storage.get("subscribers") || [];
-
-    if (!gamePk || subscribers.length === 0) {
-      return;
+    if (!gamePk) {
+      throw new Error("MONITOR_NOT_INITIALIZED");
     }
 
     try {
       const snapshot = await fetchGameSnapshot(gamePk);
-      const previousCount = Number(
-        await this.ctx.storage.get("lastScoringCount") ?? snapshot.scoringCount
-      );
+      const storedCount = await this.ctx.storage.get("lastScoringCount");
+      const previousCount = storedCount == null
+        ? snapshot.scoringCount
+        : Number(storedCount);
+
+      const scoring = scoringSummary(snapshot);
 
       await this.ctx.storage.put({
         lastSnapshot: {
           abstractState: snapshot.abstractState,
           detailedState: snapshot.detailedState,
           awayScore: snapshot.awayScore,
-          homeScore: snapshot.homeScore
+          homeScore: snapshot.homeScore,
+          currentInning: snapshot.currentInning,
+          inningState: snapshot.inningState
         },
         lastScoringCount: snapshot.scoringCount,
-        lastCheckedAt: new Date().toISOString()
+        lastScoringIndex: snapshot.latestScoringIndex,
+        lastScoringSummary: scoring,
+        lastCheckedAt: new Date().toISOString(),
+        lastError: null
       });
 
-      if (snapshot.scoringCount > previousCount) {
+      const subscribers = await this.ctx.storage.get("subscribers") || [];
+      if (storedCount != null && snapshot.scoringCount > previousCount && subscribers.length > 0) {
         await sendScorePush({
           gamePk,
           subscribers,
-          scoring: scoringSummary(snapshot)
+          scoring
         });
       }
 
-      if (isFinalGame(snapshot)) {
-        return;
+      const final = isFinalGame(snapshot);
+      const live = isLiveGame(snapshot);
+
+      if (final) {
+        await this.ctx.storage.put("monitorEnabled", false);
+        await this.ctx.storage.deleteAlarm();
+      } else if (scheduleNext) {
+        const monitorEnabled = await this.ctx.storage.get("monitorEnabled") === true;
+        if (monitorEnabled || subscribers.length > 0) {
+          await this.ctx.storage.setAlarm(
+            Date.now() + (live ? LIVE_INTERVAL_MS : IDLE_INTERVAL_MS)
+          );
+        }
       }
 
-      const delay = isLiveGame(snapshot)
-        ? LIVE_INTERVAL_MS
-        : PREVIEW_INTERVAL_MS;
+      return {
+        gamePk,
+        live,
+        final,
+        newScoringPlay: storedCount != null && snapshot.scoringCount > previousCount,
+        snapshot: {
+          abstractState: snapshot.abstractState,
+          detailedState: snapshot.detailedState,
+          awayScore: snapshot.awayScore,
+          homeScore: snapshot.homeScore,
+          currentInning: snapshot.currentInning,
+          inningState: snapshot.inningState,
+          scoringCount: snapshot.scoringCount,
+          latestScoringIndex: snapshot.latestScoringIndex
+        }
+      };
+    } catch (error) {
+      const message = error?.message || String(error);
+      await this.ctx.storage.put({
+        lastCheckedAt: new Date().toISOString(),
+        lastError: message
+      });
 
-      await this.ctx.storage.setAlarm(Date.now() + delay);
+      if (scheduleNext) {
+        const monitorEnabled = await this.ctx.storage.get("monitorEnabled") === true;
+        const subscribers = await this.ctx.storage.get("subscribers") || [];
+        if (monitorEnabled || subscribers.length > 0) {
+          await this.ctx.storage.setAlarm(Date.now() + ERROR_RETRY_MS);
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  async alarm() {
+    const gamePk = await this.ctx.storage.get("gamePk");
+    const monitorEnabled = await this.ctx.storage.get("monitorEnabled") === true;
+    const subscribers = await this.ctx.storage.get("subscribers") || [];
+
+    if (!gamePk || (!monitorEnabled && subscribers.length === 0)) {
+      await this.ctx.storage.deleteAlarm();
+      return;
+    }
+
+    try {
+      await this.checkGame({ scheduleNext: true });
     } catch (error) {
       console.error("Game monitor check failed", {
         gamePk,
         message: error?.message || String(error)
       });
-
-      await this.ctx.storage.setAlarm(Date.now() + 30_000);
     }
   }
 }
