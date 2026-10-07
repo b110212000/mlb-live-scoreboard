@@ -800,22 +800,48 @@ sportId=1
 
 # 專案檔案結構
 
-前端程式已拆成三個主要檔案：
+前端目前依責任拆分：
 
 ```text
-index.html   → 畫面結構 / HTML
-styles.css   → 所有 CSS 樣式
-app.js       → MLB API、資料處理、互動與畫面更新邏輯
+index.html       → 畫面結構 / HTML
+styles.css       → 所有 CSS 樣式
+
+api.js           → 共用設定、DOM/state、HTTP 與基礎資料工具
+live.js          → 即時比賽、投打、好球帶、焦點、Box Score、得分事件
+postseason.js    → 系列賽與季後賽戰況
+roster.js        → 對戰名單、球員數據、先發與牛棚負荷
+ui.js            → Tab 滑動、功能選單、畫面切換、安裝 / 分享
+app.js           → 事件綁定、初始化、更新排程、版本檢查
 ```
 
-`index.html` 只負責載入：
+JavaScript 依下列順序載入：
 
 ```html
-<link rel="stylesheet" href="./styles.css">
+<script src="./api.js"></script>
+<script src="./live.js"></script>
+<script src="./postseason.js"></script>
+<script src="./roster.js"></script>
+<script src="./ui.js"></script>
 <script src="./app.js"></script>
 ```
 
-網站版本檢查也會同時比對 `index.html`、`styles.css`、`app.js`，避免只更新 CSS 或 JavaScript 時 iPhone 主畫面版本仍停留在舊版。
+`app.js` 現在只負責啟動應用，不再放主要功能邏輯。
+
+網站版本檢查會同時比對：
+
+```text
+index.html
+styles.css
+api.js
+live.js
+postseason.js
+roster.js
+ui.js
+app.js
+```
+
+因此只修改 CSS 或任一 JavaScript 檔案時，iPhone 主畫面版本仍可偵測新版。
+
 
 ---
 
