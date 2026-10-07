@@ -29,6 +29,16 @@ async function forwardToGameMonitor(request, env, gamePk, path) {
   return stub.fetch(new Request(target.toString(), request));
 }
 
+function withCors(response, env) {
+  return new Response(response.body, {
+    status: response.status,
+    headers: {
+      ...corsHeaders(env),
+      "content-type": "application/json; charset=utf-8"
+    }
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -44,10 +54,54 @@ export default {
       return json({
         ok: true,
         service: "mlb-score-notify",
+        phase: "monitoring-foundation",
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
+        idleIntervalMs: 30000,
         pushEnabled: false
       }, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/api/monitor/start") {
+      const body = await request.clone().json().catch(() => ({}));
+      const gamePk = Number(body.gamePk);
+
+      if (!Number.isInteger(gamePk) || gamePk <= 0) {
+        return json({ error: "INVALID_GAME_PK" }, env, 400);
+      }
+
+      return withCors(
+        await forwardToGameMonitor(request, env, gamePk, "/monitor/start"),
+        env
+      );
+    }
+
+    const monitorMatch = url.pathname.match(/^\/api\/monitor\/(\d+)$/);
+    if (monitorMatch) {
+      const gamePk = Number(monitorMatch[1]);
+
+      if (request.method === "GET") {
+        return withCors(
+          await forwardToGameMonitor(request, env, gamePk, "/status"),
+          env
+        );
+      }
+
+      if (request.method === "DELETE") {
+        return withCors(
+          await forwardToGameMonitor(request, env, gamePk, "/monitor"),
+          env
+        );
+      }
+    }
+
+    const checkMatch = url.pathname.match(/^\/api\/monitor\/(\d+)\/check$/);
+    if (request.method === "POST" && checkMatch) {
+      const gamePk = Number(checkMatch[1]);
+      return withCors(
+        await forwardToGameMonitor(request, env, gamePk, "/monitor/check"),
+        env
+      );
     }
 
     if (request.method === "POST" && url.pathname === "/api/watch") {
@@ -58,14 +112,10 @@ export default {
         return json({ error: "INVALID_GAME_PK" }, env, 400);
       }
 
-      const response = await forwardToGameMonitor(request, env, gamePk, "/watch");
-      return new Response(response.body, {
-        status: response.status,
-        headers: {
-          ...corsHeaders(env),
-          "content-type": "application/json; charset=utf-8"
-        }
-      });
+      return withCors(
+        await forwardToGameMonitor(request, env, gamePk, "/watch"),
+        env
+      );
     }
 
     if (request.method === "DELETE" && url.pathname === "/api/watch") {
@@ -76,33 +126,29 @@ export default {
         return json({ error: "INVALID_GAME_PK" }, env, 400);
       }
 
-      const response = await forwardToGameMonitor(request, env, gamePk, "/watch");
-      return new Response(response.body, {
-        status: response.status,
-        headers: {
-          ...corsHeaders(env),
-          "content-type": "application/json; charset=utf-8"
-        }
-      });
+      return withCors(
+        await forwardToGameMonitor(request, env, gamePk, "/watch"),
+        env
+      );
     }
 
     const statusMatch = url.pathname.match(/^\/api\/watch\/(\d+)\/status$/);
     if (request.method === "GET" && statusMatch) {
       const gamePk = Number(statusMatch[1]);
-      const response = await forwardToGameMonitor(request, env, gamePk, "/status");
-      return new Response(response.body, {
-        status: response.status,
-        headers: {
-          ...corsHeaders(env),
-          "content-type": "application/json; charset=utf-8"
-        }
-      });
+      return withCors(
+        await forwardToGameMonitor(request, env, gamePk, "/status"),
+        env
+      );
     }
 
     return json({
       error: "NOT_FOUND",
       routes: [
         "GET /health",
+        "POST /api/monitor/start",
+        "GET /api/monitor/:gamePk",
+        "POST /api/monitor/:gamePk/check",
+        "DELETE /api/monitor/:gamePk",
         "POST /api/watch",
         "DELETE /api/watch",
         "GET /api/watch/:gamePk/status"
