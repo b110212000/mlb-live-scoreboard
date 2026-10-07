@@ -198,11 +198,12 @@ async function installThisApp(){
 
 function switchView(view){
   state.view=view;
-  const bracket=view==='bracket',roster=view==='roster',install=view==='install',live=view==='live';
+  const bracket=view==='bracket',roster=view==='roster',install=view==='install',notifications=view==='notifications',live=view==='live';
   els.liveView.hidden=!live;
   els.bracketView.hidden=!bracket;
   els.rosterView.hidden=!roster;
   els.installView.hidden=!install;
+  els.notificationView.hidden=!notifications;
   els.featureMenu.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===view));
 
   if(bracket){
@@ -215,6 +216,10 @@ function switchView(view){
     els.appTitle.textContent='安裝 / 分享 MLB 戰況';
     els.appSubtitle.textContent='加入主畫面・分享給朋友・App 使用教學';
     syncInstallPage();
+  }else if(notifications){
+    els.appTitle.textContent='MLB 訂閱通知';
+    els.appSubtitle.textContent='Web Push・背景通知・通知能力測試';
+    syncNotificationPage();
   }else{
     els.appTitle.textContent='MLB 季後賽即時戰況';
     els.appSubtitle.textContent='即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄';
@@ -227,7 +232,7 @@ function switchView(view){
   }else if(roster){
     els.topControls.hidden=true;
     loadMatchupRoster();
-  }else if(install){
+  }else if(install||notifications){
     els.topControls.hidden=true;
   }else{
     setTopControlsExpanded(state.topControlsExpanded);
