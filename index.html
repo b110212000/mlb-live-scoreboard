@@ -1625,7 +1625,13 @@
       if(!force&&cached&&Date.now()-cached.time<60000){
         games=cached.games;
       }else{
-        const data=await getJSON(API+'/v1/schedule?sportId=1&startDate='+season+'-09-20&endDate='+season+'-11-15&hydrate=team,linescore');
+        // 用目前球隊的 postseason schedule 抓完整系列賽。
+        // teamId 查詢會包含尚未開打、以及 "if necessary" 的未來場次，
+        // 再以相同對戰組合與 gameType 篩選目前這一輪系列賽。
+        const data=await getJSON(
+          API+'/v1/schedule?sportId=1&teamId='+away.id+
+          '&startDate='+season+'-09-20&endDate='+season+'-11-15&hydrate=team,linescore'
+        );
         const targetPair=seriesPairKey(away.id,home.id);
         games=(data.dates||[]).flatMap(d=>d.games||[])
           .filter(g=>POSTSEASON.has(g.gameType)&&g.gameType===type&&
