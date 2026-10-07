@@ -1494,3 +1494,43 @@
         max-width:92px!important;
       }
     }
+
+
+    /* 固定頂部 Title / 功能列：頁面只捲動下方內容 */
+    .topbar{
+      position:sticky!important;
+      top:0;
+      z-index:90;
+      margin-bottom:14px;
+      padding-top:10px;
+      padding-bottom:10px;
+      background:#06111f;
+      border-bottom:1px solid rgba(49,80,108,.72);
+      box-shadow:0 8px 18px rgba(2,8,18,.18);
+    }
+
+    @media (display-mode:standalone){
+      .topbar{
+        top:env(safe-area-inset-top);
+      }
+    }
+
+    @media(max-width:720px){
+      .topbar{
+        margin-bottom:10px;
+        padding-top:8px;
+        padding-bottom:8px;
+      }
+    }
+
+    @media(max-width:600px){
+      .topbar{
+        margin-left:0!important;
+        margin-right:0!important;
+        padding-left:10px;
+        padding-right:10px;
+      }
+      .feature-menu{
+        z-index:110;
+      }
+    }
