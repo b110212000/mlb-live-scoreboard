@@ -2185,3 +2185,78 @@
         line-height:1.25!important;
       }
     }
+
+
+    /* v1.1.0：單場比賽通知鈴鐺 */
+    .score-center{
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-width:0;
+    }
+    .game-watch-button{
+      position:absolute!important;
+      left:50%;
+      bottom:calc(100% + 5px);
+      transform:translateX(-50%);
+      width:30px!important;
+      height:30px!important;
+      min-width:30px!important;
+      min-height:30px!important;
+      padding:3px!important;
+      margin:0!important;
+      border:0!important;
+      border-radius:50%!important;
+      background:transparent!important;
+      box-shadow:none!important;
+      color:#ffe17a!important;
+      opacity:1;
+      z-index:2;
+      transition:color .16s ease,opacity .16s ease,transform .16s ease;
+    }
+    .game-watch-button[hidden]{display:none!important}
+    .game-watch-button svg{
+      display:block;
+      width:100%;
+      height:100%;
+      fill:none;
+      stroke:currentColor;
+      stroke-width:2;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+      pointer-events:none;
+    }
+    .game-watch-button.subscribed{
+      color:#536477!important;
+      opacity:.9;
+    }
+    .game-watch-button:hover,
+    .game-watch-button:focus-visible{
+      border:0!important;
+      background:transparent!important;
+      box-shadow:none!important;
+    }
+    .game-watch-button:not(.subscribed):hover{
+      color:#fff0a8!important;
+    }
+    .game-watch-button.loading{
+      opacity:.45!important;
+      pointer-events:none;
+    }
+    .hero .teams{
+      margin-top:22px;
+    }
+
+    @media(max-width:600px){
+      .game-watch-button{
+        width:27px!important;
+        height:27px!important;
+        min-width:27px!important;
+        min-height:27px!important;
+        bottom:calc(100% + 4px);
+      }
+      .hero .teams{
+        margin-top:20px;
+      }
+    }
