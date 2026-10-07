@@ -1589,3 +1589,109 @@
       height:0;
       display:none;
     }
+
+
+    /* v1.0.5：Title 右側即時狀態 / 更新按鈕 */
+    .title-live-actions{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:5px;
+      flex:none;
+      align-self:center;
+    }
+    .title-live-actions[hidden]{display:none!important}
+
+    .title-live-actions #liveChip{
+      width:30px!important;
+      height:22px!important;
+      min-width:30px!important;
+      min-height:22px!important;
+      max-width:30px!important;
+      padding:0!important;
+      margin:0!important;
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      overflow:visible!important;
+      border:0!important;
+      border-radius:7px!important;
+      background:transparent!important;
+      box-shadow:none!important;
+    }
+    .title-live-actions #liveChip .dot{
+      width:9px!important;
+      height:9px!important;
+      flex:none!important;
+    }
+    .title-live-actions #updateText,
+    .visually-hidden{
+      position:absolute!important;
+      width:1px!important;
+      height:1px!important;
+      padding:0!important;
+      margin:-1px!important;
+      overflow:hidden!important;
+      clip:rect(0,0,0,0)!important;
+      white-space:nowrap!important;
+      border:0!important;
+    }
+    .title-refresh-button{
+      width:30px!important;
+      height:30px!important;
+      min-width:30px!important;
+      min-height:30px!important;
+      max-width:30px!important;
+      padding:0!important;
+      margin:0!important;
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      border-radius:8px!important;
+      background:#10263d!important;
+      border:1px solid #31506c!important;
+      color:#e8f6ff!important;
+      font-size:0!important;
+      line-height:1!important;
+    }
+    .title-refresh-button span{
+      font-size:18px!important;
+      line-height:1!important;
+    }
+    .title-refresh-button::after{content:none!important}
+
+    /* 日期列現在只負責日期本身，不再替狀態 / 更新鈕預留空間 */
+    #topControls.controls{
+      justify-content:flex-start!important;
+    }
+
+    @media(max-width:600px){
+      .topbar-title{
+        gap:8px!important;
+      }
+      .brand-group{
+        flex:1 1 auto;
+        min-width:0;
+      }
+      .title-live-actions{
+        gap:4px;
+      }
+      .title-live-actions #liveChip{
+        width:28px!important;
+        min-width:28px!important;
+        max-width:28px!important;
+        height:18px!important;
+        min-height:18px!important;
+      }
+      .title-refresh-button{
+        width:28px!important;
+        height:28px!important;
+        min-width:28px!important;
+        min-height:28px!important;
+        max-width:28px!important;
+      }
+      .title-refresh-button span{
+        font-size:17px!important;
+      }
+    }
