@@ -3,30 +3,19 @@
    功能邏輯分散於 api.js / live.js / postseason.js / roster.js / ui.js。 */
 
 async function disableLegacyPwaCache(){
-  let hadController=false;
+  // Push 需要保留 Service Worker；这里只清除舊版 PWA Cache，
+  // 不再 unregister Service Worker，也不加入 fetch cache。
   try{
-    if('serviceWorker' in navigator){
-      hadController=!!navigator.serviceWorker.controller;
-      const regs=await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(reg=>reg.unregister()));
-    }
     if('caches' in window){
       const keys=await caches.keys();
       await Promise.all(keys.map(key=>caches.delete(key)));
     }
   }catch(_){}
-  if(hadController&&!sessionStorage.getItem('pwa-cache-migrated-v2')){
-    sessionStorage.setItem('pwa-cache-migrated-v2','1');
-    const u=new URL(location.href);
-    u.searchParams.set('_refresh',Date.now());
-    location.replace(u.toString());
-    return true;
-  }
   return false;
 }
 
 async function freshIndexHash(){
-  const paths=['./index.html','./styles.css','./api.js','./live.js','./postseason.js','./roster.js','./ui.js','./app.js'];
+  const paths=['./index.html','./styles.css','./api.js','./live.js','./postseason.js','./roster.js','./notifications.js','./ui.js','./app.js','./service-worker.js'];
   const texts=await Promise.all(paths.map(async path=>{
     const u=new URL(path,location.href);
     u.searchParams.set('_check',Date.now());
@@ -186,7 +175,9 @@ setInterval(advanceHighlights,5000);
 els.refreshBtn.addEventListener('click',()=>loadSchedule(true));
 els.dateInput.addEventListener('change',()=>{loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
 els.dateInput.value=localDateString();
-switchView('live');
+const requestedView=new URL(location.href).searchParams.get('view');
+const initialView=['live','bracket','roster','install','notifications'].includes(requestedView)?requestedView:'live';
+switchView(initialView);
 initLiveDetailSwipe();
 setLiveDetailTab('status',{animate:false});
 loadSchedule(false);
