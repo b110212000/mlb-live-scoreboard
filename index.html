@@ -44,6 +44,10 @@
                 <span class="feature-menu-icon">📲</span>
                 <span class="feature-menu-copy"><b>安裝 / 分享 App</b><small>加入主畫面・分享給朋友</small></span>
               </button>
+              <button class="feature-menu-item" type="button" data-view="notifications">
+                <span class="feature-menu-icon">🔔</span>
+                <span class="feature-menu-copy"><b>訂閱通知</b><small>測試 Web Push・背景通知</small></span>
+              </button>
             </div>
           </div>
           <div>
@@ -343,6 +347,58 @@
       </section>
     </div>
 
+    <div id="notificationView" class="app-view" hidden>
+      <section class="card notification-shell">
+        <div class="notification-head">
+          <div class="notification-icon">🔔</div>
+          <h2>訂閱通知</h2>
+          <p>先確認這台裝置能完整收到 Web Push，再開放正式的比賽訂閱。</p>
+          <div id="notificationStatus" class="notification-status">檢查裝置通知能力中…</div>
+        </div>
+
+        <div class="notification-checks">
+          <div class="notification-check">
+            <span>通知權限</span>
+            <strong id="notificationPermission">尚未確認</strong>
+          </div>
+          <div class="notification-check">
+            <span>Push 訂閱</span>
+            <strong id="notificationSubscription">尚未建立 Push 訂閱</strong>
+          </div>
+          <div class="notification-check">
+            <span>最近測試</span>
+            <strong id="notificationLastTest">尚未測試</strong>
+          </div>
+        </div>
+
+        <button id="testNotificationBtn" class="notification-test-button" type="button">
+          <span class="notification-test-icon">🔔</span>
+          <span>
+            <strong>測試訂閱</strong>
+            <small>立即通知一次，30 秒後再背景通知一次</small>
+          </span>
+        </button>
+
+        <div id="notificationTestMessage" class="notification-test-message">
+          點擊後會要求通知權限，第一則與 30 秒後的第二則都會由 Cloudflare Web Push 發送。
+        </div>
+
+        <div class="notification-flow">
+          <div><b>1</b><span>允許通知</span></div>
+          <i>→</i>
+          <div><b>2</b><span>立即收到</span></div>
+          <i>→</i>
+          <div><b>3</b><span>關閉網站</span></div>
+          <i>→</i>
+          <div><b>4</b><span>30 秒後再收到</span></div>
+        </div>
+
+        <div class="notification-note">
+          iPhone / iPad 必須先用 Safari 將網站「加入主畫面」，再從主畫面開啟 MLB 戰況後測試。第二則通知用來確認網站關閉或手機鎖定後，背景 Push 仍可正常送達。
+        </div>
+      </section>
+    </div>
+
         <div class="foot">
       資料來源：MLB Stats API · 每 5 秒更新
     </div>
@@ -352,6 +408,7 @@
 <script src="./live.js"></script>
 <script src="./postseason.js"></script>
 <script src="./roster.js"></script>
+<script src="./notifications.js"></script>
 <script src="./ui.js"></script>
 <script src="./app.js"></script>
 </body>
