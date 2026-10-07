@@ -53,6 +53,7 @@ function normalizeSubscriber(item) {
       start: Boolean(item.sent?.start),
       final: Boolean(item.sent?.final)
     },
+    lastScore: item.lastScore || null,
     createdAt: item.createdAt || new Date().toISOString()
   };
 }
@@ -78,9 +79,20 @@ export class GameMonitor extends DurableObject {
     super(ctx, env);
     this.ctx = ctx;
     this.env = env;
+    this.operation = Promise.resolve();
+  }
+
+  async exclusive(action) {
+    const operation = this.operation.then(action);
+    this.operation = operation.catch(() => {});
+    return operation;
   }
 
   async fetch(request) {
+    return this.exclusive(() => this.handleRequest(request));
+  }
+
+  async handleRequest(request) {
     const url = new URL(request.url);
 
     if (request.method === "POST" && url.pathname === "/monitor/start") {
@@ -214,6 +226,7 @@ export class GameMonitor extends DurableObject {
         start: live,
         final: false
       },
+      lastScore: existing?.lastScore || { awayScore: snapshot.awayScore, homeScore: snapshot.homeScore },
       createdAt: existing?.createdAt || new Date().toISOString()
     };
 
@@ -363,11 +376,16 @@ export class GameMonitor extends DurableObject {
     return next;
   }
 
-  async sendScoreEvent(subscribers, snapshot) {
-    if (!subscribers.length) return subscribers;
+  async sendScoreEvent(subscribers, snapshot, previous) {
+    const targets = subscribers.filter(item => {
+      const baseline = item.lastScore || previous || snapshot;
+      return Number(baseline.awayScore) !== Number(snapshot.awayScore) ||
+        Number(baseline.homeScore) !== Number(snapshot.homeScore);
+    });
+    if (!targets.length) return subscribers;
 
     const inning = inningLabel(snapshot);
-    const result = await this.push(subscribers, {
+    const result = await this.push(targets, {
       title: "MLB 比分更新",
       body: `${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}${inning ? " · " + inning : ""}`,
       tag: `game-score-${snapshot.gamePk}-${snapshot.awayScore}-${snapshot.homeScore}-${Date.now()}`,
@@ -379,7 +397,13 @@ export class GameMonitor extends DurableObject {
     const byEndpoint = new Map(
       (result.results || []).map(item => [item.endpoint, item])
     );
-    return subscribers.filter(item => !byEndpoint.get(item.endpoint)?.expired);
+    return subscribers.filter(item => {
+      const delivery = byEndpoint.get(item.endpoint);
+      if (delivery?.expired) return false;
+      if (delivery?.ok) item.lastScore = { awayScore: snapshot.awayScore, homeScore: snapshot.homeScore };
+      else if (!item.lastScore) item.lastScore = previous || snapshot;
+      return true;
+    });
   }
 
   async processNotifications(previous, snapshot, subscribers) {
@@ -417,17 +441,17 @@ export class GameMonitor extends DurableObject {
       });
     }
 
-    const scoreChanged = previous && (
-      Number(previous.awayScore) !== Number(snapshot.awayScore) ||
-      Number(previous.homeScore) !== Number(snapshot.homeScore)
-    );
-
-    if (scoreChanged) {
-      next = await this.sendScoreEvent(next, snapshot);
-    }
+    // 每個裝置保留已送達的比分；失敗後下次仍會重試。
+    next = await this.sendScoreEvent(next, snapshot, previous);
+    await this.putSubscribers(next);
 
     if (final) {
-      next = await this.sendMarkedEvent(next, "final", {
+      const ready = next.filter(item => {
+        const score = item.lastScore || previous || snapshot;
+        return Number(score.awayScore) === Number(snapshot.awayScore) &&
+          Number(score.homeScore) === Number(snapshot.homeScore);
+      });
+      const delivered = await this.sendMarkedEvent(ready, "final", {
         title: "MLB 比賽結束",
         body: `終場：${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}`,
         tag: `game-final-${snapshot.gamePk}`,
@@ -435,6 +459,8 @@ export class GameMonitor extends DurableObject {
         gamePk: snapshot.gamePk,
         stage: "final"
       });
+      const pendingScore = next.filter(item => !ready.includes(item));
+      next = [...pendingScore, ...delivered];
     }
 
     return next;
@@ -493,8 +519,10 @@ export class GameMonitor extends DurableObject {
 
       if (final) {
         await this.ctx.storage.put("monitorEnabled", false);
+        subscribers = subscribers.filter(item => !item.sent?.final);
+        await this.putSubscribers(subscribers);
         const pendingFinal = subscribers.some(item => !item.sent?.final);
-        if (pendingFinal && scheduleNext) {
+        if (pendingFinal) {
           // 推送暫時失敗時保留未完成狀態，稍後重試；成功者不會重複收到。
           await this.ctx.storage.setAlarm(Date.now() + ERROR_RETRY_MS);
         } else {
@@ -538,6 +566,10 @@ export class GameMonitor extends DurableObject {
   }
 
   async alarm() {
+    return this.exclusive(() => this.handleAlarm());
+  }
+
+  async handleAlarm() {
     const gamePk = await this.ctx.storage.get("gamePk");
     const monitorEnabled = await this.ctx.storage.get("monitorEnabled") === true;
     const subscribers = await this.getSubscribers();
@@ -557,3 +589,4 @@ export class GameMonitor extends DurableObject {
     }
   }
 }
+

@@ -1,0 +1,24 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),cp=require('child_process');
+const root=process.cwd();
+for(const f of fs.readdirSync(root).filter(f=>f.endsWith('.js')).concat(['worker/src/index.js','worker/src/game-monitor.js','worker/src/mlb.js','worker/src/push-service.js']))cp.execFileSync('node',['--check',f]);
+const html=fs.readFileSync('index.html','utf8');
+const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);assert.equal(ids.length,new Set(ids).size);
+for(const x of fs.readFileSync('api.js','utf8').matchAll(/\$\('([^']+)'\)/g))assert(ids.includes(x[1]),'missing DOM '+x[1]);
+let snapshot;const sends=[];let failed=new Set();
+const ctx={console,Response,Request,URL,Date,DurableObject:class{},fetchGameSnapshot:async()=>structuredClone(snapshot),isFinalGame:s=>/final/i.test(s?.abstractState||''),isLiveGame:s=>/live/i.test(s?.abstractState||'')};
+vm.createContext(ctx);let src=fs.readFileSync('worker/src/game-monitor.js','utf8').replace(/import \{ DurableObject \} from "cloudflare:workers";/,'').replace(/import \{[\s\S]*?\} from "\.\/mlb.js";/,'').replace('export class GameMonitor','globalThis.GameMonitor = class GameMonitor');vm.runInContext(src,ctx);
+function monitor(){const data=new Map();let alarm=null;const storage={get:async k=>structuredClone(data.get(k)),put:async(k,v)=>{if(typeof k==='object')for(const [key,val]of Object.entries(k))data.set(key,structuredClone(val));else data.set(k,structuredClone(v));},setAlarm:async a=>alarm=a,deleteAlarm:async()=>alarm=null,getAlarm:async()=>alarm};return {m:new ctx.GameMonitor({storage},{PUSH_SERVICE:{idFromName:n=>{assert.equal(n,'global');return n},get:()=>({fetch:async r=>{assert.equal(new URL(r.url).pathname,'/send');const b=await r.json();sends.push(b);return Response.json({results:b.subscriptions.map(s=>({endpoint:s.endpoint,ok:!failed.has(s.endpoint),expired:s.endpoint.includes('expired')}))});}})}}),data,storage,get alarm(){return alarm}}}
+const base=(state='Preview',a=0,h=0)=>({gamePk:123,abstractState:state,gameDate:new Date(Date.now()+4*60000).toISOString(),awayName:'A',homeName:'H',awayScore:a,homeScore:h});
+const watch=(id)=>new Request('https://internal/watch',{method:'POST',body:JSON.stringify({gamePk:123,deviceId:id,subscription:{endpoint:'https://push/'+id,keys:{p256dh:'x',auth:'y'}}})});
+(async()=>{
+const o=monitor();snapshot=base();await o.m.watch(watch('one'));assert.equal(sends.at(-1).payload.stage,'pregame5');assert(o.alarm);const n=sends.length;await o.m.checkGame();assert.equal(sends.length,n);
+snapshot=base('Live');await o.m.checkGame();assert.equal(sends.at(-1).payload.stage,'start');assert(o.alarm-Date.now()<=5000);
+snapshot=base('Live',1,0);await o.m.checkGame();assert.equal(sends.at(-1).payload.stage,'score');snapshot=base('Live',1,2);await o.m.checkGame();assert.equal(sends.at(-1).payload.stage,'score');
+snapshot=base('Final',1,3);const before=sends.length;await o.m.checkGame();assert.deepEqual(sends.slice(before).map(x=>x.payload.stage),['score','final']);assert.equal(o.data.get('subscribers').length,0);assert.equal(o.alarm,null);
+const late=monitor();snapshot=base('Live',4,3);const l=sends.length;await late.m.watch(watch('late'));assert.equal(sends.length,l,'late subscriber received old score/start');
+snapshot=base('Live',5,3);await late.m.watch(watch('new'));const recent=sends.at(-1);assert.equal(recent.payload.stage,'score');assert.deepEqual(recent.subscriptions.map(s=>s.endpoint),['https://push/late']);
+failed.add('https://push/late');snapshot=base('Final',6,3);const r=sends.length;await late.m.checkGame();assert.deepEqual(sends.slice(r).map(x=>x.payload.stage),['score','final']);assert.equal(sends.at(-1).subscriptions.length,1);assert.equal(late.data.get('subscribers').length,1);assert(late.alarm);
+failed.clear();const rr=sends.length;await late.m.checkGame();assert.deepEqual(sends.slice(rr).map(x=>x.payload.stage),['score','final']);assert.equal(late.data.get('subscribers').length,0);
+const far=monitor();snapshot={...base(),gameDate:new Date(Date.now()+3600000).toISOString()};await far.m.watch(watch('far'));assert.equal(far.alarm,Date.parse(snapshot.gameDate)-300000);let status=await (await far.m.watchStatus(new Request('https://internal/watch/status?deviceId=far'))).json();assert(status.subscribed);await far.m.unwatch(new Request('https://internal/watch',{method:'DELETE',body:JSON.stringify({deviceId:'far'})}));assert.equal(far.alarm,null);status=await(await far.m.watchStatus(new Request('https://internal/watch/status?deviceId=far'))).json();assert.equal(status.subscribed,false);
+console.log('PASS: JS syntax, DOM IDs, pregame, start, both scores, score-before-final, cleanup, late baseline, per-device baseline, failed score retry, status, cancel, alarms, DO forwarding');
+})().catch(e=>{console.error(e);process.exit(1)});

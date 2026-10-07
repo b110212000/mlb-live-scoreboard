@@ -8,6 +8,8 @@ let gameWatchBusy=false;
 const GAME_WATCH_STORAGE='mlb-watched-games-v1';
 const GAME_WATCH_DEVICE_ID='mlb-push-device-id';
 const gameWatchStatusCheckedAt=new Map();
+const gameWatchRevision=new Map();
+const gameWatchFinal=new Set();
 
 function pushBase64ToUint8Array(value){
   const padding='='.repeat((4-value.length%4)%4);
@@ -117,7 +119,7 @@ function renderGameWatchButton(feed){
   if(!btn)return;
 
   const gamePk=Number(feed?.gameData?.game?.pk??state.selectedGamePk);
-  const final=isGameFinalStatus(feed);
+  const final=isGameFinalStatus(feed)||gameWatchFinal.has(gamePk);
 
   if(!Number.isInteger(gamePk)||gamePk<=0||final){
     btn.hidden=true;
@@ -140,6 +142,7 @@ async function syncGameWatchStatus(gamePk,{force=false}={}){
   const pk=Number(gamePk);
   if(!btn||!Number.isInteger(pk)||pk<=0)return;
 
+  const revision=gameWatchRevision.get(pk)||0;
   const now=Date.now();
   const checked=gameWatchStatusCheckedAt.get(pk)||0;
   if(!force&&now-checked<30000)return;
@@ -153,9 +156,11 @@ async function syncGameWatchStatus(gamePk,{force=false}={}){
     );
     if(!response.ok)return;
     const result=await response.json().catch(()=>({}));
+    if(revision!==(gameWatchRevision.get(pk)||0)||gameWatchBusy)return;
     setGameWatchedLocal(pk,Boolean(result.subscribed));
-    if(Number(btn.dataset.gamePk)===pk){
+    if(Number(btn.dataset.gamePk)===pk&&Number(state.selectedGamePk)===pk){
       if(result.final){
+        gameWatchFinal.add(pk);
         btn.hidden=true;
         setGameWatchedLocal(pk,false);
       }else{
@@ -169,12 +174,13 @@ async function syncGameWatchStatus(gamePk,{force=false}={}){
 
 async function toggleGameWatch(){
   const btn=els.gameWatchBtn;
-  if(!btn||gameWatchBusy)return;
+  if(!btn||btn.hidden||gameWatchBusy)return;
 
   const gamePk=Number(btn.dataset.gamePk||state.selectedGamePk);
   if(!Number.isInteger(gamePk)||gamePk<=0)return;
 
   const currentlyWatched=readWatchedGames().has(String(gamePk));
+  gameWatchRevision.set(gamePk,(gameWatchRevision.get(gamePk)||0)+1);
   gameWatchBusy=true;
   btn.disabled=true;
   btn.classList.add('loading');
@@ -249,7 +255,8 @@ async function toggleGameWatch(){
 
     if(response.status===409&&result.error==='GAME_FINAL'){
       setGameWatchedLocal(gamePk,false);
-      btn.hidden=true;
+      gameWatchFinal.add(gamePk);
+      if(Number(btn.dataset.gamePk)===gamePk)btn.hidden=true;
       return;
     }
 
@@ -264,9 +271,10 @@ async function toggleGameWatch(){
     console.error('Game watch toggle failed',error);
     showError(error?.message||'比賽通知設定失敗');
   }finally{
+    gameWatchRevision.set(gamePk,(gameWatchRevision.get(gamePk)||0)+1);
     gameWatchBusy=false;
     btn.classList.remove('loading');
-    if(state.currentFeedGamePk===gamePk){
+    if(state.currentFeedGamePk===gamePk&&Number(state.selectedGamePk)===gamePk){
       renderGameWatchButton(state.currentFeed);
     }else{
       btn.disabled=false;
@@ -393,3 +401,4 @@ if(els.testNotificationBtn){
 if(els.gameWatchBtn){
   els.gameWatchBtn.addEventListener('click',toggleGameWatch);
 }
+

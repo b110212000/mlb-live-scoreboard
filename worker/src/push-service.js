@@ -58,6 +58,16 @@ export class PushService extends DurableObject {
   }
 
   async ensureVapidKeys() {
+    if (!this.vapidKeysPromise) {
+      this.vapidKeysPromise = this.loadVapidKeys().catch(error => {
+        this.vapidKeysPromise = null;
+        throw error;
+      });
+    }
+    return this.vapidKeysPromise;
+  }
+
+  async loadVapidKeys() {
     let keys = await this.ctx.storage.get("vapidKeys");
     if (keys?.publicKey && keys?.privateKey) return keys;
 
@@ -239,3 +249,4 @@ export class PushService extends DurableObject {
     await this.scheduleNextAlarm(remaining);
   }
 }
+

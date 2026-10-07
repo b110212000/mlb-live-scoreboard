@@ -65,7 +65,8 @@ export default {
       return json({
         ok: true,
         service: "mlb-score-notify",
-        phase: "monitoring-foundation",
+        phase: "game-watch-notifications",
+        version: "1.1.1",
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,
@@ -192,3 +193,4 @@ export default {
     }, env, 404);
   }
 };
+
