@@ -29,6 +29,7 @@
 - iPhone / iPad 加入主畫面
 - 專屬「安裝 / 分享 App」頁
 - Web Share 系統分享與複製網址
+- 單場比賽通知：開賽前 5 分鐘、正式開賽、比分變更、比賽結束
 - 下拉重新整理
 - 網站版本更新偵測
 
@@ -40,7 +41,7 @@ https://b110212000.github.io/mlb-live-scoreboard/
 
 ## 專案架構
 
-本專案不需要 Backend，也不需要資料庫。
+即時比分與球員資料仍由前端直接讀取 MLB Stats API；單場比賽通知則使用 Cloudflare Workers + Durable Objects + Web Push，不使用傳統資料庫。
 
 ```text
 Browser / iPhone Web App
@@ -70,7 +71,7 @@ Browser / iPhone Web App
 | `index.html` | 主頁面，包含 UI、CSS、API 呼叫與即時更新邏輯 |
 | `manifest.json` | Web App / 加入主畫面設定 |
 | `app-icon.svg` | App / 網站圖示 |
-| `service-worker.js` | 舊 PWA Cache 清除與解除註冊用途 |
+| `service-worker.js` | Push-only Service Worker；負責接收與點擊 Web Push，不快取 App 資源 |
 | `.nojekyll` | 避免 GitHub Pages 使用 Jekyll 處理靜態檔案 |
 | `README.md` | 專案文件 |
 
@@ -864,6 +865,8 @@ Vanilla JavaScript
 Fetch API
 Intl.DateTimeFormat
 GitHub Pages
+Cloudflare Workers / Durable Objects
+Web Push API
 Web App Manifest
 MLB Stats API
 ```
@@ -897,7 +900,7 @@ MLB Stats API
 
 ## 版本號規則
 
-目前版本：`v1.0.13`
+目前版本：`v1.1.0`
 
 版本格式：
 
