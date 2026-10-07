@@ -225,11 +225,24 @@ function switchView(view){
     els.appSubtitle.textContent='即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄';
   }
 
-  els.topControls.hidden=!live;
+  els.topControlsToggle.hidden=!live;
   if(bracket){
+    els.topControls.hidden=true;
     loadBracket();
   }else if(roster){
+    els.topControls.hidden=true;
     loadMatchupRoster();
+  }else if(install||notifications){
+    els.topControls.hidden=true;
+  }else{
+    setTopControlsExpanded(state.topControlsExpanded);
   }
   setFeatureMenuOpen(false);
+}
+
+function setTopControlsExpanded(expanded){
+  state.topControlsExpanded=expanded;
+  els.topControls.hidden=!expanded;
+  els.topControlsToggle.setAttribute('aria-expanded',String(expanded));
+  els.topControlsToggle.setAttribute('aria-label',expanded?'收合日期與更新':'展開日期與更新');
 }
