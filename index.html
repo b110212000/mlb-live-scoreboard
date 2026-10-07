@@ -822,6 +822,78 @@
       .boxscore-table th:first-child,.boxscore-table td:first-child{min-width:118px;max-width:118px}
     }
 
+
+    /* 安裝 / 分享 App */
+    .install-shell{padding:20px;margin-top:4px;min-width:0}
+    .install-head{text-align:center;padding:8px 8px 18px}
+    .install-app-icon{
+      width:84px;height:84px;margin:0 auto 12px;border-radius:22px;
+      display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(145deg,#173a5c,#0b1d30);
+      border:1px solid #31506c;box-shadow:0 10px 30px rgba(0,0,0,.28);
+      overflow:hidden
+    }
+    .install-app-icon img{width:72px;height:72px;object-fit:contain}
+    .install-head h2{margin:0 0 5px;font-size:25px}
+    .install-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.55}
+    .install-status{
+      display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 9px;
+      border-radius:999px;background:#0b1a2b;border:1px solid #294966;font-size:10px;color:#cfe0ef
+    }
+    .install-actions{
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;
+      width:min(680px,100%);margin:0 auto 18px
+    }
+    .install-action{
+      min-height:78px;padding:11px;border-radius:13px;background:#10263b;border:1px solid #294966;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+      color:#f4f8fb;font-weight:850
+    }
+    .install-action strong{font-size:13px}
+    .install-action small{font-size:9px;color:var(--muted);font-weight:600;text-align:center}
+    .install-action-icon{font-size:22px;line-height:1}
+    .install-action.primary{background:linear-gradient(180deg,#17476b,#123552);border-color:#4d86ad}
+    .install-guide{
+      width:min(680px,100%);margin:0 auto;border:1px solid #294966;border-radius:15px;
+      background:#091827;overflow:hidden
+    }
+    .install-guide-title{
+      padding:11px 13px;background:#10263b;border-bottom:1px solid #294966;
+      font-size:13px;font-weight:900
+    }
+    .install-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+    .install-step{padding:16px 12px;text-align:center;position:relative}
+    .install-step+.install-step{border-left:1px solid #213d57}
+    .install-step-num{
+      width:27px;height:27px;margin:0 auto 8px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      background:#173b59;border:1px solid #427197;color:#fff;font-size:11px;font-weight:950
+    }
+    .install-step-icon{font-size:24px;margin-bottom:7px;line-height:1}
+    .install-step b{display:block;font-size:12px;margin-bottom:4px}
+    .install-step span{display:block;color:var(--muted);font-size:10px;line-height:1.5}
+    .install-tip{
+      width:min(680px,100%);margin:10px auto 0;padding:9px 11px;border-radius:10px;
+      background:#0b1a2b;border:1px solid #243f59;color:var(--muted);font-size:9px;line-height:1.5
+    }
+    .install-guide.flash{animation:guideFlash .7s ease}
+    @keyframes guideFlash{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px rgba(85,216,255,.28)}}
+    @media(max-width:600px){
+      .install-shell{padding:14px 10px;border-radius:0}
+      .install-head{padding:5px 5px 14px}
+      .install-app-icon{width:72px;height:72px;border-radius:19px}
+      .install-app-icon img{width:61px;height:61px}
+      .install-head h2{font-size:21px}
+      .install-actions{grid-template-columns:1fr 1fr}
+      .install-action:first-child{grid-column:1/-1}
+      .install-action{min-height:68px}
+      .install-steps{grid-template-columns:1fr}
+      .install-step{display:grid;grid-template-columns:32px 35px minmax(0,1fr);gap:8px;align-items:center;text-align:left;padding:11px}
+      .install-step+.install-step{border-left:0;border-top:1px solid #213d57}
+      .install-step-num{margin:0}
+      .install-step-icon{margin:0;text-align:center;font-size:21px}
+      .install-step b{margin-bottom:2px}
+    }
+
 </style>
 </head>
 <body>
@@ -849,6 +921,10 @@
               <button class="feature-menu-item" type="button" data-view="roster">
                 <span class="feature-menu-icon">👥</span>
                 <span class="feature-menu-copy"><b>對戰名單</b><small>兩隊 26 人・先發・例行賽數據</small></span>
+              </button>
+              <button class="feature-menu-item" type="button" data-view="install">
+                <span class="feature-menu-icon">📲</span>
+                <span class="feature-menu-copy"><b>安裝 / 分享 App</b><small>加入主畫面・分享給朋友</small></span>
               </button>
             </div>
           </div>
@@ -1061,6 +1137,57 @@
       </section>
     </div>
 
+    <div id="installView" class="app-view" hidden>
+      <section class="card install-shell">
+        <div class="install-head">
+          <div class="install-app-icon"><img src="./app-icon.svg" alt="MLB 戰況 App 圖示"></div>
+          <h2>MLB 戰況 App</h2>
+          <p>分享給朋友，或加入 iPhone 主畫面，以 App 模式直接開啟。</p>
+          <div id="installStatus" class="install-status">檢查裝置狀態中…</div>
+        </div>
+
+        <div class="install-actions">
+          <button id="installAppBtn" class="install-action primary" type="button">
+            <span class="install-action-icon">📲</span>
+            <strong>安裝到主畫面</strong>
+            <small id="installAppHint">查看安裝方式</small>
+          </button>
+          <button id="shareAppBtn" class="install-action" type="button">
+            <span class="install-action-icon">↗️</span>
+            <strong>分享這個 App</strong>
+            <small>開啟系統分享</small>
+          </button>
+          <button id="copyAppBtn" class="install-action" type="button">
+            <span class="install-action-icon">🔗</span>
+            <strong>複製網址</strong>
+            <small id="copyAppHint">複製網站連結</small>
+          </button>
+        </div>
+
+        <div id="installGuide" class="install-guide">
+          <div class="install-guide-title">iPhone / iPad 加入主畫面</div>
+          <div class="install-steps">
+            <div class="install-step">
+              <div class="install-step-num">1</div>
+              <div class="install-step-icon">🧭</div>
+              <div><b>使用 Safari 開啟</b><span>如果目前不是 Safari，先用 Safari 打開這個網站。</span></div>
+            </div>
+            <div class="install-step">
+              <div class="install-step-num">2</div>
+              <div class="install-step-icon">⬆️</div>
+              <div><b>按 Safari 的分享按鈕</b><span>找到方框往上箭頭的「分享」按鈕。</span></div>
+            </div>
+            <div class="install-step">
+              <div class="install-step-num">3</div>
+              <div class="install-step-icon">➕</div>
+              <div><b>加入主畫面</b><span>選「加入主畫面」，再按右上角「加入」。</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="install-tip">iOS 不允許網站自行把 App 加到桌面，所以最後的「加入主畫面」必須由你親自確認。已加入後，從桌面開啟會使用獨立 App 模式。</div>
+      </section>
+    </div>
+
         <div class="foot">
       資料來源：MLB Stats API · 每 5 秒更新
     </div>
@@ -1094,13 +1221,16 @@
     topControls:$('topControls'), topControlsToggle:$('topControlsToggle'),
     pullRefresh:$('pullRefresh'), pullRefreshText:$('pullRefreshText'),
     featureMenuButton:$('featureMenuButton'), featureMenu:$('featureMenu'),
-    appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'), rosterView:$('rosterView'),
+    appTitle:$('appTitle'), appSubtitle:$('appSubtitle'), liveView:$('liveView'), bracketView:$('bracketView'), rosterView:$('rosterView'), installView:$('installView'),
     bracketBoard:$('bracketBoard'), bracketStatus:$('bracketStatus'), bracketYearText:$('bracketYearText'),
     heroRosterBtn:$('heroRosterBtn'), rosterBackBtn:$('rosterBackBtn'), rosterBoard:$('rosterBoard'),
-    rosterMatchupTitle:$('rosterMatchupTitle'), rosterMeta:$('rosterMeta')
+    rosterMatchupTitle:$('rosterMatchupTitle'), rosterMeta:$('rosterMeta'),
+    installStatus:$('installStatus'), installAppBtn:$('installAppBtn'), installAppHint:$('installAppHint'),
+    shareAppBtn:$('shareAppBtn'), copyAppBtn:$('copyAppBtn'), copyAppHint:$('copyAppHint'), installGuide:$('installGuide')
   };
 
   const state = {games:[],selectedGamePk:null,loading:false,highlights:[],highlightIndex:0,highlightGamePk:null,highlightsExpanded:false,view:'live',topControlsExpanded:true,bracketYear:null,bracketLoading:false,rosterLoading:false,currentFeed:null,currentFeedGamePk:null,rosterCache:new Map(),bullpenCache:new Map()};
+  let deferredInstallPrompt=null;
 
   function localDateString(d=new Date()){
     const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
@@ -2358,12 +2488,95 @@
     els.featureMenu.hidden=!open;
     els.featureMenuButton.setAttribute('aria-expanded',String(open));
   }
+
+  function isStandaloneApp(){
+    return window.matchMedia?.('(display-mode: standalone)').matches===true||
+      window.navigator.standalone===true;
+  }
+  function isIOSDevice(){
+    return /iPad|iPhone|iPod/.test(navigator.userAgent)||
+      (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  }
+  function syncInstallPage(){
+    if(isStandaloneApp()){
+      els.installStatus.textContent='✅ 已從主畫面以 App 模式開啟';
+      els.installAppBtn.disabled=true;
+      els.installAppHint.textContent='這台裝置已安裝';
+      return;
+    }
+    els.installAppBtn.disabled=false;
+    if(deferredInstallPrompt){
+      els.installStatus.textContent='✅ 此瀏覽器支援直接安裝';
+      els.installAppHint.textContent='點一下開啟安裝視窗';
+    }else if(isIOSDevice()){
+      els.installStatus.textContent='iPhone / iPad：使用 Safari 加入主畫面';
+      els.installAppHint.textContent='查看 iPhone 安裝步驟';
+    }else{
+      els.installStatus.textContent='可分享連結；安裝方式依瀏覽器而定';
+      els.installAppHint.textContent='查看安裝方式';
+    }
+  }
+  async function shareThisApp(){
+    const url=new URL('./',location.href).href;
+    const data={title:'MLB 戰況 App',text:'MLB 季後賽即時比分、對戰名單與球員數據',url};
+    if(navigator.share){
+      try{await navigator.share(data);return}catch(err){
+        if(err?.name==='AbortError')return;
+      }
+    }
+    try{
+      await navigator.clipboard.writeText(url);
+      els.copyAppHint.textContent='已複製，可貼給朋友';
+      setTimeout(()=>els.copyAppHint.textContent='複製網站連結',1800);
+    }catch(_){}
+  }
+  async function copyThisApp(){
+    const url=new URL('./',location.href).href;
+    try{
+      await navigator.clipboard.writeText(url);
+      els.copyAppHint.textContent='✓ 已複製';
+      setTimeout(()=>els.copyAppHint.textContent='複製網站連結',1800);
+    }catch(_){
+      els.copyAppHint.textContent='請長按網址複製';
+    }
+  }
+  function flashInstallGuide(){
+    els.installGuide.classList.remove('flash');
+    void els.installGuide.offsetWidth;
+    els.installGuide.classList.add('flash');
+    els.installGuide.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  async function installThisApp(){
+    if(isStandaloneApp())return;
+    if(deferredInstallPrompt){
+      deferredInstallPrompt.prompt();
+      try{await deferredInstallPrompt.userChoice}catch(_){}
+      deferredInstallPrompt=null;
+      syncInstallPage();
+      return;
+    }
+    flashInstallGuide();
+  }
+  window.addEventListener('beforeinstallprompt',e=>{
+    e.preventDefault();
+    deferredInstallPrompt=e;
+    syncInstallPage();
+  });
+  window.addEventListener('appinstalled',()=>{
+    deferredInstallPrompt=null;
+    syncInstallPage();
+  });
+  els.installAppBtn.addEventListener('click',installThisApp);
+  els.shareAppBtn.addEventListener('click',shareThisApp);
+  els.copyAppBtn.addEventListener('click',copyThisApp);
+
   function switchView(view){
     state.view=view;
-    const bracket=view==='bracket',roster=view==='roster',live=view==='live';
+    const bracket=view==='bracket',roster=view==='roster',install=view==='install',live=view==='live';
     els.liveView.hidden=!live;
     els.bracketView.hidden=!bracket;
     els.rosterView.hidden=!roster;
+    els.installView.hidden=!install;
     els.featureMenu.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===view));
 
     if(bracket){
@@ -2372,6 +2585,10 @@
     }else if(roster){
       els.appTitle.textContent='MLB 對戰名單';
       els.appSubtitle.textContent='兩隊 Active roster・本場先發・例行賽打投數據';
+    }else if(install){
+      els.appTitle.textContent='安裝 / 分享 MLB 戰況';
+      els.appSubtitle.textContent='加入主畫面・分享給朋友・App 使用教學';
+      syncInstallPage();
     }else{
       els.appTitle.textContent='MLB 季後賽即時戰況';
       els.appSubtitle.textContent='即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄';
@@ -2384,6 +2601,8 @@
     }else if(roster){
       els.topControls.hidden=true;
       loadMatchupRoster();
+    }else if(install){
+      els.topControls.hidden=true;
     }else{
       setTopControlsExpanded(state.topControlsExpanded);
     }
