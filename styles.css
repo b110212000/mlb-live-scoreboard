@@ -1824,3 +1824,104 @@
         padding:0 0 9px!important;
       }
     }
+
+
+    /* v1.0.8：兩排控制項統一水平置中 */
+
+    /* 第一排：漢堡 / Title / 狀態綠點 / 更新，全部同一條水平線 */
+    .topbar-title{
+      display:flex!important;
+      align-items:center!important;
+      justify-content:space-between!important;
+      width:100%!important;
+      gap:10px!important;
+    }
+    .brand-group{
+      display:flex!important;
+      align-items:center!important;
+      flex:1 1 auto!important;
+      min-width:0!important;
+      gap:10px!important;
+    }
+    .feature-menu-wrap{
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      align-self:center!important;
+    }
+    #appTitle{
+      margin:0!important;
+      line-height:1.15!important;
+    }
+    .title-live-actions{
+      display:flex!important;
+      flex-direction:row!important;
+      align-items:center!important;
+      justify-content:center!important;
+      align-self:center!important;
+      gap:8px!important;
+    }
+    .title-live-actions #liveChip{
+      align-self:center!important;
+      height:28px!important;
+      min-height:28px!important;
+    }
+    .title-refresh-button{
+      align-self:center!important;
+    }
+
+    /* 第二排：日曆與比賽場次維持同一條水平中心線 */
+    .game-selector-row{
+      display:flex!important;
+      align-items:center!important;
+      justify-content:flex-start!important;
+      gap:7px!important;
+    }
+    .game-selector-row > .top-controls-row{
+      display:flex!important;
+      align-items:center!important;
+      align-self:center!important;
+    }
+    .game-selector-row #topControls.controls{
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+    }
+    #topControls.controls .date-picker-control{
+      align-self:center!important;
+    }
+    .game-selector-row > #gameTabs{
+      display:flex!important;
+      align-items:center!important;
+      align-self:center!important;
+      min-height:42px!important;
+      padding-top:0!important;
+      padding-bottom:0!important;
+    }
+    .game-selector-row .game-tab{
+      align-self:center!important;
+    }
+
+    @media(max-width:600px){
+      .topbar-title{
+        gap:8px!important;
+      }
+      .brand-group{
+        gap:8px!important;
+      }
+      .title-live-actions{
+        gap:6px!important;
+      }
+      .title-live-actions #liveChip{
+        height:28px!important;
+        min-height:28px!important;
+      }
+      .game-selector-row{
+        align-items:center!important;
+        gap:6px!important;
+      }
+      .game-selector-row > #gameTabs{
+        min-height:40px!important;
+        padding:0!important;
+      }
+    }
