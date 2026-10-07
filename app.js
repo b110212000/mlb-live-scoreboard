@@ -87,6 +87,10 @@ els.currentSeriesGames.addEventListener('click',e=>{
   if(btn)openSeriesGame(Number(btn.dataset.seriesGamePk));
 });
 
+els.topControlsToggle.addEventListener('click',()=>{
+  setTopControlsExpanded(els.topControlsToggle.getAttribute('aria-expanded')!=='true');
+});
+
 document.querySelectorAll('[data-collapse-section]').forEach(section=>{
   const head=section.querySelector('[data-collapse-head]');
   const body=section.querySelector('[data-collapse-body]');
