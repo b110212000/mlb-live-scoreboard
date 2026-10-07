@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mlb-score-notify",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-07",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "FRONTEND_ORIGIN": "https://b110212000.github.io"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GAME_MONITOR",
+        "class_name": "GameMonitor"
+      }
+    ]
+  },
+  "exports": {
+    "GameMonitor": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  }
+}
