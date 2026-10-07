@@ -1942,3 +1942,52 @@
       background:transparent!important;
       box-shadow:none!important;
     }
+
+
+    /* v1.0.10：扁平化 Box Score 與放大主比分 */
+    .boxscore-content{
+      padding:12px 14px 4px;
+      min-width:0;
+    }
+    .boxscore-content .boxscore-subsection-title:first-child{
+      margin-top:0;
+    }
+
+    .bigscore{
+      gap:44px!important;
+      min-width:180px!important;
+      font-size:clamp(56px,9vw,92px)!important;
+      line-height:.95!important;
+      letter-spacing:-.02em;
+    }
+    .bigscore > span{
+      min-width:.72em;
+      text-align:center;
+    }
+
+    @media(max-width:720px){
+      .bigscore{
+        gap:34px!important;
+        min-width:150px!important;
+        font-size:60px!important;
+      }
+    }
+
+    @media(max-width:600px){
+      .boxscore-content{
+        padding:10px 10px 2px;
+      }
+      .bigscore{
+        gap:28px!important;
+        min-width:132px!important;
+        font-size:52px!important;
+      }
+    }
+
+    @media(max-width:380px){
+      .bigscore{
+        gap:22px!important;
+        min-width:118px!important;
+        font-size:48px!important;
+      }
+    }
