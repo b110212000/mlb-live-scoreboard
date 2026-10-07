@@ -753,7 +753,11 @@ function renderLineScore(ls,away,home){
   }).join('');
 }
 function renderScoringPlays(plays){
-  const all=plays.allPlays||[], scoring=(plays.scoringPlays||[]).map(i=>all[i]).filter(Boolean);
+  const all=plays.allPlays||[];
+  const scoring=(plays.scoringPlays||[])
+    .map(i=>all[i])
+    .filter(Boolean)
+    .reverse();
   if(!scoring.length){els.scoringEvents.className='empty';els.scoringEvents.textContent='尚無得分紀錄';return}
   els.scoringEvents.className='';els.scoringEvents.innerHTML=scoring.map(p=>eventHTML(p,true)).join('');
 }
