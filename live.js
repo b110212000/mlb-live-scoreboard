@@ -159,7 +159,18 @@ function renderGame(feed){
 }
 
 function findSeriesDescription(){
-  return state.games.find(g=>g.gamePk===state.selectedGamePk)?.seriesDescription||'';
+  const raw=String(state.games.find(g=>g.gamePk===state.selectedGamePk)?.seriesDescription||'').trim();
+  if(!raw)return '';
+  const names={
+    'NL Division Series':'國聯分區系列賽',
+    'AL Division Series':'美聯分區系列賽',
+    'NL Championship Series':'國聯冠軍系列賽',
+    'AL Championship Series':'美聯冠軍系列賽',
+    'National League Wild Card Series':'國聯外卡系列賽',
+    'American League Wild Card Series':'美聯外卡系列賽',
+    'World Series':'世界大賽'
+  };
+  return names[raw]||raw;
 }
 function seriesName(type){
   return ({F:'外卡系列賽',D:'分區系列賽',L:'聯盟冠軍系列賽',W:'世界大賽',P:'季後賽'})[type]||'MLB 季後賽';
