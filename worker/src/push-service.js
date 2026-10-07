@@ -122,7 +122,7 @@ export class PushService extends DurableObject {
     for (const subscription of subscriptions) {
       const endpoint = subscription?.endpoint || "";
       if (!validSubscription(subscription)) {
-        results.push({ endpoint, ok: false, expired: false, statusCode: 400 });
+        results.push({ endpoint, ok: false, expired: true, statusCode: 400 });
         continue;
       }
 
@@ -134,7 +134,7 @@ export class PushService extends DurableObject {
         results.push({
           endpoint,
           ok: false,
-          expired: statusCode === 404 || statusCode === 410,
+          expired: statusCode === 400 || statusCode === 404 || statusCode === 410,
           statusCode,
           message: error?.message || String(error)
         });
