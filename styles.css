@@ -2287,3 +2287,6 @@
     .recent-half[open] > .recent-half-head .recent-half-chevron{transform:rotate(0)}
     .recent-half:not([open]) > .recent-half-plays{display:none}
     @media(prefers-reduced-motion:reduce){.recent-half-chevron{transition:none}}
+
+    /* v1.3.2：最近打席外層固定展開，半局仍可獨立收合 */
+    .recent-card > .section-head{cursor:default;user-select:auto}
