@@ -2290,3 +2290,19 @@
 
     /* v1.3.2：最近打席外層固定展開，半局仍可獨立收合 */
     .recent-card > .section-head{cursor:default;user-select:auto}
+
+
+    /* v1.3.3：縮窄統計球員姓名欄，長姓名可換行 */
+    .boxscore-table{table-layout:fixed;min-width:460px}
+    .boxscore-table th:first-child,.boxscore-table td:first-child{
+      box-sizing:border-box;width:100px;min-width:100px;max-width:100px;
+      white-space:normal;overflow-wrap:anywhere;line-height:1.35;
+      text-overflow:clip;
+    }
+    .boxscore-table .player-pos{display:block;margin:2px 0 0}
+    @media(max-width:600px){
+      .boxscore-table{min-width:420px}
+      .boxscore-table th:first-child,.boxscore-table td:first-child{
+        width:84px;min-width:84px;max-width:84px;
+      }
+    }
