@@ -90,6 +90,7 @@ document.addEventListener('click',e=>{
   if(!els.featureMenu.contains(e.target)&&!els.featureMenuButton.contains(e.target))setFeatureMenuOpen(false);
 });
 
+els.recapList.addEventListener('click',openRecapVideo);
 els.recapRefreshBtn.addEventListener('click',()=>loadGameRecap(true));
 
 els.heroRosterBtn.addEventListener('click',()=>switchView('roster'));

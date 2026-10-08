@@ -900,7 +900,7 @@ MLB Stats API
 
 ## 版本號規則
 
-目前版本：`v1.4.0`
+目前版本：`v1.4.1`
 
 版本格式：
 
@@ -996,3 +996,11 @@ v主版號.功能版號.修正版號
 - 尚未終場、尚未找到、來源讀取失敗分別顯示訊息；可重新整理，或前往官方頻道查詢。未找到不代表官方一定尚未發布。
 - 不需要新增 YouTube API Key。公開搜尋頁結構若變更，會顯示讀取失敗，需更新解析器。
 - 發布順序：先驗證 Pages 與 Worker 的 v1.4.0 程式部署，最後才更新 `version.json`。
+
+
+## v1.4.1 精華影片開啟 YouTube App
+
+- 點縮圖或片名：iPhone / iPad 嘗試以 YouTube URL scheme 開啟 App；Android Chrome 使用指定 YouTube 套件的 Intent。
+- 未切換至 App 時嘗試回到網頁播放器；iOS 離開頁面後取消 fallback，避免返回網站時又跳走。
+- 保留「使用網頁版」連結，桌面與 Ctrl / Command 點擊維持新分頁。
+- App 是否能啟動仍取決於裝置安裝情況、系統提示與瀏覽器政策。部署驗證不等同 iPhone 實機驗證。
