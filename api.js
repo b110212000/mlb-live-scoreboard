@@ -24,6 +24,7 @@ const els = {
   scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
   liveDetailTabs:$('liveDetailTabs'), liveDetailViewport:$('liveDetailViewport'), liveDetailTrack:$('liveDetailTrack'),
   liveDetailStats:$('liveDetailStats'), liveDetailStatus:$('liveDetailStatus'), liveDetailSeries:$('liveDetailSeries'),
+  liveDetailRecap:$('liveDetailRecap'), recapList:$('recapList'), recapSummary:$('recapSummary'), recapRefreshBtn:$('recapRefreshBtn'),
   currentSeriesTitle:$('currentSeriesTitle'), currentSeriesSummary:$('currentSeriesSummary'),
   currentSeriesGames:$('currentSeriesGames'),
   gameHighlights:$('gameHighlights'), highlightTicker:$('highlightTicker'),
@@ -92,3 +93,4 @@ function gameLocalDateKey(g){
   const d=new Date(g.gameDate);
   return Number.isNaN(d.getTime())?'':localDateString(d);
 }
+

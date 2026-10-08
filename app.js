@@ -90,6 +90,8 @@ document.addEventListener('click',e=>{
   if(!els.featureMenu.contains(e.target)&&!els.featureMenuButton.contains(e.target))setFeatureMenuOpen(false);
 });
 
+els.recapRefreshBtn.addEventListener('click',()=>loadGameRecap(true));
+
 els.heroRosterBtn.addEventListener('click',()=>switchView('roster'));
 els.rosterBackBtn.addEventListener('click',()=>switchView('live'));
 els.liveDetailTabs.addEventListener('click',e=>{
@@ -214,6 +216,7 @@ setInterval(()=>{if(state.view==='live'){
   else loadSchedule(true);
 }},REFRESH_MS);
 setInterval(()=>{if(state.view==='bracket')loadBracket(true)},60000);
+setInterval(()=>{if(state.view==='live'&&state.liveDetailTab==='recap')loadGameRecap()},180000);
 setInterval(()=>{if(state.view==='roster')loadMatchupRoster(true)},60000);
 setInterval(()=>{if(state.view==='live'&&state.liveDetailTab==='series')loadCurrentSeries(true)},60000);
 
@@ -235,3 +238,4 @@ if('serviceWorker' in navigator){
     .then(registration=>registration.update())
     .catch(error=>console.warn('Push worker update failed',error));
 }
+

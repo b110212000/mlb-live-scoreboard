@@ -1,3 +1,4 @@
+import { getGameHighlights } from "./highlights.js";
 export { GameMonitor } from "./game-monitor.js";
 export { PushService } from "./push-service.js";
 
@@ -66,13 +67,25 @@ export default {
         ok: true,
         service: "mlb-score-notify",
         phase: "game-watch-notifications",
-        version: "1.3.0",
+        version: "1.4.0",
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,
         pushEnabled: true,
         pushTestEnabled: true
       }, env);
+    }
+
+    const highlightsMatch = url.pathname.match(/^\/api\/highlights\/(\d+)$/);
+    if (request.method === "GET" && highlightsMatch) {
+      const gamePk = Number(highlightsMatch[1]);
+      if (!Number.isSafeInteger(gamePk) || gamePk <= 0) return json({error: "INVALID_GAME_PK"}, env, 400);
+      try {
+        return json(await getGameHighlights(gamePk, caches.default), env);
+      } catch (error) {
+        console.warn("Highlights source unavailable", error.message);
+        return json({error: "HIGHLIGHTS_UNAVAILABLE"}, env, 502);
+      }
     }
 
     if (request.method === "GET" && url.pathname === "/api/push/public-key") {
@@ -193,5 +206,6 @@ export default {
     }, env, 404);
   }
 };
+
 
 
