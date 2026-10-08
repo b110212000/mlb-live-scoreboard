@@ -1,0 +1,26 @@
+const assert=require('node:assert/strict');
+(async()=>{
+ const {classifyGameVideo,selectGameVideos,parseVideoDetails,MLB_CHANNEL_ID}=await import('../worker/src/highlights.js');
+ const game={officialDate:'2026-10-07',gameType:'D',seriesGameNumber:4,doubleHeader:'N',teams:{away:{team:{id:119,name:'Los Angeles Dodgers',teamName:'Dodgers'}},home:{team:{id:144,name:'Atlanta Braves',teamName:'Braves'}}}};
+ const full={id:'aaaaaaaaaaa',title:'Dodgers vs. Braves NLDS Full Game 4 Highlights (October 7) 2026',description:''};
+ const homer={id:'bbbbbbbbbbb',title:'Max Muncy CRUSHES a home run with the Dodgers!',description:'Los Angeles Dodgers vs. Atlanta Braves in NLDS Game 4 on October 7, 2026.'};
+ const defense={...homer,id:'ccccccccccc',title:'Amazing diving catch!'};
+ const pitching={...homer,id:'ddddddddddd',title:'Pitching highlights: seven strikeouts'};
+ assert.equal(classifyGameVideo(full,game),'full');assert.equal(classifyGameVideo(homer,game),'homer');assert.equal(classifyGameVideo(defense,game),'defense');assert.equal(classifyGameVideo(pitching,game),'pitching');
+ assert.equal(classifyGameVideo({...homer,description:homer.description.replace('Game 4','Game 3')},game),null);
+ assert.equal(classifyGameVideo({...homer,description:homer.description.replace('October 7','October 6')},game),null);
+ assert.equal(classifyGameVideo({...homer,description:homer.description.replace('2026','2025')},game),null);
+ assert.equal(classifyGameVideo({...homer,description:homer.description.replace('Atlanta Braves','New York Yankees')},game),null);
+ assert.equal(classifyGameVideo({...homer,title:'Dodgers vs. Braves series highlights'},game),null);
+ assert.equal(classifyGameVideo({...homer,title:'Dodgers vs. Braves preview highlights'},game),null);
+ assert.equal(classifyGameVideo({...homer,description:'MLB official highlight'},game),null);
+ const truncated={...homer,description:'Dodgers hit a home run in Game 4 vs...'};
+ let reads=0;const list=await selectGameVideos([truncated,defense,full,full],game,async()=>{reads++;return {description:homer.description}});
+ assert.equal(reads,1);assert.deepEqual(list.map(v=>v.kind),['full','homer','defense']);
+ const partial=await selectGameVideos([truncated,full],game,async()=>{throw Error('offline')});assert.equal(partial.length,1);
+ const html='<script>var ytInitialPlayerResponse = '+JSON.stringify({videoDetails:{videoId:homer.id,channelId:MLB_CHANNEL_ID,title:homer.title,shortDescription:homer.description}})+';</script>';
+ assert.equal(parseVideoDetails(html,homer.id).description,homer.description);
+ assert.throws(()=>parseVideoDetails(html,full.id));assert.throws(()=>parseVideoDetails(html.replace(MLB_CHANNEL_ID,'other'),homer.id));
+ let count=0;await selectGameVideos(Array.from({length:20},(_,i)=>({...truncated,id:String(i).padStart(11,'0')})),game,async()=>{count++;throw Error('offline')});assert.equal(count,4);
+ console.log('PASS related videos: categories, date/opponent/game filters, source validation, enrichment limit, failures, deduplication and full-first order');
+})().catch(e=>{console.error(e);process.exit(1)});

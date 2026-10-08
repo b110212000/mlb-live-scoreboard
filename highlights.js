@@ -32,10 +32,10 @@ async function loadGameRecap(force = false) {
   }
   const cached = recapCache.get(pk);
   if (!force && cached && Date.now() < cached.expires) { renderGameRecap(cached.data); return; }
-  renderRecapMessage('正在尋找 MLB 官方賽後精華…');
+  renderRecapMessage('正在尋找 MLB 官方精華與相關影片…');
   try {
     if (!recapRequests.has(pk)) {
-      recapRequests.set(pk, fetch(`${PUSH_API}/api/highlights/${pk}`, {signal: AbortSignal.timeout(35000)})
+      recapRequests.set(pk, fetch(`${PUSH_API}/api/highlights/${pk}`, {signal: AbortSignal.timeout(50000)})
         .then(async response => {
           if (!response.ok) throw new Error('Highlights unavailable');
           const data = await response.json();
@@ -57,7 +57,7 @@ function renderGameRecap(data) {
   if (renderKey === recapRenderedKey) return;
   const videos = (data.videos || []).filter(video => /^[\w-]{11}$/.test(video.id));
   if (!videos.length) {
-    renderRecapMessage(data.status === 'not-final' ? '比賽尚未結束，賽後再來看精華' : '目前尚未找到這場比賽的官方精華');
+    renderRecapMessage(data.status === 'not-final' ? '比賽尚未結束，賽後再來看精華' : '目前尚未找到這場比賽的官方精華或相關影片');
     if (data.searchUrl?.startsWith('https://www.youtube.com/@MLB/search?')) {
       els.recapList.insertAdjacentHTML('beforeend', `<a class="recap-source-link" href="${esc(data.searchUrl)}" target="_blank" rel="noopener noreferrer">前往 MLB 官方頻道查看 ↗</a>`);
     }
@@ -65,13 +65,14 @@ function renderGameRecap(data) {
     els.recapList.innerHTML = videos.map(video => {
       const description = String(video.description || '').split(/Don't forget to subscribe|Follow us elsewhere/i)[0].trim();
       const videoLink = recapVideoLink(video.id);
+      const kindLabel = ({full:'整場精華',homer:'全壘打',defense:'守備亮點',pitching:'投手表現',finish:'終場時刻',inning:'完整半局',plays:'逐球回顧',related:'相關片段'})[video.kind] || '整場精華';
       return `<article class="recap-item">
         <a class="recap-thumbnail" href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer" aria-label="觀看 ${esc(video.title)}">
           <img src="https://i.ytimg.com/vi/${esc(video.id)}/hqdefault.jpg" alt="${esc(video.title)}" loading="lazy" width="480" height="360">
           ${video.duration ? `<span class="recap-duration">${esc(video.duration)}</span>` : ''}
         </a>
         <div class="recap-copy"><h3><a href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer">${esc(video.title)}</a></h3>
-          <div class="recap-meta">MLB 官方 · 比賽日期 ${esc(data.officialDate)}</div>
+          <div class="recap-meta">${esc(kindLabel)} · MLB 官方 · ${esc(data.officialDate)}</div>
           <p>${esc(description || '前往 YouTube 觀看這場比賽的完整賽後精華。')}</p>
           <a class="recap-meta" href="https://www.youtube.com/watch?v=${esc(video.id)}" target="_blank" rel="noopener noreferrer">使用網頁版 ↗</a>
         </div>
