@@ -3,8 +3,10 @@ const recapCache = new Map();
 const recapRequests = new Map();
 let recapGeneration = 0;
 let recapGamePk = null;
+let recapRenderedKey = null;
 
 function renderRecapMessage(message) {
+  recapRenderedKey = null;
   els.recapList.innerHTML = `<div class="recap-empty">${esc(message)}</div>`;
   syncLiveDetailHeight();
 }
@@ -51,6 +53,8 @@ async function loadGameRecap(force = false) {
 }
 
 function renderGameRecap(data) {
+  const renderKey = JSON.stringify(data);
+  if (renderKey === recapRenderedKey) return;
   const videos = (data.videos || []).filter(video => /^[\w-]{11}$/.test(video.id));
   if (!videos.length) {
     renderRecapMessage(data.status === 'not-final' ? '比賽尚未結束，賽後再來看精華' : '目前尚未找到這場比賽的官方精華');
@@ -60,12 +64,13 @@ function renderGameRecap(data) {
   } else {
     els.recapList.innerHTML = videos.map(video => {
       const description = String(video.description || '').split(/Don't forget to subscribe|Follow us elsewhere/i)[0].trim();
+      const videoLink = recapVideoLink(video.id);
       return `<article class="recap-item">
-        <a class="recap-thumbnail" href="https://www.youtube.com/watch?v=${esc(video.id)}" data-youtube-id="${esc(video.id)}" target="_blank" rel="noopener noreferrer" aria-label="觀看 ${esc(video.title)}">
+        <a class="recap-thumbnail" href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer" aria-label="觀看 ${esc(video.title)}">
           <img src="https://i.ytimg.com/vi/${esc(video.id)}/hqdefault.jpg" alt="${esc(video.title)}" loading="lazy" width="480" height="360">
           ${video.duration ? `<span class="recap-duration">${esc(video.duration)}</span>` : ''}
         </a>
-        <div class="recap-copy"><h3><a href="https://www.youtube.com/watch?v=${esc(video.id)}" data-youtube-id="${esc(video.id)}" target="_blank" rel="noopener noreferrer">${esc(video.title)}</a></h3>
+        <div class="recap-copy"><h3><a href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer">${esc(video.title)}</a></h3>
           <div class="recap-meta">MLB 官方 · 比賽日期 ${esc(data.officialDate)}</div>
           <p>${esc(description || '前往 YouTube 觀看這場比賽的完整賽後精華。')}</p>
           <a class="recap-meta" href="https://www.youtube.com/watch?v=${esc(video.id)}" target="_blank" rel="noopener noreferrer">使用網頁版 ↗</a>
@@ -73,11 +78,25 @@ function renderGameRecap(data) {
       </article>`;
     }).join('');
   }
+  recapRenderedKey = renderKey;
   requestAnimationFrame(() => syncLiveDetailHeight());
 }
 
 
-// Launch synchronously from the tap; delayed app launches lose browser user activation.
+// Use a real anchor destination so the OS handles the original user tap.
+function recapVideoLink(id) {
+  const webUrl = 'https://www.youtube.com/watch?v=' + id;
+  const nav = typeof navigator === 'undefined' ? {} : navigator;
+  const ua = nav.userAgent || '';
+  const ios = /iPad|iPhone|iPod/.test(ua) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+  if (ios) return {href: 'youtube://www.youtube.com/watch?v=' + id, target: '_self', ios: true};
+  if (/Android/.test(ua) && /Chrome|SamsungBrowser/.test(ua)) {
+    return {href: 'intent://www.youtube.com/watch?v=' + id +
+      '#Intent;scheme=https;package=com.google.android.youtube;S.browser_fallback_url=' + encodeURIComponent(webUrl) + ';end', target: '_self'};
+  }
+  return {href: webUrl, target: '_blank'};
+}
+// Observe the native click only to provide a fallback. Never cancel navigation.
 let cancelYouTubeLaunch = null;
 function openRecapVideo(event) {
   const link = event.target.closest('[data-youtube-id]');
@@ -85,17 +104,8 @@ function openRecapVideo(event) {
   const id = link.dataset.youtubeId;
   if (!/^[\w-]{11}$/.test(id)) return;
   const webUrl = 'https://www.youtube.com/watch?v=' + id;
-  const ua = navigator.userAgent || '';
-  const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const androidChrome = /Android/.test(ua) && /Chrome|SamsungBrowser/.test(ua);
-  if (!ios && !androidChrome) return; // Preserve desktop/modifier-click behavior.
-  event.preventDefault();
+  if (!recapVideoLink(id).ios) return;
   if (cancelYouTubeLaunch) cancelYouTubeLaunch();
-  if (androidChrome) {
-    location.assign('intent://www.youtube.com/watch?v=' + id +
-      '#Intent;scheme=https;package=com.google.android.youtube;S.browser_fallback_url=' + encodeURIComponent(webUrl) + ';end');
-    return;
-  }
   let timer;
   const started = Date.now();
   const cleanup = () => {
@@ -113,10 +123,5 @@ function openRecapVideo(event) {
     // Never send the user to the web player after returning from the app.
     if (!document.hidden && Date.now() - started < 5000) location.assign(webUrl);
   }, 2200);
-  try {
-    location.assign('youtube://www.youtube.com/watch?v=' + id);
-  } catch (_) {
-    cleanup();
-    location.assign(webUrl);
-  }
+  // The anchor's default action opens YouTube; this handler only arms the fallback.
 }

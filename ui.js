@@ -51,9 +51,10 @@ function setLiveDetailTab(tab,options={}){
 function initLiveDetailSwipe(){
   const viewport=els.liveDetailViewport,track=els.liveDetailTrack;
   let startX=0,startY=0,lastX=0,startTime=0,dragging=false,horizontal=false;
-  const blockedTarget=t=>!!t.closest('.boxscore-scroll, .scroll, input, select, textarea');
+  const blockedTarget=t=>!!t.closest('.boxscore-scroll, .scroll, a, button, input, select, textarea');
 
   viewport.addEventListener('touchstart',e=>{
+    dragging=false;horizontal=false;
     if(e.touches.length!==1||blockedTarget(e.target))return;
     const t=e.touches[0];
     startX=lastX=t.clientX;startY=t.clientY;startTime=performance.now();

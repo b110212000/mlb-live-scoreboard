@@ -145,7 +145,8 @@ setInterval(advanceHighlights,5000);
   };
 
   document.addEventListener('touchstart',e=>{
-    if(window.scrollY>1||e.touches.length!==1)return;
+    tracking=false;startY=startX=null;
+    if(window.scrollY>1||e.touches.length!==1||e.target.closest('a, button, input, select, textarea'))return;
     const t=e.touches[0];
     startY=t.clientY;startX=t.clientX;distance=0;tracking=true;
   },{passive:true});
@@ -157,6 +158,7 @@ setInterval(advanceHighlights,5000);
     if(Math.abs(dx)>Math.abs(dy)*.8){reset();return;}
     if(window.scrollY>1){reset();return;}
 
+    if(dy<10)return; // A small finger movement is still a tap.
     e.preventDefault();
     distance=Math.min(MAX_PULL,dy*.58);
     const y=-58+distance;
