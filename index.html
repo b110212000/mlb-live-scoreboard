@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./app-icon.svg" type="image/svg+xml" />
   <title>MLB 季後賽即時戰況 Pro</title>
-  <link rel="stylesheet" href="./styles.css?v=1.3.3">
+  <link rel="stylesheet" href="./styles.css?v=1.3.4">
 </head>
 <body>
   <div id="pullRefresh" class="pull-refresh" aria-hidden="true">
@@ -260,11 +260,12 @@
       </div>
     </section>
 
-    <section class="card events recent-card collapsible-card">
-      <div class="section-head">
+    <section class="card events recent-card collapsible-card" data-collapse-section>
+      <div class="section-head" data-collapse-head>
         <h2 class="section-title">最近打席</h2>
+        <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="recentEventsBody" aria-label="收合最近打席"><span class="chev" aria-hidden="true">⌃</span></button>
       </div>
-      <div id="recentEventsBody" class="collapse-body">
+      <div id="recentEventsBody" class="collapse-body" data-collapse-body>
         <div id="recentEvents" class="empty">尚無打席紀錄</div>
       </div>
     </section>
@@ -421,17 +422,17 @@
 
         <div class="foot">
       <span>資料來源：MLB Stats API · 每 5 秒更新</span>
-      <span class="app-version">v1.3.3</span>
+      <span class="app-version">v1.3.4</span>
     </div>
   </main>
 
-<script src="./api.js?v=1.3.3"></script>
-<script src="./live.js?v=1.3.3"></script>
-<script src="./postseason.js?v=1.3.3"></script>
-<script src="./roster.js?v=1.3.3"></script>
-<script src="./notifications.js?v=1.3.3"></script>
-<script src="./ui.js?v=1.3.3"></script>
-<script src="./app.js?v=1.3.3"></script>
+<script src="./api.js?v=1.3.4"></script>
+<script src="./live.js?v=1.3.4"></script>
+<script src="./postseason.js?v=1.3.4"></script>
+<script src="./roster.js?v=1.3.4"></script>
+<script src="./notifications.js?v=1.3.4"></script>
+<script src="./ui.js?v=1.3.4"></script>
+<script src="./app.js?v=1.3.4"></script>
 </body>
 </html>
 
