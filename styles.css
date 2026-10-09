@@ -2356,3 +2356,6 @@
 
 /* v1.7.1: 暫時隱藏賽後精華，保留程式供日後恢復。 */
 .live-detail-tab[hidden],.live-detail-panel[hidden]{display:none!important}
+
+/* v1.7.2: 無比賽時隱藏詳細資訊頁籤與內容。 */
+#liveDetailTabs[hidden],#liveDetailViewport[hidden]{display:none!important}

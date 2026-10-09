@@ -78,7 +78,13 @@ function markUpdated(ok,isLive){
   els.liveChip.dataset.tooltip=ok?('最後更新 '+time):('更新失敗 · '+time);
 }
 
+function setGameDetailsVisible(visible){
+  els.liveDetailTabs.hidden=!visible;
+  els.liveDetailViewport.hidden=!visible;
+}
+
 function renderNoGame(date){
+  setGameDetailsVisible(false);
   els.series.textContent=`${date} 沒有 MLB 季後賽賽事`;
   els.state.textContent='NO GAME';els.inning.textContent='--';
   els.bigScore.innerHTML='<span>0</span><span>0</span>';
@@ -112,6 +118,7 @@ function resetMatchup(){
 }
 
 function renderGame(feed){
+  setGameDetailsVisible(true);
   const gd=feed.gameData||{}, live=feed.liveData||{}, ls=live.linescore||{}, plays=live.plays||{}, cp=plays.currentPlay||{};
   const away=gd.teams?.away||{}, home=gd.teams?.home||{}, awayLine=ls.teams?.away||{}, homeLine=ls.teams?.home||{}, status=gd.status||{};
 
