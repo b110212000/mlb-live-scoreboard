@@ -1,141 +1,136 @@
-// Public MLB channel only. No API key or third-party video source.
+// Public metadata via YouTube Data API v3 only. No HTML scraping or AI inference.
 export const MLB_CHANNEL_ID = 'UCoLrcjPV5PbUrUyXq5mjc_A';
-const textOf = value => value?.simpleText || (value?.runs || []).map(run => run.text || '').join('');
-const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const API = 'https://www.googleapis.com/youtube/v3/';
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const ZH_TEAMS = {108:'天使',109:'響尾蛇',110:'金鶯',111:'紅襪',112:'小熊',113:'紅人',114:'守護者',115:'洛磯',116:'老虎',117:'太空人',118:'皇家',119:'道奇',120:'國民',121:'大都會',133:'運動家',134:'海盜',135:'教士',136:'水手',137:'巨人',138:'紅雀',139:'光芒',140:'遊騎兵',141:'藍鳥',142:'雙城',143:'費城人',144:'勇士',145:'白襪',146:'馬林魚',147:'洋基',158:'釀酒人'};
+const inFlight = new Map();
+const normalize = text => String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-export function parseChannelVideos(html) {
-  const raw = html.match(/var ytInitialData = (\{.*?\});<\/script>/s)?.[1];
-  if (!raw) throw new Error('VIDEO_SOURCE_FORMAT');
-  const data = JSON.parse(raw);
-  if (data.metadata?.channelMetadataRenderer?.externalId !== MLB_CHANNEL_ID) throw new Error('VIDEO_SOURCE_CHANNEL');
-  const videos = new Map();
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    const video = node.videoRenderer;
-    if (video) {
-      const owners = video.ownerText?.runs || video.shortBylineText?.runs || [];
-      if (owners.some(owner => owner.navigationEndpoint?.browseEndpoint?.browseId === MLB_CHANNEL_ID) && /^[\w-]{11}$/.test(video.videoId)) {
-        const id = video.videoId;
-        videos.set(id, {
-          id, title: textOf(video.title),
-          description: textOf(video.descriptionSnippet) || textOf(video.detailedMetadataSnippets?.[0]?.snippetText),
-          duration: textOf(video.lengthText),
-          url: `https://www.youtube.com/watch?v=${id}`,
-          thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
-        });
-      }
-    }
-    for (const child of Object.values(node)) visit(child);
-  };
-  visit(data.contents);
-  return [...videos.values()];
+async function youtube(resource, params, apiKey) {
+  const url = new URL(resource, API);
+  for (const [key,value] of Object.entries(params)) url.searchParams.set(key, value);
+  // Secret stays server-side and out of URLs/log messages.
+  const response = await fetch(url, {headers: {'X-Goog-Api-Key': apiKey}, signal: AbortSignal.timeout(15000)});
+  if (!response.ok) throw new Error(`YOUTUBE_API_${response.status}`);
+  return response.json();
 }
 
-function mentionsTeam(text, team) {
-  const aliases = [team.teamName, team.name].filter(Boolean);
-  if (team.id === 109) aliases.push('D-backs', 'Dbacks', 'Diamondbacks');
-  const normalized = ` ${normalize(text)} `;
-  return aliases.some(alias => normalized.includes(` ${normalize(alias)} `));
+function mentionsTeam(text, team, chinese) {
+  if (chinese && ZH_TEAMS[team.id] && text.includes(ZH_TEAMS[team.id])) return true;
+  const aliases = [team.teamName,team.name].filter(Boolean);
+  if (team.id === 109) aliases.push('D-backs','Dbacks','Diamondbacks');
+  const clean = ` ${normalize(text)} `;
+  return aliases.some(alias => clean.includes(` ${normalize(alias)} `));
 }
 
-function sameGameNumber(video, game) {
-  const number = game.doubleHeader && game.doubleHeader !== 'N' ? game.gameNumber :
+export function matchesGame(video, game, chinese = false) {
+  const text = `${video.title} ${video.description}`;
+  if (!['away','home'].every(side => mentionsTeam(text,game.teams[side].team,chinese))) return false;
+  if (chinese && !/MLB|美國職棒|大聯盟/i.test(text)) return false;
+  if (/preview|prediction|series highlights|all games|賽前預告|賽前分析|轉播預告/i.test(video.title)) return false;
+  const expected = game.doubleHeader && game.doubleHeader !== 'N' ? game.gameNumber :
     ['F','D','L','W'].includes(game.gameType) ? game.seriesGameNumber : null;
-  if (!number) return true;
-  const numbers = [...`${video.title} ${video.description}`.matchAll(/\b(?:game|gm)\s*(\d+)\b/gi)].map(match => Number(match[1]));
+  const numbers = [...text.matchAll(/\b(?:game|gm|g)\s*(\d+)\b|第\s*(\d+)\s*(?:戰|場)/gi)].map(m => Number(m[1] || m[2]));
+  if (expected && numbers.some(n => n !== Number(expected))) return false;
   if (game.doubleHeader && game.doubleHeader !== 'N' && !numbers.length) return false;
-  return numbers.every(value => value === Number(number));
-}
-
-function hasGameContext(video, game, titleOnly = false) {
-  const combined = `${video.title} ${video.description}`;
-  const text = titleOnly ? video.title : combined;
-  if (!['away','home'].every(side => mentionsTeam(text, game.teams[side].team))) return false;
-  const [year, month, day] = game.officialDate.split('-').map(Number);
-  const numericDates = [...combined.matchAll(/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})\b/g)];
-  const numericMatch = numericDates.some(([,m,d,y]) => +m === month && +d === day && (+y < 100 ? 2000 + +y : +y) === year);
-  const namedMatch = new RegExp(`\\b${months[month-1]}\\s+0?${day}(?:st|nd|rd|th)?\\b`, 'i').test(combined) && new RegExp(`\\b${year}\\b`).test(combined);
-  return (numericMatch || namedMatch) && sameGameNumber(video, game);
-}
-
-export function matchesGame(video, game) {
-  const title = normalize(video.title);
-  return /\bgame(?: \d+)? highlights\b/.test(title) &&
-    !/\b(shorts?|full inning|every play|final \d+ outs|all games|series highlights)\b/.test(title) && hasGameContext(video, game, true);
-}
-
-function isRelatedClip(video) {
-  const title = normalize(video.title);
-  if (/\b(preview|prediction|morning lineup|all games|news|roundup|series highlights)\b/.test(title)) return false;
-  // Exclude whole-series compilations even when the description mentions this game.
-  if (/\bfull\b.*\b(?:nlds|alds|nlcs|alcs|world series) highlights\b/.test(title)) return false;
-  return /\b(highlights?|home runs?|homers?|grand slam|strikeouts?|strikes out|fans \d+|full inning|every play|final \d+ outs|recap|catch|catches|robs?|robbed|pitching|innings|walk off)\b/.test(title);
-}
-
-export function classifyGameVideo(video, game) {
-  if (matchesGame(video, game)) return 'full';
-  if (!isRelatedClip(video) || !hasGameContext(video, game)) return null;
-  const title = normalize(video.title);
-  if (/home run|homer|grand slam/.test(title)) return 'homer';
-  if (/catch|robbed|robs|defen|diving|throw/.test(title)) return 'defense';
-  if (/strikeout|strikes out|fans \d+|pitching|scoreless|strong innings/.test(title)) return 'pitching';
-  if (/final \d+ outs/.test(title)) return 'finish';
-  if (/full inning/.test(title)) return 'inning';
-  if (/every play/.test(title)) return 'plays';
-  return 'related';
-}
-
-export function parseVideoDetails(html, expectedId) {
-  const raw = html.match(/var ytInitialPlayerResponse = (\{.*?\});/s)?.[1];
-  if (!raw) throw new Error('VIDEO_DETAILS_FORMAT');
-  const video = JSON.parse(raw).videoDetails;
-  if (video?.videoId !== expectedId || video?.channelId !== MLB_CHANNEL_ID) throw new Error('VIDEO_DETAILS_CHANNEL');
-  return {title: video.title, description: video.shortDescription || ''};
-}
-
-export async function selectGameVideos(candidates, game, readDetails) {
-  const selected = new Map();
-  const add = video => {
-    const kind = classifyGameVideo(video, game);
-    if (kind) selected.set(video.id, {...video, kind});
-  };
-  candidates.forEach(add);
-  // Search snippets can omit the opponent/date. Enrich only a bounded number of likely clips.
-  const incomplete = candidates.filter(video => !selected.has(video.id) && isRelatedClip(video) &&
-    !/\bgame(?: \d+)? highlights\b/i.test(video.title) && sameGameNumber(video, game) &&
-    ['away','home'].some(side => mentionsTeam(`${video.title} ${video.description}`, game.teams[side].team))).slice(0, 4);
-  await Promise.all(incomplete.map(async video => {
-    try { add({...video, ...await readDetails(video.id)}); } catch (_) { /* Keep verified results if one clip fails. */ }
-  }));
-  const order = new Map(candidates.map((video, index) => [video.id, index]));
-  return [...selected.values()].sort((a,b) => Number(b.kind === 'full') - Number(a.kind === 'full') || order.get(a.id) - order.get(b.id)).slice(0, 12);
-}
-
-async function getResponse(url) {
-  const response = await fetch(url, {signal: AbortSignal.timeout(15000), headers: {'accept-language': 'en-US,en;q=0.9'}});
-  if (!response.ok) throw new Error(`SOURCE_HTTP_${response.status}`);
-  return response;
-}
-
-export async function getGameHighlights(gamePk, cache) {
-  const key = new Request(`https://mlb-highlights.internal/v2/games/${gamePk}`);
-  const cached = cache && await cache.match(key);
-  if (cached) return cached.json();
-  const schedule = await (await getResponse(`https://statsapi.mlb.com/api/v1/schedule?gamePk=${gamePk}&hydrate=team`)).json();
-  const game = (schedule.dates || []).flatMap(date => date.games || []).find(game => Number(game.gamePk) === gamePk);
-  if (!game) return {status: 'not-found', videos: []};
-  if (game.status?.abstractGameState !== 'Final') return {status: 'not-final', videos: []};
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(game.officialDate || '')) throw new Error('GAME_DATE_MISSING');
-  const [year, month, day] = game.officialDate.split("-").map(Number);
-  const query = `${game.teams.away.team.teamName || game.teams.away.team.name} ${game.teams.home.team.teamName || game.teams.home.team.name} ${months[month-1]} ${day} ${year} Highlights`;
-  const searchUrl = `https://www.youtube.com/@MLB/search?query=${encodeURIComponent(query)}`;
-  const html = await (await getResponse(searchUrl)).text();
-  const videos = await selectGameVideos(parseChannelVideos(html), game, async id => {
-    const response = await getResponse(`https://www.youtube.com/watch?v=${id}`);
-    return parseVideoDetails(await response.text(), id);
+  // ELTA commonly uses Taiwan's next-day date. Require an explicit full date,
+  // both opponents, and no conflicting series/game number; never use upload date alone.
+  const dates = [game.officialDate];
+  if (chinese) {
+    const taiwan = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(game.gameDate));
+    if (/^\d{4}-\d{2}-\d{2}$/.test(taiwan)) dates.push(taiwan);
+  }
+  return [...new Set(dates)].some(date => {
+    const [y,m,d] = date.split('-').map(Number);
+    const numeric = [...text.matchAll(/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})\b/g)].some(([,mm,dd,yy]) => +mm===m && +dd===d && (+yy<100?2000+ +yy:+yy)===y);
+    const iso = new RegExp(`(?:^|[^0-9])${y}[-/]0?${m}[-/]0?${d}(?![0-9])`).test(text);
+    const compact = text.includes(`${y}${String(m).padStart(2,'0')}${String(d).padStart(2,'0')}`);
+    const named = new RegExp(`\\b${MONTHS[m-1]}\\s+0?${d}(?:st|nd|rd|th)?\\b`,'i').test(text) && new RegExp(`\\b${y}\\b`).test(text);
+    return numeric || iso || compact || named;
   });
-  const result = {status: videos.length ? 'ready' : 'pending', gamePk, officialDate: game.officialDate, searchUrl, videos};
-  if (cache) await cache.put(key, new Response(JSON.stringify(result), {headers: {'content-type': 'application/json', 'cache-control': `public, max-age=${videos.length ? 900 : 180}`}}));
-  return result;
+}
+
+export function publicVideo(item, channelId) {
+  const s = item.snippet;
+  if (!/^[\w-]{11}$/.test(item.id || '') || s?.channelId !== channelId || item.status?.privacyStatus !== 'public' || s.liveBroadcastContent !== 'none') return null;
+  const thumbnail = s.thumbnails?.high || s.thumbnails?.medium || s.thumbnails?.default;
+  if (!thumbnail?.url || !/^https:\/\/(?:i\.ytimg\.com|img\.youtube\.com)\//.test(thumbnail.url)) return null;
+  // Preserve original API title/description/thumbnail. No translation, rewrite, or inferred categories.
+  return {id:item.id,title:s.title,description:s.description || '',channelId,channelTitle:s.channelTitle,
+    channelUrl:`https://www.youtube.com/channel/${channelId}`,url:`https://www.youtube.com/watch?v=${item.id}`,
+    thumbnail:thumbnail.url,thumbnailWidth:thumbnail.width,thumbnailHeight:thumbnail.height,publishedAt:s.publishedAt};
+}
+
+async function channelVideos(channelId, query, game, apiKey) {
+  const start = new Date(game.officialDate+'T00:00:00Z');
+  const end = new Date(start.getTime()+4*86400000);
+  const found = await youtube('search',{part:'snippet',type:'video',channelId,q:query,maxResults:'50',order:'relevance',
+    publishedAfter:start.toISOString(),publishedBefore:end.toISOString()},apiKey);
+  const ids = [...new Set((found.items || []).filter(item=>item.snippet?.channelId===channelId).map(item=>item.id?.videoId).filter(id=>/^[\w-]{11}$/.test(id || '')))];
+  if (!ids.length) return [];
+  const details = await youtube('videos',{part:'snippet,status',id:ids.join(',')},apiKey);
+  const byId = new Map((details.items || []).map(item=>[item.id,item]));
+  return ids.map(id=>byId.get(id)).filter(Boolean).map(item=>publicVideo(item,channelId)).filter(Boolean);
+}
+
+export function sourceLinks(game) {
+  const teams = game.teams;
+  const english = `${teams.away.team.teamName || teams.away.team.name} ${teams.home.team.teamName || teams.home.team.name} ${game.officialDate}`;
+  const chinese = `MLB ${ZH_TEAMS[teams.away.team.id] || teams.away.team.name} ${ZH_TEAMS[teams.home.team.id] || teams.home.team.name} ${game.officialDate.replaceAll('-','')}`;
+  return [{label:'愛爾達體育家族｜中文',url:`https://www.youtube.com/@ELTASPORTSHD/search?query=${encodeURIComponent(chinese)}`},
+    {label:'MLB 官方頻道｜英文',url:`https://www.youtube.com/@MLB/search?query=${encodeURIComponent(english)}`}];
+}
+
+async function loadHighlights(gamePk,cache,env) {
+  const response = await fetch(`https://statsapi.mlb.com/api/v1/schedule?gamePk=${gamePk}&hydrate=team`,{signal:AbortSignal.timeout(15000)});
+  if (!response.ok) throw new Error('MLB_SOURCE_UNAVAILABLE');
+  const schedule = await response.json();
+  const game = (schedule.dates || []).flatMap(date=>date.games || []).find(game=>Number(game.gamePk)===gamePk);
+  if (!game) return {status:'not-found',videos:[]};
+  if (game.status?.abstractGameState !== 'Final') return {status:'not-final',videos:[]};
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(game.officialDate || '') || !Number.isFinite(Date.parse(game.gameDate))) throw new Error('GAME_DATE_MISSING');
+  const base = {gamePk,officialDate:game.officialDate,sourceLinks:sourceLinks(game)};
+  if (!env.YOUTUBE_API_KEY) return {...base,status:'setup-required',videos:[]};
+  // New namespace never reads the former scraped/AI-translated cache.
+  const key = new Request(`https://mlb-highlights.internal/youtube-api-v1/games/${gamePk}`);
+  const cached = cache && await cache.match(key);
+  if (cached) {
+    const result = await cached.json();
+    if (Date.now()-result.fetchedAt < 21600000) return result;
+  }
+  try {
+    const channelKey = new Request('https://mlb-highlights.internal/youtube-api-v1/elta-channel');
+    const saved = cache && await cache.match(channelKey);
+    let channel = saved && await saved.json();
+    if (!channel || Date.now()-channel.fetchedAt >= 86400000) {
+      const data = await youtube('channels',{part:'snippet',forHandle:'@ELTASPORTSHD'},env.YOUTUBE_API_KEY);
+      const item = data.items?.[0];
+      if (!/^UC[\w-]{22}$/.test(item?.id || '') || item.snippet?.customUrl?.toLowerCase() !== '@eltasportshd') throw new Error('ELTA_CHANNEL_UNVERIFIED');
+      channel = {id:item.id,fetchedAt:Date.now()};
+      if (cache) await cache.put(channelKey,new Response(JSON.stringify(channel),{headers:{'cache-control':'public, max-age=86400'}}));
+    }
+    const english = `${game.teams.away.team.teamName || game.teams.away.team.name} ${game.teams.home.team.teamName || game.teams.home.team.name}`;
+    const chinese = `MLB ${ZH_TEAMS[game.teams.away.team.id] || ''} ${ZH_TEAMS[game.teams.home.team.id] || ''}`;
+    const results = await Promise.allSettled([
+      channelVideos(channel.id,chinese,game,env.YOUTUBE_API_KEY),
+      channelVideos(MLB_CHANNEL_ID,english,game,env.YOUTUBE_API_KEY)
+    ]);
+    const videos = [];
+    results.forEach((result,index)=>{if(result.status==='fulfilled') videos.push(...result.value.filter(v=>matchesGame(v,game,index===0)));});
+    const partial = results.some(r=>r.status==='rejected');
+    const result = {...base,status:videos.length?'ready':partial?'unavailable':'pending',partial,
+      fetchedAt:Date.now(),videos:[...new Map(videos.map(v=>[v.id,v])).values()].slice(0,12)};
+    if (cache) await cache.put(key,new Response(JSON.stringify(result),{headers:{'cache-control':`public, max-age=${partial?180:videos.length?21600:3600}`}}));
+    return result;
+  } catch (_) {
+    // No scrape fallback, no secret/upstream response in browser or logs.
+    const result = {...base,status:'unavailable',fetchedAt:Date.now(),videos:[]};
+    if (cache) await cache.put(key,new Response(JSON.stringify(result),{headers:{'cache-control':'public, max-age=180'}}));
+    return result;
+  }
+}
+
+export async function getGameHighlights(gamePk,cache,env={}) {
+  if (!inFlight.has(gamePk)) inFlight.set(gamePk,loadHighlights(gamePk,cache,env).finally(()=>inFlight.delete(gamePk)));
+  return inFlight.get(gamePk);
 }

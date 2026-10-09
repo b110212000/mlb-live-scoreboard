@@ -12,7 +12,7 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./app-icon.svg" type="image/svg+xml" />
   <title>MLB 季後賽即時戰況 Pro</title>
-  <link rel="stylesheet" href="./styles.css?v=1.6.0">
+  <link rel="stylesheet" href="./styles.css?v=1.7.0">
 </head>
 <body>
   <div id="pullRefresh" class="pull-refresh" aria-hidden="true">
@@ -290,7 +290,8 @@
     <div id="liveDetailRecap" class="live-detail-panel" data-live-panel="recap">
       <section class="card recap-card">
         <div class="recap-heading"><h2>賽後精華</h2><button id="recapRefreshBtn" type="button">重新整理</button></div>
-        <p id="recapSummary" class="recap-summary">選擇比賽後查看 MLB 官方影片</p>
+        <a class="recap-youtube-brand" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><img src="./assets/youtube-logo.svg" alt="YouTube" width="108" height="24"></a>
+        <p id="recapSummary" class="recap-summary">選擇比賽後查看官方頻道影片</p>
         <div id="recapList" aria-live="polite"><div class="recap-empty">選擇比賽後查看精華</div></div>
       </section>
     </div>
@@ -431,18 +432,19 @@
 
         <div class="foot">
       <span>資料來源：MLB Stats API · 每 5 秒更新</span>
-      <span class="app-version">v1.6.0</span>
+      <span class="app-version">v1.7.0</span>
+      <span class="legal-links"><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span>
     </div>
   </main>
 
-<script src="./api.js?v=1.6.0"></script>
-<script src="./live.js?v=1.6.0"></script>
-<script src="./postseason.js?v=1.6.0"></script>
-<script src="./roster.js?v=1.6.0"></script>
-<script src="./notifications.js?v=1.6.0"></script>
-<script src="./highlights.js?v=1.6.0"></script>
-<script src="./ui.js?v=1.6.0"></script>
-<script src="./app.js?v=1.6.0"></script>
+<script src="./api.js?v=1.7.0"></script>
+<script src="./live.js?v=1.7.0"></script>
+<script src="./postseason.js?v=1.7.0"></script>
+<script src="./roster.js?v=1.7.0"></script>
+<script src="./notifications.js?v=1.7.0"></script>
+<script src="./highlights.js?v=1.7.0"></script>
+<script src="./ui.js?v=1.7.0"></script>
+<script src="./app.js?v=1.7.0"></script>
 </body>
 </html>
 

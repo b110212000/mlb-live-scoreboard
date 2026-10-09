@@ -1,7 +1,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 function fixture(ua,platform='',touch=0){
  const calls=[],timers=new Map(),listeners=new Map();let next=0;
- const ctx={navigator:{userAgent:ua,platform,maxTouchPoints:touch},location:{assign:url=>calls.push(url)},document:{hidden:false,addEventListener:(n,f)=>listeners.set(n,f),removeEventListener:n=>listeners.delete(n)},window:{addEventListener:(n,f)=>listeners.set(n,f),removeEventListener:n=>listeners.delete(n)},setTimeout:f=>{timers.set(++next,f);return next},clearTimeout:n=>timers.delete(n),console,Date,Map};
+ const ctx={sessionStorage:{getItem:()=> '1.7.0'},navigator:{userAgent:ua,platform,maxTouchPoints:touch},location:{assign:url=>calls.push(url)},document:{hidden:false,addEventListener:(n,f)=>listeners.set(n,f),removeEventListener:n=>listeners.delete(n)},window:{addEventListener:(n,f)=>listeners.set(n,f),removeEventListener:n=>listeners.delete(n)},setTimeout:f=>{timers.set(++next,f);return next},clearTimeout:n=>timers.delete(n),console,Date,Map};
  vm.createContext(ctx);vm.runInContext(fs.readFileSync('highlights.js','utf8'),ctx);
  const event={target:{closest:()=>({dataset:{youtubeId:'cv8qfCAzrmM'}})},button:0,preventDefault(){this.prevented=true}};
  return {ctx,event,calls,timers,listeners};
@@ -18,8 +18,8 @@ f=fixture('Windows Chrome');assert.equal(f.ctx.recapVideoLink('cv8qfCAzrmM').tar
 f=fixture('iPhone');f.event.ctrlKey=true;f.ctx.openRecapVideo(f.event);assert.equal(f.timers.size,0);
 f=fixture('iPhone');f.event.target.closest=()=>({dataset:{youtubeId:'invalid'}});f.ctx.openRecapVideo(f.event);assert.equal(f.timers.size,0);
 // Five-second polling must not replace a link between touchstart and click.
-f=fixture('iPhone');let writes=0,html='';f.ctx.els={recapList:{set innerHTML(v){writes++;html=v}},recapSummary:{}};f.ctx.esc=String;f.ctx.requestAnimationFrame=fn=>fn();f.ctx.syncLiveDetailHeight=()=>{};
-const data={officialDate:'2026-10-07',videos:[{id:'cv8qfCAzrmM',title:'MLB Highlights'}]};
+f=fixture('iPhone');let writes=0,html='';f.ctx.els={recapList:{set innerHTML(v){writes++;html=v},insertAdjacentHTML:(pos,v)=>{html+=v}},recapSummary:{}};f.ctx.esc=String;f.ctx.requestAnimationFrame=fn=>fn();f.ctx.syncLiveDetailHeight=()=>{};
+const data={fetchedAt:Date.now(),officialDate:'2026-10-07',videos:[{id:'cv8qfCAzrmM',title:'MLB Highlights',channelId:'UCoLrcjPV5PbUrUyXq5mjc_A',channelTitle:'MLB',thumbnail:'https://i.ytimg.com/vi/cv8qfCAzrmM/hqdefault.jpg'}]};
 f.ctx.renderGameRecap(data);f.ctx.renderGameRecap(data);assert.equal(writes,1);assert(html.includes('href="youtube://'));assert(html.includes('target="_self"'));
 f.ctx.renderRecapMessage('loading');f.ctx.renderGameRecap(data);assert.equal(writes,3);
 // Exercise touch handlers with the real selectors, including a nested image in an anchor.

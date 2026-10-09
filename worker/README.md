@@ -126,3 +126,14 @@ GET  /api/push/status
 The service worker intentionally has no `fetch` handler and does not cache application assets. It only handles Push notifications and notification clicks, while deleting any legacy Cache Storage entries during activation.
 
 `pushTestEnabled: true` means the test flow is available. `pushEnabled: false` remains false until real MLB game subscriptions are connected to the push delivery layer.
+
+
+## v1.7.0 YouTube 影片推薦
+
+已移除 YouTube HTML 抓取及 Workers AI 翻譯。後端只呼叫 YouTube Data API v3，公開標題／完整介紹／縮圖不改寫，點擊連回來源影片。
+
+在 Cloudflare Worker 的 Settings → Variables and Secrets 設定 Secret `YOUTUBE_API_KEY`（Google Cloud 須啟用 YouTube Data API v3，並將該金鑰限制到此 API），再重新部署。勿將金鑰放入 vars、前端、版本庫或公開對話。
+
+未設定金鑰時 `/api/highlights/:gamePk` 回傳 `setup-required` 及官方頻道搜尋連結；沒有爬取或 AI 備援。`/health` 的 `highlightsEnabled` 僅表示存在金鑰，不代表該金鑰一定有效或尚有配額。
+
+詳見根目錄 README v1.7.0、privacy.html、terms.html。正式 API／真實金鑰尚須由擁有者配置後驗證；mock 測試不能替代帳號層級的驗證。

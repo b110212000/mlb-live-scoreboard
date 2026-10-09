@@ -1,4 +1,3 @@
-import { translateHighlights } from "./highlight-translations.js";
 import { getGameHighlights } from "./highlights.js";
 export { GameMonitor } from "./game-monitor.js";
 export { PushService } from "./push-service.js";
@@ -68,12 +67,13 @@ export default {
         ok: true,
         service: "mlb-score-notify",
         phase: "game-watch-notifications",
-        version: "1.6.0",
+        version: "1.7.0",
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,
         pushEnabled: true,
-        pushTestEnabled: true
+        pushTestEnabled: true,
+        highlightsEnabled: Boolean(env.YOUTUBE_API_KEY)
       }, env);
     }
 
@@ -82,8 +82,7 @@ export default {
       const gamePk = Number(highlightsMatch[1]);
       if (!Number.isSafeInteger(gamePk) || gamePk <= 0) return json({error: "INVALID_GAME_PK"}, env, 400);
       try {
-        const highlights = await getGameHighlights(gamePk, caches.default);
-        return json(await translateHighlights(highlights, env.AI, caches.default), env);
+        return json(await getGameHighlights(gamePk, caches.default, env), env);
       } catch (error) {
         console.warn("Highlights source unavailable", error.message);
         return json({error: "HIGHLIGHTS_UNAVAILABLE"}, env, 502);

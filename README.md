@@ -900,7 +900,7 @@ MLB Stats API
 
 ## 版本號規則
 
-目前版本：`v1.6.0`
+目前版本：`v1.7.0`
 
 版本格式：
 
@@ -1033,3 +1033,27 @@ v主版號.功能版號.修正版號
 - 22 秒翻譯期限、格式錯誤或 AI 額度不足時保留影片及英文原文，不會使精華功能失效。快取是邊緣 Cache API，可能提前失效，不是永久資料庫。
 - Cloudflare Workers AI 有每日免費額度；已在 Workers Paid 的帳號超額可計費，實際額度／用量以 Cloudflare 後台為準。本次不變更付費方案。
 - 自動翻譯不代表 MLB 官方中文稿；仍需對照原文，尤其球員、紀錄、數字與棒球語境。
+
+
+## v1.7.0 官方 API 影片推薦（取代 v1.4–v1.6 的抓取／翻譯流程）
+
+- 所有 YouTube 資料改用 YouTube Data API v3；移除網頁解析器、AI 翻譯呼叫與 AI binding，不提供爬取備援。影片只提供連結，不下載、轉存或嵌入播放器。
+- MLB 固定官方 channel ID；愛爾達以官方 `@ELTASPORTSHD` handle 呼叫 channels.list，核對回傳 handle 與 channel ID，再限定該頻道查詢。兩來源由 videos.list 再核對公開影片與擁有者。
+- 中文來源優先，最多 12 支；比對双方球隊、完整日期與場次，愛爾達另考慮台灣開賽日期。配對為網站功能，不能保證所有場次都有影片或不會誤配；不標示由 API 推論的影片類型。
+- 保留 API 原始標題、完整介紹、原始縮圖與頻道名稱，不改寫或自動翻譯。縮圖使用官方回傳網址與 contain，介紹可展開完整閱讀。
+- 新 API 快取命名空間：結果最多 6 小時、頻道 24 小時，逾期重新取得；舊抓取／翻譯快取不再讀取，原 TTL 最長 7 天後失效。前端不接受舊來源格式。
+- 加入官方提供的 YouTube Logo，來源與獨立推薦說明、隱私政策、使用條款及 YouTube／Google 政策連結。訪客在影片功能前須明確同意；同意限本機分頁，支援撤回並清空影片記憶體快取。不需要 YouTube 帳號或 OAuth。
+- 未設定金鑰或 API 失敗時不取得 YouTube 網頁，只提供愛爾達／MLB 頻道搜尋連結。API 失敗僅短暫快取 3 分鐘；同 isolate 同場請求合併，前端刷新不繞過後端快取。
+
+### 必要部署設定（由專案擁有者完成）
+
+1. 在 Google Cloud 專案啟用 **YouTube Data API v3**，建立 API Key，將 API 限制為 YouTube Data API v3。此公開資料用途不需要 OAuth 或個別影片授權。
+2. 在 Cloudflare `mlb-score-notify` 的 **Settings → Variables and Secrets** 新增 Secret **`YOUTUBE_API_KEY`**，儲存後重新部署。不要將值放進 GitHub、前端或公開對話。可用 `wrangler secret put YOUTUBE_API_KEY` 在可信本機設定。
+3. 依 Google Cloud 控制台管理 API 配額；兩頻道 search.list 有搜尋配額成本。未有真實金鑰時只測試 mock API 與未設定金鑰流程，不宣稱已通過真實 API 影片列表驗證。
+4. 官方 API 本身不代表全部法律問題已解決。維護者仍須遵守 API 條款、品牌規範、隱私政策與適用法律；本次不是法律認證，也未審核 MLB 數據／標誌的其他利用權利。
+
+### 驗證
+
+- `node tests/highlights.cjs`：官方端點、原始資訊、頻道／日期／場次过滤、無金鑰不抓取、快取、部分失敗、併發。
+- `node tests/recap-policy.cjs`：同意前不呼叫 API、不顯示縮圖、原文／escape、撤回、舊回應阻擋。
+- 既有通知與手機連結測試、全部 JS 語法、Wrangler dry run、DOM／資源版本與部署比對。
