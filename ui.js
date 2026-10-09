@@ -124,7 +124,17 @@ async function openSeriesGame(gamePk){
 }
 
 function setFeatureMenuOpen(open){
-  els.featureMenu.hidden=!open;
+  const menu=els.featureMenu;
+  if(open){
+    if(menu.open)return;
+    menu.hidden=false;
+    menu.showModal();
+    document.body.classList.add('sidebar-open');
+  }else{
+    if(menu.open)menu.close();
+    menu.hidden=true;
+    document.body.classList.remove('sidebar-open');
+  }
   els.featureMenuButton.setAttribute('aria-expanded',String(open));
 }
 
@@ -199,6 +209,8 @@ async function installThisApp(){
 
 function switchView(view){
   state.view=view;
+  const settings=view==='settings';
+  document.getElementById('settingsView').hidden=!settings;
   const bracket=view==='bracket',roster=view==='roster',install=view==='install',notifications=view==='notifications',live=view==='live';
   els.liveView.hidden=!live;
   els.bracketView.hidden=!bracket;
@@ -207,7 +219,10 @@ function switchView(view){
   els.notificationView.hidden=!notifications;
   els.featureMenu.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===view));
 
-  if(bracket){
+  if(settings){
+    els.appTitle.textContent='設定';
+    els.appSubtitle.textContent='';
+  }else if(bracket){
     els.appTitle.textContent='MLB 季後賽戰況';
     els.appSubtitle.textContent='外卡・分區系列賽・聯盟冠軍賽・世界大賽';
   }else if(roster){
@@ -234,7 +249,7 @@ function switchView(view){
   }else if(roster){
     els.topControls.hidden=true;
     loadMatchupRoster();
-  }else if(install||notifications){
+  }else if(install||notifications||settings){
     els.topControls.hidden=true;
   }else{
     setTopControlsExpanded(state.topControlsExpanded);

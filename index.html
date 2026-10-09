@@ -12,9 +12,20 @@
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./app-icon.svg" type="image/svg+xml" />
   <title>MLB 季後賽即時戰況 Pro</title>
-  <link rel="stylesheet" href="./styles.css?v=1.7.8">
+  <link rel="stylesheet" href="./styles.css?v=1.8.0">
 </head>
 <body>
+<dialog id="featureMenu" class="feature-menu" aria-labelledby="sidebarTitle" hidden>
+  <div class="sidebar-header"><span id="sidebarTitle">MLB 戰況</span><button id="featureMenuClose" class="sidebar-close" type="button" aria-label="關閉側邊欄" autofocus><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16m7-12-3 4 3 4"/></svg></button></div>
+  <nav class="sidebar-nav" aria-label="主要功能">
+    <button class="feature-menu-item active" type="button" data-view="live"><span class="feature-menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m5 12 4-4 4 8 3-4h3"/></svg></span><span class="feature-menu-copy"><b>即時比賽</b></span></button>
+    <button class="feature-menu-item" type="button" data-view="bracket"><span class="feature-menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 3h8v5a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 1v6m-4 3h8m-8-3h8"/></svg></span><span class="feature-menu-copy"><b>季後賽戰況</b></span></button>
+    <button class="feature-menu-item" type="button" data-view="roster" hidden><span class="feature-menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 4v2"/></svg></span><span class="feature-menu-copy"><b>對戰名單</b></span></button>
+    <button class="feature-menu-item" type="button" data-view="install"><span class="feature-menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5"/></svg></span><span class="feature-menu-copy"><b>安裝 / 分享 App</b></span></button>
+    <button class="feature-menu-item" type="button" data-view="notifications"><span class="feature-menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span><span class="feature-menu-copy"><b>訂閱通知</b></span></button>
+  </nav>
+  <div class="sidebar-bottom"><button class="feature-menu-item" type="button" data-view="settings"><span class="feature-menu-icon"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m10 3-.5 2-2 .9-2-.5-2 3.4 1.5 1.5v2.4L3.5 14l2 3.4 2-.5 2 .9.5 2h4l.5-2 2-.9 2 .5 2-3.4-1.5-1.3v-2.4L21.5 9l-2-3.4-2 .5-2-.9-.5-2Z"/><circle cx="12" cy="11.5" r="3"/></svg></span><span class="feature-menu-copy"><b>設定</b></span></button></div>
+</dialog>
   <div id="pullRefresh" class="pull-refresh" aria-hidden="true">
     <span class="pull-refresh-icon">↓</span>
     <span id="pullRefreshText">下拉重新整理</span>
@@ -27,28 +38,7 @@
             <button id="featureMenuButton" class="feature-menu-button" type="button" aria-expanded="false" aria-controls="featureMenu" aria-label="功能列表">
               <i></i><i></i><i></i>
             </button>
-            <div id="featureMenu" class="feature-menu" hidden>
-              <button class="feature-menu-item active" type="button" data-view="live">
-                <span class="feature-menu-icon">⚾</span>
-                <span class="feature-menu-copy"><b>即時比賽</b><small>比分・對決・本場焦點</small></span>
-              </button>
-              <button class="feature-menu-item" type="button" data-view="bracket">
-                <span class="feature-menu-icon">🏆</span>
-                <span class="feature-menu-copy"><b>季後賽戰況</b><small>淘汰賽進度・系列賽勝敗</small></span>
-              </button>
-              <button class="feature-menu-item" type="button" data-view="roster" hidden>
-                <span class="feature-menu-icon">👥</span>
-                <span class="feature-menu-copy"><b>對戰名單</b><small>兩隊 26 人・先發・例行賽數據</small></span>
-              </button>
-              <button class="feature-menu-item" type="button" data-view="install">
-                <span class="feature-menu-icon">📲</span>
-                <span class="feature-menu-copy"><b>安裝 / 分享 App</b><small>加入主畫面・分享給朋友</small></span>
-              </button>
-              <button class="feature-menu-item" type="button" data-view="notifications">
-                <span class="feature-menu-icon">🔔</span>
-                <span class="feature-menu-copy"><b>訂閱通知</b><small>單場提醒・Web Push 測試</small></span>
-              </button>
-            </div>
+
           </div>
           <div>
             <h1 id="appTitle">MLB 季後賽即時戰況</h1>
@@ -435,21 +425,25 @@
       </section>
     </div>
 
+    <div id="settingsView" class="app-view" hidden>
+      <section class="card settings-shell" aria-label="設定"><h2>設定</h2><p>開發中</p></section>
+    </div>
+
     <footer class="foot" aria-label="網站資訊">
       <span>資料來源：MLB Stats API · 每 5 秒更新</span>
-      <span class="app-version">v1.7.8</span>
+      <span class="app-version">v1.8.0</span>
       <span class="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span>
     </footer>
   </main>
 
-<script src="./api.js?v=1.7.8"></script>
-<script src="./live.js?v=1.7.8"></script>
-<script src="./postseason.js?v=1.7.8"></script>
-<script src="./roster.js?v=1.7.8"></script>
-<script src="./notifications.js?v=1.7.8"></script>
-<script src="./highlights.js?v=1.7.8"></script>
-<script src="./ui.js?v=1.7.8"></script>
-<script src="./app.js?v=1.7.8"></script>
+<script src="./api.js?v=1.8.0"></script>
+<script src="./live.js?v=1.8.0"></script>
+<script src="./postseason.js?v=1.8.0"></script>
+<script src="./roster.js?v=1.8.0"></script>
+<script src="./notifications.js?v=1.8.0"></script>
+<script src="./highlights.js?v=1.8.0"></script>
+<script src="./ui.js?v=1.8.0"></script>
+<script src="./app.js?v=1.8.0"></script>
 </body>
 </html>
 
