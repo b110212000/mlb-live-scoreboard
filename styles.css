@@ -2359,3 +2359,6 @@
 
 /* v1.7.2: 無比賽時隱藏詳細資訊頁籤與內容。 */
 #liveDetailTabs[hidden],#liveDetailViewport[hidden]{display:none!important}
+
+/* v1.7.3: 統計與賽況使用相同卡片邊框，手機保留完整左右邊線。 */
+#liveDetailStats > .card,#liveDetailStatus > .card{border:1px solid var(--line)}
