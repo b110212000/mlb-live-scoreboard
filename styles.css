@@ -2362,3 +2362,6 @@
 
 /* v1.7.3: 統計與賽況使用相同卡片邊框，手機保留完整左右邊線。 */
 #liveDetailStats > .card,#liveDetailStatus > .card{border:1px solid var(--line)}
+
+/* v1.7.4: 暫時隱藏功能選單中的對戰名單入口。 */
+.feature-menu-item[hidden]{display:none!important}
