@@ -2334,3 +2334,11 @@
  .recap-copy h3{font-size:13px}
  .recap-meta,.recap-copy p{font-size:11px}
 }
+
+
+/* v1.6.0: 中文精華與英文原文 */
+.recap-original{margin:10px 0;color:var(--muted);font-size:12px}
+.recap-original summary{cursor:pointer;line-height:1.8}
+.recap-original summary span{font-size:10px;opacity:.8}
+.recap-original summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.recap-original p{overflow-wrap:anywhere}

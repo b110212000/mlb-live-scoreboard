@@ -91,6 +91,7 @@ document.addEventListener('click',e=>{
 });
 
 els.recapList.addEventListener('click',openRecapVideo);
+els.recapList.addEventListener('toggle',()=>syncLiveDetailHeight(),true);
 els.recapRefreshBtn.addEventListener('click',()=>loadGameRecap(true));
 
 els.heroRosterBtn.addEventListener('click',()=>switchView('roster'));
@@ -146,7 +147,7 @@ setInterval(advanceHighlights,5000);
 
   document.addEventListener('touchstart',e=>{
     tracking=false;startY=startX=null;
-    if(window.scrollY>1||e.touches.length!==1||e.target.closest('a, button, input, select, textarea'))return;
+    if(window.scrollY>1||e.touches.length!==1||e.target.closest('a, button, summary, input, select, textarea'))return;
     const t=e.touches[0];
     startY=t.clientY;startX=t.clientX;distance=0;tracking=true;
   },{passive:true});

@@ -31,5 +31,8 @@
       "type": "durable-object",
       "storage": "sqlite"
     }
+  },
+  "ai": {
+    "binding": "AI"
   }
 }

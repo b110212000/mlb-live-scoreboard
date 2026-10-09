@@ -25,7 +25,7 @@ async function loadGameRecap(force = false) {
   const teams = feed?.gameData?.teams || {};
   const generation = ++recapGeneration;
   recapGamePk = pk;
-  els.recapSummary.textContent = `${teams.away?.name || '客隊'} vs. ${teams.home?.name || '主隊'}`;
+  els.recapSummary.textContent = `${recapTeamName(teams.away) || '客隊'} 對 ${recapTeamName(teams.home) || '主隊'}`;
   if (feed?.gameData?.status?.abstractGameState !== 'Final') {
     renderRecapMessage('比賽尚未結束，賽後再來看精華');
     return;
@@ -35,7 +35,7 @@ async function loadGameRecap(force = false) {
   renderRecapMessage('正在尋找 MLB 官方精華與相關影片…');
   try {
     if (!recapRequests.has(pk)) {
-      recapRequests.set(pk, fetch(`${PUSH_API}/api/highlights/${pk}`, {signal: AbortSignal.timeout(50000)})
+      recapRequests.set(pk, fetch(`${PUSH_API}/api/highlights/${pk}`, {signal: AbortSignal.timeout(75000)})
         .then(async response => {
           if (!response.ok) throw new Error('Highlights unavailable');
           const data = await response.json();
@@ -63,17 +63,21 @@ function renderGameRecap(data) {
     }
   } else {
     els.recapList.innerHTML = videos.map(video => {
-      const description = String(video.description || '').split(/Don't forget to subscribe|Follow us elsewhere/i)[0].trim();
+      const description = String(video.description || '').replace(/\\r\\n|\\n|\\r/g,'\n').split(/Don't forget to subscribe|Follow us elsewhere|presented by/i)[0].trim();
+      const translated = video.translationStatus === 'ready' && video.titleZh && video.descriptionZh;
+      const title = translated ? video.titleZh : video.title;
+      const summary = translated ? video.descriptionZh : description;
       const videoLink = recapVideoLink(video.id);
       const kindLabel = ({full:'整場精華',homer:'全壘打',defense:'守備亮點',pitching:'投手表現',finish:'終場時刻',inning:'完整半局',plays:'逐球回顧',related:'相關片段'})[video.kind] || '整場精華';
       return `<article class="recap-item">
-        <a class="recap-thumbnail" href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer" aria-label="觀看 ${esc(video.title)}">
-          <img src="https://i.ytimg.com/vi/${esc(video.id)}/hqdefault.jpg" alt="${esc(video.title)}" loading="lazy" width="480" height="360">
+        <a class="recap-thumbnail" href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer" aria-label="觀看 ${esc(title)}">
+          <img src="https://i.ytimg.com/vi/${esc(video.id)}/hqdefault.jpg" alt="${esc(title)}" loading="lazy" width="480" height="360">
           ${video.duration ? `<span class="recap-duration">${esc(video.duration)}</span>` : ''}
         </a>
-        <div class="recap-copy"><h3><a href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer">${esc(video.title)}</a></h3>
+        <div class="recap-copy"><h3><a href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer">${esc(title)}</a></h3>
           <div class="recap-meta">${esc(kindLabel)} · MLB 官方 · ${esc(data.officialDate)}</div>
-          <p>${esc(description || '前往 YouTube 觀看這場比賽的完整賽後精華。')}</p>
+          <p>${esc(summary || '前往 YouTube 觀看這場比賽的官方影片。')}</p>
+          ${translated ? `<details class="recap-original"><summary>英文原文 <span>· 自動翻譯供參考</span></summary><p>${esc(video.title)}</p><p>${esc(description)}</p></details>` : '<div class="recap-meta">中文翻譯暫時無法取得，先顯示原文</div>'}
           <a class="recap-meta" href="https://www.youtube.com/watch?v=${esc(video.id)}" target="_blank" rel="noopener noreferrer">使用網頁版 ↗</a>
         </div>
       </article>`;
@@ -125,4 +129,10 @@ function openRecapVideo(event) {
     if (!document.hidden && Date.now() - started < 5000) location.assign(webUrl);
   }, 2200);
   // The anchor's default action opens YouTube; this handler only arms the fallback.
+}
+
+
+function recapTeamName(team) {
+  const names = {108:'天使',109:'響尾蛇',110:'金鶯',111:'紅襪',112:'小熊',113:'紅人',114:'守護者',115:'洛磯',116:'老虎',117:'太空人',118:'皇家',119:'道奇',120:'國民',121:'大都會',133:'運動家',134:'海盜',135:'教士',136:'水手',137:'巨人',138:'紅雀',139:'光芒',140:'遊騎兵',141:'藍鳥',142:'雙城',143:'費城人',144:'勇士',145:'白襪',146:'馬林魚',147:'洋基',158:'釀酒人'};
+  return names[team?.id] || team?.name || '';
 }
