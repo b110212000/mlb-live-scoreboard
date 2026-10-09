@@ -128,7 +128,6 @@ els.highlightsToggle.addEventListener('click',()=>{
   state.highlightsExpanded=!state.highlightsExpanded;
   syncHighlights();
 });
-setInterval(advanceHighlights,5000);
 
 
 // iPhone Web App：在頁面頂端往下拉，放開後重新載入整個頁面。
@@ -228,6 +227,7 @@ window.addEventListener('load',async()=>{
   if(!reloading)checkForAppUpdate();
 });
 document.addEventListener('visibilitychange',()=>{
+  renderHighlightTicker();
   if(!document.hidden)checkForAppUpdate();
 });
 window.addEventListener('focus',checkForAppUpdate);

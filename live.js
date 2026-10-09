@@ -613,29 +613,49 @@ function highlightVisual(item,className){
   return '<span class="'+className+'" aria-hidden="true">'+esc(item?.icon||'⚾')+'</span>';
 }
 
+// One timer owns the five-second animation cycle. Polling must not restart it.
+let highlightTickerTimer=null;
+let highlightTickerRenderKey=null;
+
 function renderHighlightTicker(){
   const list=state.highlights||[];
-  if(!list.length){
+  if(list.length)state.highlightIndex=((state.highlightIndex%list.length)+list.length)%list.length;
+  const item=list[state.highlightIndex];
+  const rotating=list.length>1&&!state.highlightsExpanded&&!document.hidden;
+  const renderKey=JSON.stringify([
+    state.highlightGamePk,item?.id,item?.title,item?.desc,item?.teamId,item?.icon,rotating
+  ]);
+  els.highlightCounter.textContent=list.length?(state.highlightIndex+1)+' / '+list.length:'0 / 0';
+  // The feed refresh may arrive just before/after a slide changes.
+  // Keep the current node and its animation clock when nothing visible changed.
+  if(renderKey===highlightTickerRenderKey)return;
+  if(highlightTickerTimer!==null){
+    clearTimeout(highlightTickerTimer);
+    highlightTickerTimer=null;
+  }
+  highlightTickerRenderKey=renderKey;
+  if(!item){
     els.highlightTicker.innerHTML=
       '<div class="highlight-ticker-slide">'+
         '<div class="highlight-ticker-title">等待焦點事件</div>'+
         '<div class="highlight-ticker-desc">目前還沒有符合條件的焦點事件</div>'+
       '</div>';
-    els.highlightCounter.textContent='0 / 0';
     return;
   }
-  state.highlightIndex=((state.highlightIndex%list.length)+list.length)%list.length;
-  const item=list[state.highlightIndex];
-  const rotating=list.length>1?' is-rotating':'';
   els.highlightTicker.innerHTML=
-    '<div class="highlight-ticker-slide'+rotating+'">'+
+    '<div class="highlight-ticker-slide'+(rotating?' is-rotating':'')+'">'+
       '<div class="highlight-ticker-title">'+
         highlightVisual(item,'highlight-ticker-icon')+
         '<span>'+esc(item.title)+'</span>'+
       '</div>'+
       '<div class="highlight-ticker-desc">'+esc(item.desc)+'</div>'+
     '</div>';
-  els.highlightCounter.textContent=(state.highlightIndex+1)+' / '+list.length;
+  if(rotating){
+    highlightTickerTimer=setTimeout(()=>{
+      highlightTickerTimer=null;
+      advanceHighlights();
+    },5000);
+  }
 }
 
 function syncHighlights(){
