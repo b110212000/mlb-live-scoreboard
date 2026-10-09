@@ -954,7 +954,7 @@
 
     /* 即時比賽下半部：統計 / 賽況 / 系列賽 */
     .live-detail-tabs{
-      display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;
       margin-top:12px;padding:0;background:transparent
     }
     .live-detail-tab{
@@ -2353,3 +2353,6 @@
 .recap-withdraw{display:block;margin:16px auto 0;border:0;background:transparent;color:var(--muted);font-size:12px}
 .legal-links{display:block;margin:8px 0;font-size:12px}
 .recap-thumbnail img{object-fit:contain}
+
+/* v1.7.1: 暫時隱藏賽後精華，保留程式供日後恢復。 */
+.live-detail-tab[hidden],.live-detail-panel[hidden]{display:none!important}

@@ -1,13 +1,13 @@
 /* MLB Live Scoreboard - ui.js
    頁籤滑動、系列賽切換、功能選單、安裝分享與畫面切換。 */
 
-const LIVE_DETAIL_TABS=['stats','status','series','recap'];
+const LIVE_DETAIL_TABS=['stats','status','series'];
 function liveDetailIndex(tab){
   const i=LIVE_DETAIL_TABS.indexOf(tab);
   return i<0?1:i;
 }
 function activeLiveDetailPanel(){
-  return [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries,els.liveDetailRecap][liveDetailIndex(state.liveDetailTab)];
+  return [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries][liveDetailIndex(state.liveDetailTab)];
 }
 function syncLiveDetailHeight(immediate=false){
   const panel=activeLiveDetailPanel();
@@ -37,7 +37,7 @@ function setLiveDetailTab(tab,options={}){
     btn.classList.toggle('active',active);
     btn.setAttribute('aria-selected',String(active));
   });
-  [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries,els.liveDetailRecap].forEach((panel,index)=>{
+  [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries].forEach((panel,index)=>{
     const active=index===liveDetailIndex(tab);
     panel.classList.toggle('active',active);
     panel.setAttribute('aria-hidden',String(!active));
@@ -45,7 +45,6 @@ function setLiveDetailTab(tab,options={}){
   positionLiveDetailTrack(tab,animate);
   requestAnimationFrame(()=>syncLiveDetailHeight(!animate));
   if(tab==='series')loadCurrentSeries();
-  if(tab==='recap')loadGameRecap();
 }
 
 function initLiveDetailSwipe(){
@@ -100,7 +99,7 @@ function initLiveDetailSwipe(){
 
   if('ResizeObserver' in window){
     const ro=new ResizeObserver(()=>syncLiveDetailHeight());
-    [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries,els.liveDetailRecap].forEach(p=>ro.observe(p));
+    [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries].forEach(p=>ro.observe(p));
   }else{
     window.addEventListener('resize',()=>syncLiveDetailHeight(true));
   }

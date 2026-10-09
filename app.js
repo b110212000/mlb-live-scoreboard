@@ -92,7 +92,6 @@ document.addEventListener('click',e=>{
 
 els.recapList.addEventListener('click',openRecapVideo);
 els.recapList.addEventListener('toggle',()=>syncLiveDetailHeight(),true);
-els.recapRefreshBtn.addEventListener('click',()=>loadGameRecap(true));
 
 els.heroRosterBtn.addEventListener('click',()=>switchView('roster'));
 els.rosterBackBtn.addEventListener('click',()=>switchView('live'));
@@ -220,7 +219,6 @@ setInterval(()=>{if(state.view==='live'){
   else loadSchedule(true);
 }},REFRESH_MS);
 setInterval(()=>{if(state.view==='bracket')loadBracket(true)},60000);
-setInterval(()=>{if(state.view==='live'&&state.liveDetailTab==='recap')loadGameRecap()},180000);
 setInterval(()=>{if(state.view==='roster')loadMatchupRoster(true)},60000);
 setInterval(()=>{if(state.view==='live'&&state.liveDetailTab==='series')loadCurrentSeries(true)},60000);
 
