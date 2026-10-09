@@ -2377,3 +2377,9 @@
 #liveDetailStats > .card,#liveDetailStatus > .card{border:1px solid #42617f!important;border-radius:18px}
 /* 影片功能停用期間，隱藏對應的頁尾政策入口。 */
 .legal-links[hidden]{display:none!important}
+
+/* v1.7.7: 頁尾固定於視窗底部，內容預留空間與 iPhone 安全區。 */
+.wrap{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+.foot{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;height:calc(44px + env(safe-area-inset-bottom,0px));box-sizing:border-box;padding:8px max(12px,calc((100vw - 1220px)/2)) calc(8px + env(safe-area-inset-bottom,0px));background:#071321;border-top:1px solid var(--line);gap:12px}
+.foot > span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foot .app-version{flex:none}
