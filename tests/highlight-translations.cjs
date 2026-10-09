@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 (async()=>{
- const {translateHighlights,parseTranslations,cleanVideoDescription}=await import('../worker/src/highlight-translations.js');
+ const {translateHighlights,parseTranslations,cleanVideoDescription,protectPlayerNames,restorePlayerNames}=await import('../worker/src/highlight-translations.js');
  const video={id:'cv8qfCAzrmM',kind:'full',title:'Dodgers vs. Braves Game 4 Highlights',description:"Game 4 highlights.\nDon't forget to subscribe! https://youtube.com/mlb"};
  const original=JSON.stringify(video);const data={videos:[video],officialDate:'2026-10-07'};
  const translated={id:video.id,titleZh:'道奇對勇士｜第 4 戰精華',descriptionZh:'回顧道奇與勇士第 4 戰的精彩表現。'};
@@ -17,6 +17,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
  assert.throws(()=>parseTranslations({response:'not json'},[video]));
  assert.equal(parseTranslations({response:{videos:[{...translated,titleZh:'道奇連續第3年晉級',descriptionZh:'道奇連續第3年晉級。'}]}},[{...video,title:'Dodgers advance for the third straight year'}]).size,1);
  assert.equal(parseTranslations({response:{videos:[{...translated,titleZh:'道奇第4戰最後3個出局數',descriptionZh:'2026年10月7日，Edwin Díaz 完成救援。'}]}},[{...video,title:'Final 3 Outs',description:'Edwin Díaz saves Game 4 on October 7, 2026'}]).size,1);
+ const masked=protectPlayerNames({id:'test',title:'EDWIN DÍAZ seals the win',description:'Max Muncy and Edwin Diaz'},['Edwin Díaz','Max Muncy']);assert(!masked.source.title.includes('DÍAZ'));assert(!masked.source.description.includes('Muncy'));
+ const restored=restorePlayerNames({titleZh:masked.source.title+' 中文',descriptionZh:masked.source.description+' 中文'},masked);assert(restored.titleZh.includes('Edwin Díaz'));assert(restored.descriptionZh.includes('Max Muncy'));assert.equal(restorePlayerNames({titleZh:'姓名遺失',descriptionZh:'中文'},masked),null);
  // Simultaneous cache misses share an inference; both callers receive the result.
  let release,n=0;const pendingAI={run:()=>{n++;return new Promise(resolve=>release=()=>resolve({response:{videos:[translated]}}))}};
  const one=translateHighlights(data,pendingAI),two=translateHighlights(data,pendingAI);while(!release)await new Promise(r=>setImmediate(r));release();await Promise.all([one,two]);assert.equal(n,1);
