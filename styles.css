@@ -2365,3 +2365,9 @@
 
 /* v1.7.4: 暫時隱藏功能選單中的對戰名單入口。 */
 .feature-menu-item[hidden]{display:none!important}
+
+/* v1.7.5: 無比賽時在詳細資訊位置顯示提示。 */
+.no-game-message{margin-top:12px;padding:32px 14px;text-align:center;border:1px solid var(--line)}
+.no-game-message p{margin:0 0 8px;font-size:18px;font-weight:800}
+.no-game-message span{font-size:13px;color:var(--muted)}
+.no-game-message[hidden]{display:none!important}

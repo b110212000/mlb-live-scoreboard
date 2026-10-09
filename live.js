@@ -81,10 +81,12 @@ function markUpdated(ok,isLive){
 function setGameDetailsVisible(visible){
   els.liveDetailTabs.hidden=!visible;
   els.liveDetailViewport.hidden=!visible;
+  document.getElementById('noGameMessage').hidden=visible;
 }
 
 function renderNoGame(date){
   setGameDetailsVisible(false);
+  document.getElementById('noGameText').textContent=date===localDateString()?'今日沒有比賽':'這天沒有比賽';
   els.series.textContent=`${date} 沒有 MLB 季後賽賽事`;
   els.state.textContent='NO GAME';els.inning.textContent='--';
   els.bigScore.innerHTML='<span>0</span><span>0</span>';
