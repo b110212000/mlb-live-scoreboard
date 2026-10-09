@@ -2371,3 +2371,9 @@
 .no-game-message p{margin:0 0 8px;font-size:18px;font-weight:800}
 .no-game-message span{font-size:13px;color:var(--muted)}
 .no-game-message[hidden]{display:none!important}
+
+/* v1.7.6: 統計／賽況保留可辨識的完整外框與相同左右留白。 */
+#liveDetailStats,#liveDetailStatus{padding-left:10px;padding-right:10px;box-sizing:border-box}
+#liveDetailStats > .card,#liveDetailStatus > .card{border:1px solid #42617f!important;border-radius:18px}
+/* 影片功能停用期間，隱藏對應的頁尾政策入口。 */
+.legal-links[hidden]{display:none!important}
