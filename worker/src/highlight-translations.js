@@ -44,6 +44,11 @@ export function parseTranslations(result, source) {
     writtenNumbers.forEach((words, number) => {
       if (new RegExp('\\b(?:' + words.split(' ').join('|') + ')\\b', 'i').test(sourceText)) numbers.add(String(number));
     });
+    // English month names also become numeric months in a Chinese date.
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    months.forEach((month, index) => {
+      if (new RegExp('\\b(?:' + month + '|' + month.slice(0, 3) + ')\\b', 'i').test(sourceText)) numbers.add(String(index + 1));
+    });
     if ((`${titleZh} ${descriptionZh}`.match(/\d+/g) || []).some(number => !numbers.has(number))) continue;
     translations.set(video.id, {titleZh: titleZh.trim(), descriptionZh: descriptionZh.trim()});
   }
@@ -76,7 +81,7 @@ async function translateHighlightsOnce(data, ai, cache) {
   const entries = await Promise.all(data.videos.slice(0, 12).map(async video => {
     const source = {id: video.id, title: String(video.title || '').slice(0, 500), description: cleanVideoDescription(video.description)};
     const hash = await digest(JSON.stringify(source));
-    const key = new Request(`https://mlb-highlights.internal/zh-TW-v2/${hash}`);
+    const key = new Request(`https://mlb-highlights.internal/zh-TW-v3/${hash}`);
     let cached;
     try { cached = await (await cache?.match(key))?.json(); } catch (_) {}
     return {video, source, key, cached};

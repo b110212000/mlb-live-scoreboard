@@ -16,6 +16,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
  const parse=v=>parseTranslations({response:{videos:v}},[video]);assert.throws(()=>parse([{...translated,id:'wrong'}]));assert.throws(()=>parse([translated,translated]));assert.equal(parse([{...translated,titleZh:'道奇 99 比 0 勝出'}]).size,0);assert.equal(parse([{...translated,titleZh:'<script>中文</script>'}]).size,0);assert.equal(parse([{...translated,titleZh:'English only'}]).size,0);
  assert.throws(()=>parseTranslations({response:'not json'},[video]));
  assert.equal(parseTranslations({response:{videos:[{...translated,titleZh:'道奇連續第3年晉級',descriptionZh:'道奇連續第3年晉級。'}]}},[{...video,title:'Dodgers advance for the third straight year'}]).size,1);
+ assert.equal(parseTranslations({response:{videos:[{...translated,titleZh:'道奇第4戰最後3個出局數',descriptionZh:'2026年10月7日，Edwin Díaz 完成救援。'}]}},[{...video,title:'Final 3 Outs',description:'Edwin Díaz saves Game 4 on October 7, 2026'}]).size,1);
  // Simultaneous cache misses share an inference; both callers receive the result.
  let release,n=0;const pendingAI={run:()=>{n++;return new Promise(resolve=>release=()=>resolve({response:{videos:[translated]}}))}};
  const one=translateHighlights(data,pendingAI),two=translateHighlights(data,pendingAI);while(!release)await new Promise(r=>setImmediate(r));release();await Promise.all([one,two]);assert.equal(n,1);
