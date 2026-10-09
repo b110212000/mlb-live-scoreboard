@@ -71,7 +71,7 @@ async function runBatch(ai, source) {
   try { return await task; } finally { inFlight.delete(key); }
 }
 
-export async function translateHighlights(data, ai, cache) {
+async function translateHighlightsOnce(data, ai, cache) {
   if (!data.videos?.length) return data;
   const entries = await Promise.all(data.videos.slice(0, 12).map(async video => {
     const source = {id: video.id, title: String(video.title || '').slice(0, 500), description: cleanVideoDescription(video.description)};
@@ -103,4 +103,15 @@ export async function translateHighlights(data, ai, cache) {
     ...(cached?.titleZh && cached?.descriptionZh ? {titleZh: cached.titleZh, descriptionZh: cached.descriptionZh, translationStatus: 'ready'} : {translationStatus: 'unavailable'})
   }));
   return {...data, videos, language: 'zh-TW'};
+}
+
+
+// Coalesce before asynchronous cache lookups, including requests that arrive together.
+const localizationRequests = new Map();
+export function translateHighlights(data, ai, cache) {
+  const key = JSON.stringify(data);
+  if (localizationRequests.has(key)) return localizationRequests.get(key);
+  const request = translateHighlightsOnce(data, ai, cache).finally(() => localizationRequests.delete(key));
+  localizationRequests.set(key, request);
+  return request;
 }
