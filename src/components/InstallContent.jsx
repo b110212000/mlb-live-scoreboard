@@ -3,7 +3,7 @@ export const InstallContent=memo(function InstallContent(){return <>
 
 <section className="card install-shell">
 <div className="install-head">
-<div className="install-app-icon"><img src="./app-icon.svg?v=2.0.1" alt="MLB 戰況 App 圖示" /></div>
+<div className="install-app-icon"><img src="./app-icon.svg?v=2.0.2" alt="MLB 戰況 App 圖示" /></div>
 <h2>{"MLB 戰況 App"}</h2>
 <p>{"分享給朋友，或加入 iPhone 主畫面，以 App 模式直接開啟。"}</p>
 <div id="installStatus" className="install-status">{"檢查裝置狀態中…"}</div>

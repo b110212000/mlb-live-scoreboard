@@ -27,7 +27,7 @@ export function App(){
       <div id="installView" className="app-view" hidden={view!=='install'}><InstallContent/></div>
       <div id="notificationView" className="app-view" hidden={view!=='notifications'}><NotificationContent/></div>
       <div id="settingsView" className="app-view" hidden={view!=='settings'}><section className="card settings-shell" aria-label="設定"><h2>設定</h2><p>開發中</p></section></div>
-      <footer className="foot" aria-label="網站資訊"><span>資料來源：MLB Stats API · 每 5 秒更新</span><span className="app-version">v2.0.1</span><span className="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span></footer>
+      <footer className="foot" aria-label="網站資訊"><span>資料來源：MLB Stats API · 每 5 秒更新</span><span className="app-version">v2.0.2</span><span className="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span></footer>
     </main>
   </>;
 }

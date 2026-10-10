@@ -52,14 +52,30 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  await page.locator('#highlightsToggle').click();assert(await page.locator('#gameHighlights').isVisible());await page.locator('#highlightsToggle').click();
  await page.locator('#featureMenuButton').click();
  assert(await page.locator('#featureMenu').evaluate(d=>d.open&&d.getAnimations().length>0));
- await page.waitForTimeout(310);await page.locator('[data-view=settings]').click();
+ await page.waitForTimeout(310);
+ assert.equal(await page.locator('[data-view=install]').count(),0);
+ assert.equal(await page.locator('[data-view=notifications]').count(),0);
+ await page.locator('[data-menu-settings]').click();
+ assert.equal(await page.locator('#sidebarTitle').innerText(),'設定');
+ assert(await page.locator('#featureMenu').evaluate(d=>d.open));
+ assert(await page.locator('#liveView').isVisible(),'settings menu must preserve current game');
+ assert.equal(await page.locator('[data-view=live]').count(),0);
+ assert(await page.locator('[data-view=install]').isVisible());
+ assert(await page.locator('[data-view=notifications]').isVisible());
+ await page.locator('[data-view=notifications]').click();
  assert(await page.locator('#featureMenu').evaluate(d=>d.open),'must remain open during exit');
- await page.waitForTimeout(310);assert(await page.locator('#settingsView').isVisible());assert.equal(await page.locator('#settingsView p').innerText(),'開發中');
+ await page.waitForTimeout(310);assert(await page.locator('#notificationView').isVisible());
  assert(!(await page.locator('#featureMenu').evaluate(d=>d.open)));
- await page.locator('#featureMenuButton').click();await page.waitForTimeout(310);await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
+ await page.locator('#featureMenuButton').click();await page.waitForTimeout(310);
+ assert.equal(await page.locator('#sidebarTitle').innerText(),'設定');
+ await page.locator('[data-menu-back]').click();assert.equal(await page.locator('#sidebarTitle').innerText(),'MLB 戰況');
+ await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
  for(const [view,id] of [['bracket','bracketView'],['install','installView'],['notifications','notificationView'],['live','liveView']]){
-   await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
+   await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
+   if(['install','notifications'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+   if(['live','bracket'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+   await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
  }
  await page.locator('#heroRosterBtn').click();assert(await page.locator('#rosterView').isVisible());await page.locator('#rosterBackBtn').click();assert(await page.locator('#liveView').isVisible());
  await page.screenshot({path:'/tmp/react-scoreboard.png'});
