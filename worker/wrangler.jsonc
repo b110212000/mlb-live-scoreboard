@@ -19,6 +19,10 @@
       {
         "name": "PUSH_SERVICE",
         "class_name": "PushService"
+      },
+      {
+        "name": "DEVICE_REGISTRY",
+        "class_name": "DeviceRegistry"
       }
     ]
   },
@@ -28,6 +32,10 @@
       "storage": "sqlite"
     },
     "PushService": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "DeviceRegistry": {
       "type": "durable-object",
       "storage": "sqlite"
     }

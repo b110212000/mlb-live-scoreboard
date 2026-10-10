@@ -32,6 +32,7 @@ export async function fetchGameSnapshot(gamePk) {
     gameDate: gameData?.datetime?.dateTime || gameData?.gameDate || "",
     abstractState: status.abstractGameState || "",
     detailedState: status.detailedState || "",
+    codedState: status.codedGameState || "",
     awayTeamId: Number(away.id) || null,
     homeTeamId: Number(home.id) || null,
     awayName: away.name || away.teamName || "客隊",
@@ -54,7 +55,16 @@ export function isLiveGame(snapshot) {
   return /live|in progress|inning/i.test(text);
 }
 
+// 延賽（D）、取消（C），以及沒打成而被移出賽程的季後賽 if-necessary 場次
+// （feed 回傳 codedGameState X / Unknown）都不會再開打，不能當成終場。
+export function isCalledOffGame(snapshot) {
+  const coded = String(snapshot?.codedState || "").toUpperCase();
+  return coded === "D" || coded === "C" || coded === "X" ||
+    /postponed|cancel+ed|unknown/i.test(snapshot?.detailedState || "");
+}
+
 export function isFinalGame(snapshot) {
+  if (isCalledOffGame(snapshot)) return false;
   const text = `${snapshot?.abstractState || ""} ${snapshot?.detailedState || ""}`;
   return /final|game over|completed/i.test(text);
 }

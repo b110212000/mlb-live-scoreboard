@@ -1,11 +1,12 @@
 import { getGameHighlights } from "./highlights.js";
 export { GameMonitor } from "./game-monitor.js";
 export { PushService } from "./push-service.js";
+export { DeviceRegistry } from "./device-registry.js";
 
 function corsHeaders(env) {
   return {
     "access-control-allow-origin": env.FRONTEND_ORIGIN || "*",
-    "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+    "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
     "access-control-allow-headers": "content-type",
     "vary": "Origin"
   };
@@ -41,6 +42,21 @@ async function forwardToPushService(request, env, path) {
   return stub.fetch(new Request(target.toString(), request));
 }
 
+// deviceId 由前端產生（UUID）；與既有 /api/watch 相同，持有 deviceId 即可管理該裝置的訂閱。
+const DEVICE_ID_PATTERN = /^[A-Za-z0-9_-]{8,80}$/;
+
+async function forwardToDeviceRegistry(request, env, deviceId, path) {
+  const id = env.DEVICE_REGISTRY.idFromName(deviceId);
+  const stub = env.DEVICE_REGISTRY.get(id);
+
+  const target = new URL(request.url);
+  target.pathname = path;
+  target.search = "";
+  target.searchParams.set("deviceId", deviceId);
+
+  return stub.fetch(new Request(target.toString(), request));
+}
+
 function withCors(response, env) {
   return new Response(response.body, {
     status: response.status,
@@ -66,13 +82,14 @@ export default {
       return json({
         ok: true,
         service: "mlb-score-notify",
-        phase: "game-watch-notifications",
-        version: "1.7.0",
+        phase: "subscription-management",
+        version: "2.1.0",
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,
         pushEnabled: true,
         pushTestEnabled: true,
+        subscriptionManagement: true,
         highlightsEnabled: Boolean(env.YOUTUBE_API_KEY)
       }, env);
     }
@@ -180,6 +197,19 @@ export default {
       );
     }
 
+    // 訂閱管理：/api/devices/:deviceId/{state|defaults|subscription|games|teams|sync}
+    const deviceMatch = url.pathname.match(/^\/api\/devices\/([^/]+)(\/.*)$/);
+    if (deviceMatch) {
+      const deviceId = deviceMatch[1];
+      if (!DEVICE_ID_PATTERN.test(deviceId)) {
+        return json({ error: "INVALID_DEVICE_ID" }, env, 400);
+      }
+      return withCors(
+        await forwardToDeviceRegistry(request, env, deviceId, deviceMatch[2]),
+        env
+      );
+    }
+
     const statusMatch = url.pathname.match(/^\/api\/watch\/(\d+)\/status$/);
     if (request.method === "GET" && statusMatch) {
       const gamePk = Number(statusMatch[1]);
@@ -202,7 +232,16 @@ export default {
         "DELETE /api/monitor/:gamePk",
         "POST /api/watch",
         "DELETE /api/watch",
-        "GET /api/watch/:gamePk/status"
+        "GET /api/watch/:gamePk/status",
+        "GET /api/devices/:deviceId/state",
+        "PUT /api/devices/:deviceId/defaults",
+        "PUT /api/devices/:deviceId/subscription",
+        "POST /api/devices/:deviceId/games",
+        "DELETE /api/devices/:deviceId/games/:gamePk",
+        "PUT /api/devices/:deviceId/games/:gamePk/prefs",
+        "POST /api/devices/:deviceId/teams",
+        "DELETE /api/devices/:deviceId/teams/:teamId",
+        "POST /api/devices/:deviceId/sync"
       ]
     }, env, 404);
   }

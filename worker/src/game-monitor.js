@@ -1,9 +1,11 @@
 import { DurableObject } from "cloudflare:workers";
 import {
   fetchGameSnapshot,
+  isCalledOffGame,
   isFinalGame,
   isLiveGame
 } from "./mlb.js";
+import { normalizePrefs, prefsSummary } from "./prefs.js";
 
 const LIVE_INTERVAL_MS = 5_000;
 const IDLE_INTERVAL_MS = 30_000;
@@ -56,8 +58,14 @@ function normalizeSubscriber(item) {
       final: Boolean(item.sent?.final)
     },
     lastScore: item.lastScore || null,
+    // 舊訂閱沒有 prefs，normalizePrefs 會補成全部開啟。
+    prefs: normalizePrefs(item.prefs),
     createdAt: item.createdAt || new Date().toISOString()
   };
+}
+
+function wantsPref(item, key) {
+  return item?.prefs?.[key] !== false;
 }
 
 function teamLabel(snapshot) {
@@ -203,6 +211,9 @@ export class GameMonitor extends DurableObject {
     }
 
     const snapshot = await fetchGameSnapshot(gamePk);
+    if (isCalledOffGame(snapshot)) {
+      return json({ error: "GAME_CALLED_OFF", calledOff: true }, 409);
+    }
     if (isFinalGame(snapshot)) {
       return json({ error: "GAME_FINAL", final: true }, 409);
     }
@@ -218,18 +229,28 @@ export class GameMonitor extends DurableObject {
     const live = isLiveGame(snapshot);
     const gameTime = Date.parse(snapshot.gameDate || "");
     const now = Date.now();
+    const pregamePassed = live || (Number.isFinite(gameTime) && now >= gameTime);
+
+    // 沒帶 prefs（舊版前端）時沿用既有設定；新訂閱預設全部開啟。
+    const prefs = normalizePrefs(body.prefs, existing?.prefs);
+    const sent = existing?.sent ? { ...existing.sent } : {
+      // confirm: false（追蹤球隊自動加入的場次）不發「訂閱成功」通知。
+      subscription: body.confirm === false,
+      pregame5: pregamePassed,
+      start: live,
+      final: false
+    };
+    // 事件已經發生後才打開的項目，不補發過去的通知。
+    if (existing && !wantsPref(existing, "pregame5") && prefs.pregame5 && pregamePassed) sent.pregame5 = true;
+    if (existing && !wantsPref(existing, "start") && prefs.start && live) sent.start = true;
 
     const subscriber = {
       deviceId,
       endpoint: subscription.endpoint,
       subscription,
-      sent: existing?.sent || {
-        subscription: false,
-        pregame5: live || (Number.isFinite(gameTime) && now >= gameTime),
-        start: live,
-        final: false
-      },
+      sent,
       lastScore: existing?.lastScore || { awayScore: snapshot.awayScore, homeScore: snapshot.homeScore },
+      prefs,
       createdAt: existing?.createdAt || new Date().toISOString()
     };
 
@@ -252,6 +273,7 @@ export class GameMonitor extends DurableObject {
       ok: true,
       gamePk,
       subscribed: true,
+      prefs,
       subscribers: (await this.getSubscribers()).length,
       monitoring: true,
       snapshot: result.snapshot
@@ -293,14 +315,15 @@ export class GameMonitor extends DurableObject {
     const deviceId = String(url.searchParams.get("deviceId") || "").trim();
     const subscribers = await this.getSubscribers();
     const lastSnapshot = await this.ctx.storage.get("lastSnapshot");
+    const mine = deviceId ? subscribers.find(item => item.deviceId === deviceId) : null;
 
     return json({
       ok: true,
       gamePk: await this.ctx.storage.get("gamePk") || null,
-      subscribed: deviceId
-        ? subscribers.some(item => item.deviceId === deviceId)
-        : false,
+      subscribed: Boolean(mine),
+      prefs: mine ? mine.prefs : null,
       final: isFinalGame(lastSnapshot),
+      calledOff: isCalledOffGame(lastSnapshot),
       subscribers: subscribers.length
     });
   }
@@ -357,14 +380,24 @@ export class GameMonitor extends DurableObject {
     return response.json();
   }
 
-  async sendMarkedEvent(subscribers, flag, payload) {
-    const targets = subscribers.filter(item => !item.sent?.[flag]);
+  // payload 可以是物件，或依訂閱者產生內容的函式（相同內容會合併成一批送出）。
+  async sendMarkedEvent(subscribers, flag, payload, wants = () => true) {
+    const targets = subscribers.filter(item => !item.sent?.[flag] && wants(item));
     if (!targets.length) return subscribers;
 
-    const result = await this.push(targets, payload);
-    const byEndpoint = new Map(
-      (result.results || []).map(item => [item.endpoint, item])
-    );
+    const groups = new Map();
+    for (const item of targets) {
+      const itemPayload = typeof payload === "function" ? payload(item) : payload;
+      const key = JSON.stringify(itemPayload);
+      if (!groups.has(key)) groups.set(key, { payload: itemPayload, targets: [] });
+      groups.get(key).targets.push(item);
+    }
+
+    const byEndpoint = new Map();
+    for (const group of groups.values()) {
+      const result = await this.push(group.targets, group.payload);
+      for (const delivery of result.results || []) byEndpoint.set(delivery.endpoint, delivery);
+    }
 
     const next = [];
     for (const subscriber of subscribers) {
@@ -380,30 +413,47 @@ export class GameMonitor extends DurableObject {
   }
 
   async sendScoreEvent(subscribers, snapshot, previous) {
-    const targets = subscribers.filter(item => {
+    const current = { awayScore: snapshot.awayScore, homeScore: snapshot.homeScore };
+    const groups = new Map();
+
+    for (const item of subscribers) {
       const baseline = item.lastScore || previous || snapshot;
-      return Number(baseline.awayScore) !== Number(snapshot.awayScore) ||
-        Number(baseline.homeScore) !== Number(snapshot.homeScore);
-    });
-    if (!targets.length) return subscribers;
+      const away = Number(baseline.awayScore) !== Number(snapshot.awayScore);
+      const home = Number(baseline.homeScore) !== Number(snapshot.homeScore);
+      if (!away && !home) continue;
+
+      if ((away && wantsPref(item, "awayScore")) || (home && wantsPref(item, "homeScore"))) {
+        const side = away && home ? "both" : away ? "away" : "home";
+        if (!groups.has(side)) groups.set(side, []);
+        groups.get(side).push(item);
+      } else {
+        // 沒開啟提醒的那隊得分：不通知，但更新比分基準，之後的得分與終場判斷才正確。
+        item.lastScore = { ...current };
+      }
+    }
+    if (!groups.size) return subscribers;
 
     const inning = inningLabel(snapshot);
-    const result = await this.push(targets, {
-      title: "MLB 比分更新",
-      body: `${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}${inning ? " · " + inning : ""}`,
-      tag: `game-score-${snapshot.gamePk}-${snapshot.awayScore}-${snapshot.homeScore}-${Date.now()}`,
-      url: `./?view=live&gamePk=${snapshot.gamePk}`,
-      gamePk: snapshot.gamePk,
-      stage: "score"
-    });
+    const byEndpoint = new Map();
+    for (const [side, targets] of groups) {
+      const result = await this.push(targets, {
+        title: side === "away" ? `${snapshot.awayName} 得分`
+          : side === "home" ? `${snapshot.homeName} 得分`
+            : "MLB 比分更新",
+        body: `${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}${inning ? " · " + inning : ""}`,
+        tag: `game-score-${snapshot.gamePk}-${snapshot.awayScore}-${snapshot.homeScore}-${Date.now()}`,
+        url: `./?view=live&gamePk=${snapshot.gamePk}`,
+        gamePk: snapshot.gamePk,
+        stage: "score",
+        side
+      });
+      for (const delivery of result.results || []) byEndpoint.set(delivery.endpoint, delivery);
+    }
 
-    const byEndpoint = new Map(
-      (result.results || []).map(item => [item.endpoint, item])
-    );
     return subscribers.filter(item => {
       const delivery = byEndpoint.get(item.endpoint);
       if (delivery?.expired) return false;
-      if (delivery?.ok) item.lastScore = { awayScore: snapshot.awayScore, homeScore: snapshot.homeScore };
+      if (delivery?.ok) item.lastScore = { ...current };
       else if (!item.lastScore) item.lastScore = previous || snapshot;
       return true;
     });
@@ -416,14 +466,14 @@ export class GameMonitor extends DurableObject {
     const final = isFinalGame(snapshot);
     const gameTime = Date.parse(snapshot.gameDate || "");
 
-    next = await this.sendMarkedEvent(next, "subscription", {
+    next = await this.sendMarkedEvent(next, "subscription", item => ({
       title: `${teamLabel(snapshot)}｜訂閱成功`,
-      body: "已開啟這場比賽通知：開賽前提醒、比賽開始、比分更新及比賽結束。",
+      body: `將通知：${prefsSummary(item.prefs)}。`,
       tag: `game-subscribed-${snapshot.gamePk}`,
       url: `./?view=live&gamePk=${snapshot.gamePk}`,
       gamePk: snapshot.gamePk,
       stage: "subscription"
-    });
+    }));
     await this.putSubscribers(next);
 
     if (
@@ -440,7 +490,7 @@ export class GameMonitor extends DurableObject {
         url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "pregame5"
-      });
+      }, item => wantsPref(item, "pregame5"));
     }
 
     if (live) {
@@ -451,7 +501,7 @@ export class GameMonitor extends DurableObject {
         url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "start"
-      });
+      }, item => wantsPref(item, "start"));
     }
 
     // 每個裝置保留已送達的比分；失敗後下次仍會重試。
@@ -464,6 +514,10 @@ export class GameMonitor extends DurableObject {
         return Number(score.awayScore) === Number(snapshot.awayScore) &&
           Number(score.homeScore) === Number(snapshot.homeScore);
       });
+      // 關閉「比賽結束」的裝置直接視為完成，讓本場訂閱可以清除。
+      for (const item of ready) {
+        if (!wantsPref(item, "final")) item.sent = { ...(item.sent || {}), final: true };
+      }
       const delivered = await this.sendMarkedEvent(ready, "final", {
         title: "MLB 比賽結束",
         body: `終場：${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}`,
@@ -471,7 +525,7 @@ export class GameMonitor extends DurableObject {
         url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "final"
-      });
+      }, item => wantsPref(item, "final"));
       const pendingScore = next.filter(item => !ready.includes(item));
       next = [...pendingScore, ...delivered];
     }
@@ -505,6 +559,26 @@ export class GameMonitor extends DurableObject {
       const previous = await this.ctx.storage.get("lastSnapshot");
       const snapshot = await fetchGameSnapshot(gamePk);
       let subscribers = await this.getSubscribers();
+
+      if (isCalledOffGame(snapshot)) {
+        // 延賽、取消或被移出賽程的場次不會再有比分：不發終場通知，直接結束本場監控，
+        // 避免 Alarm 每 30 秒輪詢一場永遠不會開打的比賽。
+        await this.ctx.storage.put({
+          lastSnapshot: snapshot,
+          lastCheckedAt: new Date().toISOString(),
+          lastError: null,
+          monitorEnabled: false
+        });
+        await this.putSubscribers([]);
+        await this.ctx.storage.deleteAlarm();
+        return {
+          gamePk,
+          live: false,
+          final: false,
+          calledOff: true,
+          snapshot: publicSnapshot(snapshot)
+        };
+      }
 
       if (previous && subscribers.length > 0) {
         subscribers = await this.processNotifications(previous, snapshot, subscribers);
