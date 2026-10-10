@@ -1,139 +1,151 @@
 # MLB Score Notify Worker
 
-Cloudflare Worker backend for MLB game monitoring.
+MLB 季後賽即時戰況的 Cloudflare Worker 後端，負責單場比賽的 Web Push 通知。前端的比分資料仍由瀏覽器直接讀取 MLB Stats API，不經過這個 Worker。
 
-## Deploy
+正式網址：<https://mlb-score-notify.b110212000.workers.dev>
 
-Cloudflare Workers Builds:
+## 架構
 
-- Repository: `b110212000/mlb-live-scoreboard`
-- Root directory: `worker`
-- Deploy command: `npx wrangler deploy`
-
-## Current phase: monitoring foundation
-
-Web Push is intentionally disabled for now.
-
-This phase verifies the backend independently before adding browser notification permission, VAPID keys, Service Worker push handling, or notification UI.
-
-Implemented:
-
-- Worker deployment
-- Durable Object provisioning
-- one `GameMonitor` per MLB `gamePk`
-- persistent monitor state
-- MLB live-feed polling
-- 5 second polling while a game is live
-- 30 second polling while the game is not live
-- scoring-play count / latest scoring event tracking
-- automatic stop at Final
-- subscriber storage reserved for the later Web Push phase
-- diagnostic monitor APIs
-
-## Health check
-
-```
-GET /health
+```text
+前端 (GitHub Pages)
+   │  POST /api/watch {gamePk, deviceId, subscription}
+   ▼
+Worker (src/index.js) ── 路由與 CORS
+   │
+   ├── GameMonitor Durable Object（每個 gamePk 一個）
+   │     ├── 保存訂閱者、比分基準與通知進度
+   │     ├── 以 Alarm 輪詢 MLB live feed
+   │     └── 判斷事件 → 呼叫 PushService /send
+   │
+   └── PushService Durable Object（全域唯一 "global"）
+         ├── 產生並保存 VAPID 金鑰
+         ├── 以 web-push 套件發送通知
+         └── 測試推播流程
+                 ▼
+        Apple APNs / Google FCM 等推播服務 → 裝置上的 service-worker.js
 ```
 
-Expected response:
+| 檔案 | 用途 |
+| --- | --- |
+| `src/index.js` | 入口、路由、CORS（只允許 `FRONTEND_ORIGIN`） |
+| `src/game-monitor.js` | `GameMonitor`：訂閱管理、輪詢、通知判斷與重試 |
+| `src/push-service.js` | `PushService`：VAPID 金鑰、批次發送、測試推播 |
+| `src/mlb.js` | 讀取 MLB live feed 並整理成快照 |
+| `src/highlights.js` | YouTube 影片推薦（前端入口目前隱藏） |
+| `src/push.js` | 早期的推播佔位函式，目前沒有被任何模組引用 |
+| `wrangler.jsonc` | Worker 名稱、Durable Object 綁定與環境變數 |
+
+## 通知規則
+
+每個訂閱裝置會收到：
+
+| 事件 | 時機 |
+| --- | --- |
+| 訂閱成功 | 新訂閱後立即發送；同一裝置重複訂閱不重發，取消後重新訂閱會再發 |
+| MLB 即將開賽 | 開賽前 5 分鐘內 |
+| MLB 比賽開始 | 比賽進入 Live |
+| MLB 比分更新 | 任一隊比分與該裝置上次收到的比分不同 |
+| MLB 比賽結束 | Final，且該裝置已收到最後比分 |
+
+- 每個裝置各自保存比分基準（`lastScore`），不會補送訂閱前已發生的得分。
+- 推送暫時失敗時保留未完成狀態，約 30 秒後重試；成功者不會重複收到。
+- 推播服務回應 400 / 404 / 410 時視為訂閱失效並移除。
+- 所有終場通知送達後清空該場訂閱並停止 Alarm。
+- 同一場比賽的訂閱、取消與 Alarm 透過 `exclusive()` 依序處理，避免互相覆蓋。
+- 通知內含 `gamePk` 與 `./?view=live&gamePk=...`，前端點擊後直接開啟該場比賽。
+
+## 輪詢頻率
+
+| 比賽狀態 | 下次檢查 |
+| --- | --- |
+| 距離開賽超過 5 分鐘 | 直接排到開賽前 5 分鐘 |
+| 開賽前 5 分鐘內 / 其他非 Live 狀態 | 每 30 秒 |
+| Live | 每 5 秒 |
+| Final | 停止（若終場通知未送達，30 秒後重試） |
+| 讀取 MLB 失敗 | 30 秒後重試 |
+
+## API
+
+| Method | Path | 用途 |
+| --- | --- | --- |
+| `GET` | `/health` | 服務狀態 |
+| `GET` | `/api/push/public-key` | 取得 VAPID 公鑰，前端訂閱前使用 |
+| `POST` | `/api/watch` | 訂閱單場比賽：`{gamePk, deviceId, subscription}`；已終場回傳 409 `GAME_FINAL` |
+| `DELETE` | `/api/watch` | 取消訂閱：`{gamePk, deviceId 或 endpoint}` |
+| `GET` | `/api/watch/:gamePk/status?deviceId=...` | 查詢裝置是否已訂閱，前端重新載入時用來恢復鈴鐺狀態 |
+| `POST` | `/api/push/test` | 測試推播：立即送一則，30 秒後再送一則 |
+| `GET` | `/api/push/status` | 測試推播的待送狀態 |
+| `GET` | `/api/highlights/:gamePk` | 賽後影片推薦（需 `YOUTUBE_API_KEY`） |
+| `POST` | `/api/monitor/start` | 診斷用：不訂閱，只啟動監控 `{gamePk}` |
+| `GET` | `/api/monitor/:gamePk` | 診斷用：讀取監控狀態 |
+| `POST` | `/api/monitor/:gamePk/check` | 診斷用：立即檢查一次 |
+| `DELETE` | `/api/monitor/:gamePk` | 診斷用：停止監控 |
+
+`/health` 範例回應：
 
 ```json
 {
   "ok": true,
   "service": "mlb-score-notify",
-  "phase": "monitoring-foundation",
+  "phase": "game-watch-notifications",
+  "version": "1.7.0",
   "durableObject": "GameMonitor",
   "liveIntervalMs": 5000,
   "idleIntervalMs": 30000,
-  "pushEnabled": false
+  "pushEnabled": true,
+  "pushTestEnabled": true,
+  "highlightsEnabled": false
 }
 ```
 
-## Monitor-only test
+`highlightsEnabled` 只表示有設定 `YOUTUBE_API_KEY`，不代表金鑰有效或還有配額。
 
-Start monitoring a game without any Push subscription:
+## VAPID 金鑰
 
-```
-POST /api/monitor/start
-Content-Type: application/json
+VAPID 金鑰對在第一次使用時由 `PushService` 在伺服器端產生，保存在該 Durable Object 的 storage 中。API 只公開公鑰，私鑰不會回傳給瀏覽器，也不會進入版本庫。
 
-{
-  "gamePk": 123456
-}
-```
+> **不要刪除或重建 `PushService` Durable Object。** 金鑰一旦改變，GameMonitor 中保存的所有既有訂閱都會無法送達，使用者必須重新訂閱。前端偵測到公鑰變更時會重建瀏覽器端的訂閱，但不會自動更新各場比賽在伺服器端的訂閱。
 
-Read persisted state:
+## 設定
 
-```
-GET /api/monitor/123456
-```
+`wrangler.jsonc` 中的變數：
 
-Force one immediate MLB check:
+| 名稱 | 說明 |
+| --- | --- |
+| `FRONTEND_ORIGIN` | CORS 允許的前端來源 |
+| `VAPID_SUBJECT` | VAPID 聯絡資訊 |
 
-```
-POST /api/monitor/123456/check
-```
+Secret（在 Cloudflare 後台 Settings → Variables and Secrets 設定，不要放進 vars、前端或版本庫）：
 
-Stop the monitor:
+| 名稱 | 說明 |
+| --- | --- |
+| `YOUTUBE_API_KEY` | 選填。YouTube Data API v3 金鑰，限制只能呼叫該 API。未設定時 `/api/highlights` 回傳 `setup-required` 與官方頻道搜尋連結，不會改用網頁抓取或 AI |
 
-```
-DELETE /api/monitor/123456
-```
+## 部署
 
-The monitor-only endpoints are for validating Cloudflare + Durable Objects + MLB polling before Web Push is enabled.
+使用 Cloudflare Workers Builds 自動部署：
 
-## Notification phase
+- Repository：`b110212000/mlb-live-scoreboard`
+- Root directory：`worker`
+- Deploy command：`npx wrangler deploy`
 
-Not enabled yet.
+本機開發：
 
-The next phase will add:
-
-- VAPID public/private key configuration
-- browser `PushSubscription`
-- Service Worker `push` and `notificationclick`
-- score notification delivery
-- frontend reserve/cancel notification controls
-
-The VAPID private key must be stored as a Cloudflare secret and must never be committed to this public repository.
-
-
-## Web Push test phase
-
-A dedicated `PushService` Durable Object now validates Web Push before MLB game subscriptions are enabled.
-
-The frontend notification page performs this sequence:
-
-1. Request notification permission from a user click.
-2. Register the push-only `service-worker.js`.
-3. Fetch the server VAPID public key.
-4. Create a browser `PushSubscription`.
-5. Call `POST /api/push/test`.
-6. Cloudflare immediately sends the first real Web Push notification.
-7. `PushService` stores a one-time test and schedules a Durable Object alarm for 30 seconds later.
-8. The alarm sends the second real Web Push notification.
-
-The VAPID key pair is generated server-side on first use and persisted in the singleton `PushService` Durable Object. Only the public key is exposed by the API; the private key is never committed to GitHub or returned to the browser.
-
-Routes:
-
-```
-GET  /api/push/public-key
-POST /api/push/test
-GET  /api/push/status
+```sh
+cd worker
+npm install
+npx wrangler dev
 ```
 
-The service worker intentionally has no `fetch` handler and does not cache application assets. It only handles Push notifications and notification clicks, while deleting any legacy Cache Storage entries during activation.
+Durable Object 的類別名稱（`GameMonitor`、`PushService`）與 storage 中的訂閱格式是既有訂閱能否繼續運作的關鍵。除非必要，不要更改；若必須更改，需要撰寫 migration 並保留舊格式相容（`normalizeSubscriber()` 目前已相容最早期直接保存 `PushSubscription` 的格式）。
 
-`pushTestEnabled: true` means the test flow is available. `pushEnabled: false` remains false until real MLB game subscriptions are connected to the push delivery layer.
+## 測試
 
+在專案根目錄執行：
 
-## v1.7.0 YouTube 影片推薦
+```sh
+node tests/game-monitor.cjs
+node tests/highlights.cjs
+```
 
-已移除 YouTube HTML 抓取及 Workers AI 翻譯。後端只呼叫 YouTube Data API v3，公開標題／完整介紹／縮圖不改寫，點擊連回來源影片。
-
-在 Cloudflare Worker 的 Settings → Variables and Secrets 設定 Secret `YOUTUBE_API_KEY`（Google Cloud 須啟用 YouTube Data API v3，並將該金鑰限制到此 API），再重新部署。勿將金鑰放入 vars、前端、版本庫或公開對話。
-
-未設定金鑰時 `/api/highlights/:gamePk` 回傳 `setup-required` 及官方頻道搜尋連結；沒有爬取或 AI 備援。`/health` 的 `highlightsEnabled` 僅表示存在金鑰，不代表該金鑰一定有效或尚有配額。
-
-詳見根目錄 README v1.7.0、privacy.html、terms.html。正式 API／真實金鑰尚須由擁有者配置後驗證；mock 測試不能替代帳號層級的驗證。
+或執行 `npm test` 跑全部測試。測試使用模擬的 MLB 與推播回應，不會發送真實通知；真實裝置收件，尤其是 iPhone 主畫面 App，仍需實機確認。
