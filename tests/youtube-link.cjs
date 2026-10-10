@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 function fixture(ua,platform='',touch=0){
  const calls=[],timers=new Map(),listeners=new Map();let next=0;
  const ctx={sessionStorage:{getItem:()=> '1.7.0'},navigator:{userAgent:ua,platform,maxTouchPoints:touch},location:{assign:url=>calls.push(url)},document:{hidden:false,addEventListener:(n,f)=>listeners.set(n,f),removeEventListener:n=>listeners.delete(n)},window:{addEventListener:(n,f)=>listeners.set(n,f),removeEventListener:n=>listeners.delete(n)},setTimeout:f=>{timers.set(++next,f);return next},clearTimeout:n=>timers.delete(n),console,Date,Map};
- vm.createContext(ctx);vm.runInContext(fs.readFileSync('highlights.js','utf8'),ctx);
+ vm.createContext(ctx);vm.runInContext('function on(t,n,f,o){t.addEventListener(n,f,o)}; var ManagedResizeObserver=typeof ResizeObserver!=="undefined"?ResizeObserver:null;',ctx);vm.runInContext(fs.readFileSync('src/engine/highlights.js','utf8'),ctx);
  const event={target:{closest:()=>({dataset:{youtubeId:'cv8qfCAzrmM'}})},button:0,preventDefault(){this.prevented=true}};
  return {ctx,event,calls,timers,listeners};
 }
@@ -26,11 +26,11 @@ f.ctx.renderRecapMessage('loading');f.ctx.renderGameRecap(data);assert.equal(wri
 function touch(link,x,y){return {target:{closest:s=>link&&s.split(',').map(x=>x.trim()).includes('a')?{}:null},touches:[{clientX:x,clientY:y}],preventDefault(){this.prevented=true}};}
 const listeners={};const noop=()=>{};const classes={add:noop,remove:noop};const panel={};
 const ctx={els:{liveDetailViewport:{addEventListener:(n,f)=>listeners[n]=f,clientWidth:360},liveDetailTrack:{classList:classes,style:{}},liveDetailStats:panel,liveDetailStatus:panel,liveDetailSeries:panel,liveDetailRecap:panel},state:{liveDetailTab:'recap'},performance:{now:()=>0},window:{ResizeObserver:true,addEventListener:noop},ResizeObserver:class{observe(){}},console};
-vm.createContext(ctx);vm.runInContext(fs.readFileSync('ui.js','utf8'),ctx);ctx.initLiveDetailSwipe();
+vm.createContext(ctx);vm.runInContext('function on(t,n,f,o){t.addEventListener(n,f,o)}; var ManagedResizeObserver=typeof ResizeObserver!=="undefined"?ResizeObserver:null;',ctx);vm.runInContext(fs.readFileSync('src/engine/ui.js','utf8'),ctx);ctx.initLiveDetailSwipe();
 listeners.touchstart(touch(true,0,0));let move=touch(true,12,1);listeners.touchmove(move);assert(!move.prevented,'swipe swallowed link');
 listeners.touchstart(touch(false,0,0));move=touch(false,30,1);listeners.touchmove(move);assert(move.prevented,'background swipe should still work');
-const app=fs.readFileSync('app.js','utf8');const start=app.indexOf('(() => {',app.indexOf('// iPhone Web App'));const end=app.indexOf('})();',start)+5;
-const pull={style:{},classList:classes,querySelector:()=>({})};const pullCtx={document:{addEventListener:(n,f)=>listeners[n]=f},window:{scrollY:0},els:{pullRefresh:pull,pullRefreshText:{}},setTimeout:noop};vm.createContext(pullCtx);vm.runInContext(app.slice(start,end),pullCtx);
+const app=fs.readFileSync('src/engine/app.js','utf8');const start=app.indexOf('(() => {',app.indexOf('// iPhone Web App'));const end=app.indexOf('})();',start)+5;
+const pull={style:{},classList:classes,querySelector:()=>({})};const pullCtx={document:{addEventListener:(n,f)=>listeners[n]=f},window:{scrollY:0},els:{pullRefresh:pull,pullRefreshText:{}},setTimeout:noop};pullCtx.els.featureMenu={open:false};vm.createContext(pullCtx);vm.runInContext('function on(t,n,f,o){t.addEventListener(n,f,o)}',pullCtx);vm.runInContext(app.slice(start,end),pullCtx);
 listeners.touchstart(touch(true,0,0));move=touch(true,0,20);listeners.touchmove(move);assert(!move.prevented,'pull refresh swallowed link');
 listeners.touchstart(touch(false,0,0));move=touch(false,0,4);listeners.touchmove(move);assert(!move.prevented,'small movement swallowed tap');move=touch(false,0,80);listeners.touchmove(move);assert(move.prevented,'pull refresh should still work');
 console.log('PASS native mobile links, fallback, stable DOM, tap with slight movement, link gesture exclusion, background gestures');

@@ -43,16 +43,7 @@ async function loadSchedule(keepSelection=true,requestedGamePk=null){
 }
 
 function renderTabs(){
-  if(!state.games.length){els.gameTabs.innerHTML='';return}
-  els.gameTabs.innerHTML=state.games.map(g=>
-    '<button type="button" class="game-tab '+(g.gamePk===state.selectedGamePk?'active':'')+'" data-pk="'+g.gamePk+'">'+
-      '<span class="game-tab-main">'+esc(gameLabel(g))+'</span>'+
-      '<span class="game-tab-time">'+esc(gameLocalDateTime(g))+'</span>'+
-    '</button>'
-  ).join('');
-  els.gameTabs.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',async()=>{
-    state.selectedGamePk=Number(btn.dataset.pk);renderTabs();await loadGame(state.selectedGamePk);
-  }));
+  bridge.publish({games:state.games.map(g=>({gamePk:g.gamePk,label:gameLabel(g),time:gameLocalDateTime(g)})),selectedGamePk:state.selectedGamePk});
 }
 
 async function loadGame(gamePk){
@@ -87,13 +78,9 @@ function setGameDetailsVisible(visible){
 function renderNoGame(date){
   setGameDetailsVisible(false);
   document.getElementById('noGameText').textContent=date===localDateString()?'今日沒有比賽':'這天沒有比賽';
-  els.series.textContent=`${date} 沒有 MLB 季後賽賽事`;
-  els.state.textContent='NO GAME';els.inning.textContent='--';
-  els.bigScore.innerHTML='<span>0</span><span>0</span>';
+  bridge.publish({score:null,emptyDate:date});
   resetGameRecap();
   if(els.gameWatchBtn)els.gameWatchBtn.hidden=true;
-  els.awayName.textContent='客隊';els.homeName.textContent='主隊';
-  els.awayLogo.removeAttribute('src');els.homeLogo.removeAttribute('src');
   resetMatchup();
   els.inningHead.innerHTML='';els.inningBody.innerHTML='';
   els.teamStatsBoard.className='team-stats-empty';els.teamStatsBoard.textContent='目前沒有隊伍統計資料';
@@ -124,18 +111,12 @@ function renderGame(feed){
   const gd=feed.gameData||{}, live=feed.liveData||{}, ls=live.linescore||{}, plays=live.plays||{}, cp=plays.currentPlay||{};
   const away=gd.teams?.away||{}, home=gd.teams?.home||{}, awayLine=ls.teams?.away||{}, homeLine=ls.teams?.home||{}, status=gd.status||{};
 
-  els.series.textContent=findSeriesDescription()||seriesName(gd.game?.gameType);
-  els.state.textContent=status.detailedState||status.abstractGameState||'--';
-  els.inning.textContent=inningLabel(ls);
-  els.awayName.textContent=away.name||'客隊';els.homeName.textContent=home.name||'主隊';
-  els.awayLogo.src=teamLogo(away.id);els.homeLogo.src=teamLogo(home.id);
-  els.awayLogo.dataset.teamId=String(away.id||'');els.homeLogo.dataset.teamId=String(home.id||'');
-  els.awayLogo.alt=away.name||'客隊';els.homeLogo.alt=home.name||'主隊';
-
-  const ar=awayLine.runs??0, hr=homeLine.runs??0;
-  els.bigScore.innerHTML=`<span>${ar}</span><span>${hr}</span>`;
-  els.awayRhe.textContent=`R ${ar} · H ${awayLine.hits??0} · E ${awayLine.errors??0}`;
-  els.homeRhe.textContent=`R ${hr} · H ${homeLine.hits??0} · E ${homeLine.errors??0}`;
+  bridge.publish({emptyDate:null,score:{
+    series:findSeriesDescription()||seriesName(gd.game?.gameType),
+    status:status.detailedState||status.abstractGameState||'--',inning:inningLabel(ls),
+    away:{...away,runs:awayLine.runs??0,hits:awayLine.hits??0,errors:awayLine.errors??0},
+    home:{...home,runs:homeLine.runs??0,hits:homeLine.hits??0,errors:homeLine.errors??0}
+  }});
 
   if(state.liveDetailTab==='recap')loadGameRecap();
   else if(recapGamePk!==Number(state.selectedGamePk))resetGameRecap();
@@ -613,90 +594,12 @@ function highlightVisual(item,className){
   return '<span class="'+className+'" aria-hidden="true">'+esc(item?.icon||'⚾')+'</span>';
 }
 
-// One timer owns the five-second animation cycle. Polling must not restart it.
-let highlightTickerTimer=null;
-let highlightTickerRenderKey=null;
-
-function renderHighlightTicker(){
-  const list=state.highlights||[];
-  if(list.length)state.highlightIndex=((state.highlightIndex%list.length)+list.length)%list.length;
-  const item=list[state.highlightIndex];
-  const rotating=list.length>1&&!state.highlightsExpanded&&!document.hidden;
-  const renderKey=JSON.stringify([
-    state.highlightGamePk,item?.id,item?.title,item?.desc,item?.teamId,item?.icon,rotating
-  ]);
-  els.highlightCounter.textContent=list.length?(state.highlightIndex+1)+' / '+list.length:'0 / 0';
-  // The feed refresh may arrive just before/after a slide changes.
-  // Keep the current node and its animation clock when nothing visible changed.
-  if(renderKey===highlightTickerRenderKey)return;
-  if(highlightTickerTimer!==null){
-    clearTimeout(highlightTickerTimer);
-    highlightTickerTimer=null;
-  }
-  highlightTickerRenderKey=renderKey;
-  if(!item){
-    els.highlightTicker.innerHTML=
-      '<div class="highlight-ticker-slide">'+
-        '<div class="highlight-ticker-title">等待焦點事件</div>'+
-        '<div class="highlight-ticker-desc">目前還沒有符合條件的焦點事件</div>'+
-      '</div>';
-    return;
-  }
-  els.highlightTicker.innerHTML=
-    '<div class="highlight-ticker-slide'+(rotating?' is-rotating':'')+'">'+
-      '<div class="highlight-ticker-title">'+
-        highlightVisual(item,'highlight-ticker-icon')+
-        '<span>'+esc(item.title)+'</span>'+
-      '</div>'+
-      '<div class="highlight-ticker-desc">'+esc(item.desc)+'</div>'+
-    '</div>';
-  if(rotating){
-    highlightTickerTimer=setTimeout(()=>{
-      highlightTickerTimer=null;
-      advanceHighlights();
-    },5000);
-  }
-}
-
-function syncHighlights(){
-  const list=state.highlights||[];
-  els.gameHighlights.hidden=!state.highlightsExpanded;
-  els.highlightsToggle.setAttribute('aria-expanded',String(state.highlightsExpanded));
-  els.highlightsToggle.setAttribute('aria-label',
-    (state.highlightsExpanded?'收合':'展開')+'全部 '+list.length+' 則本場焦點');
-  renderHighlightTicker();
-  if(!state.highlightsExpanded)return;
-  els.gameHighlights.innerHTML=list.length?list.map(x=>{
-    const inningText=(x.meta||'')+' '+(x.desc||'');
-    const halfClass=inningText.includes('局上')?' top-half':inningText.includes('局下')?' bottom-half':'';
-    return '<article class="highlight-item '+x.tone+halfClass+'">'+
-      '<div class="highlight-top">'+highlightVisual(x,'highlight-icon')+
-      '<div class="highlight-title">'+esc(x.title)+'</div></div>'+
-      '<div class="highlight-desc">'+esc(x.desc)+'</div>'+
-      (x.meta?'<div class="highlight-meta">'+esc(x.meta)+'</div>':'')+
-    '</article>';
-  }).join(''):'<div class="empty" style="grid-column:1/-1">目前還沒有符合條件的焦點事件</div>';
-}
-
+// React owns focus rotation and expanded state; engine only computes event data.
+function syncHighlights(){bridge.publish({highlights:state.highlights,highlightGamePk:state.highlightGamePk})}
 function renderHighlights(feed){
-  const gamePk=feed.gameData?.game?.pk??state.selectedGamePk;
-  if(gamePk!==state.highlightGamePk){
-    state.highlightGamePk=gamePk;
-    state.highlightIndex=0;
-    state.highlightsExpanded=false;
-  }
-  const oldId=state.highlights[state.highlightIndex]?.id;
+  state.highlightGamePk=feed.gameData?.game?.pk??state.selectedGamePk;
   state.highlights=buildHighlightItems(feed);
-  const retained=state.highlights.findIndex(item=>item.id===oldId);
-  if(retained>=0)state.highlightIndex=retained;
-  else if(state.highlightIndex>=state.highlights.length)state.highlightIndex=0;
   syncHighlights();
-}
-
-function advanceHighlights(){
-  if(state.highlightsExpanded||state.highlights.length<=1||document.hidden)return;
-  state.highlightIndex=(state.highlightIndex+1)%state.highlights.length;
-  renderHighlightTicker();
 }
 
 function teamAbbr(team){

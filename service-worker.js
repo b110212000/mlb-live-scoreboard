@@ -34,7 +34,7 @@ self.addEventListener('push',event=>{
 
   event.waitUntil(self.registration.showNotification(title,{
     body:payload.body||'',
-    icon:new URL('./app-icon.svg',self.registration.scope).href,
+    icon:new URL('./assets/app-icon-192.png?v=2.0.0',self.registration.scope).href,
     tag:payload.tag||undefined,
     data:{url:targetUrl,testId:payload.testId||null,stage:payload.stage||null}
   }));

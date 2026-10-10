@@ -52,7 +52,7 @@ function initLiveDetailSwipe(){
   let startX=0,startY=0,lastX=0,startTime=0,dragging=false,horizontal=false;
   const blockedTarget=t=>!!t.closest('.boxscore-scroll, .scroll, a, button, summary, input, select, textarea');
 
-  viewport.addEventListener('touchstart',e=>{
+  on(viewport,'touchstart',e=>{
     dragging=false;horizontal=false;
     if(e.touches.length!==1||blockedTarget(e.target))return;
     const t=e.touches[0];
@@ -60,7 +60,7 @@ function initLiveDetailSwipe(){
     dragging=true;horizontal=false;
   },{passive:true});
 
-  viewport.addEventListener('touchmove',e=>{
+  on(viewport,'touchmove',e=>{
     if(!dragging||e.touches.length!==1)return;
     const t=e.touches[0],dx=t.clientX-startX,dy=t.clientY-startY;
     lastX=t.clientX;
@@ -94,16 +94,16 @@ function initLiveDetailSwipe(){
     setLiveDetailTab(LIVE_DETAIL_TABS[index],{animate:true});
   };
 
-  viewport.addEventListener('touchend',finish,{passive:true});
-  viewport.addEventListener('touchcancel',finish,{passive:true});
+  on(viewport,'touchend',finish,{passive:true});
+  on(viewport,'touchcancel',finish,{passive:true});
 
   if('ResizeObserver' in window){
-    const ro=new ResizeObserver(()=>syncLiveDetailHeight());
+    const ro=new ManagedResizeObserver(()=>syncLiveDetailHeight());
     [els.liveDetailStats,els.liveDetailStatus,els.liveDetailSeries].forEach(p=>ro.observe(p));
   }else{
-    window.addEventListener('resize',()=>syncLiveDetailHeight(true));
+    on(window,'resize',()=>syncLiveDetailHeight(true));
   }
-  window.addEventListener('resize',()=>{
+  on(window,'resize',()=>{
     positionLiveDetailTrack(state.liveDetailTab,false);
     syncLiveDetailHeight(true);
   });
@@ -121,54 +121,6 @@ async function openSeriesGame(gamePk){
   await loadSchedule(true);
   setLiveDetailTab('status');
   requestAnimationFrame(()=>document.querySelector('.hero')?.scrollIntoView({behavior:'smooth',block:'start'}));
-}
-
-let featureMenuAnimation=null;
-let featureMenuTransition=0;
-function setFeatureMenuOpen(open){
-  const menu=els.featureMenu;
-  const wasOpen=menu.open;
-  const wasClosing=menu.classList.contains('is-closing');
-  if(open&&wasOpen&&!wasClosing)return;
-  if(!open&&wasClosing)return;
-  const transition=++featureMenuTransition;
-  // Capture the current position before cancelling, so quick reversals stay smooth.
-  const from=wasOpen?getComputedStyle(menu).transform:'translateX(-100%)';
-  featureMenuAnimation?.cancel();
-  featureMenuAnimation=null;
-  els.featureMenuButton.setAttribute('aria-expanded',String(open));
-  if(open){
-    menu.hidden=false;
-    if(!wasOpen)menu.showModal();
-    document.body.classList.add('sidebar-open');
-    menu.classList.remove('is-closing');
-  }else if(!wasOpen){
-    menu.hidden=true;
-    document.body.classList.remove('sidebar-open');
-    return;
-  }else{
-    menu.classList.add('is-closing');
-  }
-  const finish=()=>{
-    if(transition!==featureMenuTransition)return;
-    if(!open){
-      menu.close();
-      menu.hidden=true;
-      menu.classList.remove('is-closing');
-      document.body.classList.remove('sidebar-open');
-    }
-    featureMenuAnimation?.cancel();
-    featureMenuAnimation=null;
-  };
-  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const frames=reduced
-    ?[{opacity:open?0:1},{opacity:open?1:0}]
-    :[{transform:from==='none'?'translateX(0)':from},{transform:open?'translateX(0)':'translateX(-100%)'}];
-  if(typeof menu.animate!=='function'){finish();return;}
-  featureMenuAnimation=menu.animate(frames,{
-    duration:reduced?100:280,easing:'cubic-bezier(.22,.68,0,1)',fill:'both'
-  });
-  featureMenuAnimation.finished.then(finish,()=>{});
 }
 
 function isStandaloneApp(){
@@ -241,53 +193,17 @@ async function installThisApp(){
 }
 
 function switchView(view){
+  if(!['live','bracket','roster','install','notifications','settings'].includes(view))view='live';
   state.view=view;
-  const settings=view==='settings';
-  document.getElementById('settingsView').hidden=!settings;
-  const bracket=view==='bracket',roster=view==='roster',install=view==='install',notifications=view==='notifications',live=view==='live';
-  els.liveView.hidden=!live;
-  els.bracketView.hidden=!bracket;
-  els.rosterView.hidden=!roster;
-  els.installView.hidden=!install;
-  els.notificationView.hidden=!notifications;
-  els.featureMenu.querySelectorAll('[data-view]').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===view));
-
-  if(settings){
-    els.appTitle.textContent='設定';
-    els.appSubtitle.textContent='';
-  }else if(bracket){
-    els.appTitle.textContent='MLB 季後賽戰況';
-    els.appSubtitle.textContent='外卡・分區系列賽・聯盟冠軍賽・世界大賽';
-  }else if(roster){
-    els.appTitle.textContent='MLB 對戰名單';
-    els.appSubtitle.textContent='兩隊 Active roster・本場先發・例行賽打投數據';
-  }else if(install){
-    els.appTitle.textContent='安裝 / 分享 MLB 戰況';
-    els.appSubtitle.textContent='加入主畫面・分享給朋友・App 使用教學';
-    syncInstallPage();
-  }else if(notifications){
-    els.appTitle.textContent='MLB 訂閱通知';
-    els.appSubtitle.textContent='Web Push・背景通知・通知能力測試';
-    syncNotificationPage();
-  }else{
-    els.appTitle.textContent='MLB 季後賽即時戰況';
-    els.appSubtitle.textContent='即時比分・打者 / 投手・用球數・B/S/O・壘包・球速球種・逐局與得分紀錄';
-  }
-
+  bridge.publish({view});
+  const live=view==='live';
   els.topControlsToggle.hidden=!live;
-  els.liveTitleActions.hidden=!live;
-  if(bracket){
-    els.topControls.hidden=true;
-    loadBracket();
-  }else if(roster){
-    els.topControls.hidden=true;
-    loadMatchupRoster();
-  }else if(install||notifications||settings){
-    els.topControls.hidden=true;
-  }else{
-    setTopControlsExpanded(state.topControlsExpanded);
-  }
-  setFeatureMenuOpen(false);
+  if(live){setTopControlsExpanded(state.topControlsExpanded);requestAnimationFrame(()=>syncLiveDetailHeight(true));}
+  else els.topControls.hidden=true;
+  if(view==='bracket')loadBracket();
+  if(view==='roster')loadMatchupRoster();
+  if(view==='install')syncInstallPage();
+  if(view==='notifications')syncNotificationPage();
 }
 
 function setTopControlsExpanded(expanded){

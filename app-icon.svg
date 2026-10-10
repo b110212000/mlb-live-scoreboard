@@ -1,6 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="112" fill="#071321"/>
   <rect x="42" y="42" width="428" height="428" rx="96" fill="#0e233a"/>
+  <!-- Bat sits behind the baseball, angled from lower left to upper right. -->
+  <g transform="rotate(43 256 246)">
+    <path d="M256 37c-19 0-30 13-30 32v107c0 34 17 63 20 91l2 105h16l2-105c3-28 20-57 20-91V69c0-19-11-32-30-32Z" fill="#d9a56a" stroke="#593c25" stroke-width="6"/>
+    <path d="M247 56c-6 21-6 81-3 125m16-120c-3 33-2 88 1 116" fill="none" stroke="#efc78f" stroke-width="6" stroke-linecap="round"/>
+    <path d="M246 323h20m-20 12h20m-20 12h20m-20 12h20" stroke="#74502f" stroke-width="5"/>
+    <rect x="239" y="371" width="34" height="13" rx="6" fill="#d9a56a" stroke="#593c25" stroke-width="5"/>
+  </g>
   <circle cx="256" cy="232" r="126" fill="#f8fafc"/>
   <path d="M170 140c38 36 46 82 30 136-9 31-9 62 2 94" fill="none" stroke="#cf4650" stroke-width="15" stroke-linecap="round"/>
   <path d="M342 140c-38 36-46 82-30 136 9 31 9 62-2 94" fill="none" stroke="#cf4650" stroke-width="15" stroke-linecap="round"/>

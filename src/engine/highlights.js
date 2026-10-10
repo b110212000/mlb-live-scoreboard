@@ -112,7 +112,7 @@ function renderGameRecap(data) {
 }
 
 if (typeof els !== 'undefined' && els.recapList) {
-  els.recapList.addEventListener('click', event => {
+  on(els.recapList,'click', event => {
     const action = event.target.closest('[data-recap-consent]')?.dataset.recapConsent;
     if (!action) return;
     if (action === 'accept') {
@@ -162,8 +162,8 @@ function openRecapVideo(event) {
     if (cancelYouTubeLaunch === cleanup) cancelYouTubeLaunch = null;
   };
   const onVisibility = () => { if (document.hidden) cleanup(); };
-  document.addEventListener('visibilitychange', onVisibility);
-  window.addEventListener('pagehide', cleanup);
+  on(document,'visibilitychange', onVisibility);
+  on(window,'pagehide', cleanup);
   cancelYouTubeLaunch = cleanup;
   timer = setTimeout(() => {
     cleanup();

@@ -40,7 +40,7 @@ async function deployedIndexHasVersion(version){
   const r=await fetch(u.toString(),{cache:'no-store'});
   if(!r.ok)return false;
   const html=await r.text();
-  return html.includes('<span class="app-version">v'+version+'</span>');
+  return html.includes('name="app-version" content="'+version+'"')||html.includes('<span class="app-version">v'+version+'</span>');
 }
 
 let versionCheckInFlight=false;
@@ -64,51 +64,33 @@ async function checkForAppUpdate(){
 }
 
 // PWA / 安裝事件
-window.addEventListener('beforeinstallprompt',e=>{
+on(window,'beforeinstallprompt',e=>{
   e.preventDefault();
   deferredInstallPrompt=e;
   syncInstallPage();
 });
-window.addEventListener('appinstalled',()=>{
+on(window,'appinstalled',()=>{
   deferredInstallPrompt=null;
   syncInstallPage();
 });
-els.installAppBtn.addEventListener('click',installThisApp);
-els.shareAppBtn.addEventListener('click',shareThisApp);
-els.copyAppBtn.addEventListener('click',copyThisApp);
+on(els.installAppBtn,'click',installThisApp);
+on(els.shareAppBtn,'click',shareThisApp);
+on(els.copyAppBtn,'click',copyThisApp);
 
-// 畫面事件、Pull-to-refresh 與初始載入
-els.featureMenuButton.addEventListener('click',e=>{
-  e.stopPropagation();
-  setFeatureMenuOpen(els.featureMenu.hidden);
-});
-els.featureMenu.addEventListener('click',e=>{
-  if(e.target===els.featureMenu){
-    const rect=els.featureMenu.getBoundingClientRect();
-    if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)setFeatureMenuOpen(false);
-    return;
-  }
-  const btn=e.target.closest('[data-view]');
-  if(btn)switchView(btn.dataset.view);
-});
-document.getElementById('featureMenuClose').addEventListener('click',()=>setFeatureMenuOpen(false));
-els.featureMenu.addEventListener('cancel',e=>{e.preventDefault();setFeatureMenuOpen(false);});
+on(els.recapList,'click',openRecapVideo);
+on(els.recapList,'toggle',()=>syncLiveDetailHeight(),true);
 
-els.recapList.addEventListener('click',openRecapVideo);
-els.recapList.addEventListener('toggle',()=>syncLiveDetailHeight(),true);
-
-els.heroRosterBtn.addEventListener('click',()=>switchView('roster'));
-els.rosterBackBtn.addEventListener('click',()=>switchView('live'));
-els.liveDetailTabs.addEventListener('click',e=>{
+on(els.rosterBackBtn,'click',()=>switchView('live'));
+on(els.liveDetailTabs,'click',e=>{
   const btn=e.target.closest('[data-live-tab]');
   if(btn)setLiveDetailTab(btn.dataset.liveTab);
 });
-els.currentSeriesGames.addEventListener('click',e=>{
+on(els.currentSeriesGames,'click',e=>{
   const btn=e.target.closest('[data-series-game-pk]');
   if(btn)openSeriesGame(Number(btn.dataset.seriesGamePk));
 });
 
-els.topControlsToggle.addEventListener('click',()=>{
+on(els.topControlsToggle,'click',()=>{
   setTopControlsExpanded(els.topControlsToggle.getAttribute('aria-expanded')!=='true');
 });
 
@@ -124,15 +106,9 @@ document.querySelectorAll('[data-collapse-section]').forEach(section=>{
     btn.setAttribute('aria-label',(expanded?'收合':'展開')+title);
   };
   const toggle=()=>setExpanded(btn.getAttribute('aria-expanded')!=='true');
-  btn.addEventListener('click',e=>{e.stopPropagation();toggle();});
-  head.addEventListener('click',e=>{if(e.target.closest('button'))return;toggle();});
+  on(btn,'click',e=>{e.stopPropagation();toggle();});
+  on(head,'click',e=>{if(e.target.closest('button'))return;toggle();});
 });
-
-els.highlightsToggle.addEventListener('click',()=>{
-  state.highlightsExpanded=!state.highlightsExpanded;
-  syncHighlights();
-});
-
 
 // iPhone Web App：在頁面頂端往下拉，放開後重新載入整個頁面。
 (() => {
@@ -147,14 +123,14 @@ els.highlightsToggle.addEventListener('click',()=>{
     els.pullRefresh.querySelector('.pull-refresh-icon').textContent='↓';
   };
 
-  document.addEventListener('touchstart',e=>{
+  on(document,'touchstart',e=>{
     tracking=false;startY=startX=null;
     if(els.featureMenu.open||window.scrollY>1||e.touches.length!==1||e.target.closest('a, button, summary, input, select, textarea'))return;
     const t=e.touches[0];
     startY=t.clientY;startX=t.clientX;distance=0;tracking=true;
   },{passive:true});
 
-  document.addEventListener('touchmove',e=>{
+  on(document,'touchmove',e=>{
     if(!tracking||startY==null||e.touches.length!==1)return;
     const t=e.touches[0],dy=t.clientY-startY,dx=t.clientX-startX;
     if(dy<=0){reset();return;}
@@ -190,12 +166,12 @@ els.highlightsToggle.addEventListener('click',()=>{
     },140);
   };
 
-  document.addEventListener('touchend',finish,{passive:true});
-  document.addEventListener('touchcancel',reset,{passive:true});
+  on(document,'touchend',finish,{passive:true});
+  on(document,'touchcancel',reset,{passive:true});
 })();
 
-els.refreshBtn.addEventListener('click',()=>state.notificationGamePending?loadInitialGame():loadSchedule(true));
-els.dateInput.addEventListener('change',()=>{clearNotificationRoute();loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
+on(els.refreshBtn,'click',()=>state.notificationGamePending?loadInitialGame():loadSchedule(true));
+on(els.dateInput,'change',()=>{clearNotificationRoute();loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
 els.dateInput.value=localDateString();
 
 // 賽事資料是核心功能：先啟動資料載入，再初始化其他非必要 UI。
@@ -226,15 +202,14 @@ setInterval(()=>{if(state.view==='roster')loadMatchupRoster(true)},60000);
 setInterval(()=>{if(state.view==='live'&&state.liveDetailTab==='series')loadCurrentSeries(true)},60000);
 
 // 前景版本檢查
-window.addEventListener('load',async()=>{
+on(window,'load',async()=>{
   const reloading=await disableLegacyPwaCache();
   if(!reloading)checkForAppUpdate();
 });
-document.addEventListener('visibilitychange',()=>{
-  renderHighlightTicker();
+on(document,'visibilitychange',()=>{
   if(!document.hidden)checkForAppUpdate();
 });
-window.addEventListener('focus',checkForAppUpdate);
+on(window,'focus',checkForAppUpdate);
 setInterval(checkForAppUpdate,15000);
 
 

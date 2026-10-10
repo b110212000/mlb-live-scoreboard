@@ -394,11 +394,11 @@ async function testPushSubscription(){
 }
 
 if(els.testNotificationBtn){
-  els.testNotificationBtn.addEventListener('click',testPushSubscription);
+  on(els.testNotificationBtn,'click',testPushSubscription);
 }
 
 
 if(els.gameWatchBtn){
-  els.gameWatchBtn.addEventListener('click',toggleGameWatch);
+  on(els.gameWatchBtn,'click',toggleGameWatch);
 }
 

@@ -1,6 +1,6 @@
 # MLB 季後賽即時戰況
 
-一個以 **MLB Stats API** 為資料來源的純前端季後賽即時戰況網站。
+一個以 **MLB Stats API** 為資料來源的 React 靜態前端季後賽即時戰況網站。
 
 目前提供：
 
@@ -68,7 +68,11 @@ Browser / iPhone Web App
 
 | 檔案 | 用途 |
 | --- | --- |
-| `index.html` | 主頁面，包含 UI、CSS、API 呼叫與即時更新邏輯 |
+| `src/` | React 元件、狀態模型與既有功能整合模組 |
+| `scripts/` | 建置、開發伺服器與測試工具 |
+| `index.html` | 建置產生的 React 掛載入口 |
+| `assets/app-2.0.0.js` | 已打包的 React 與 App 程式 |
+| `styles.css` | 全站樣式 |
 | `manifest.json` | Web App / 加入主畫面設定 |
 | `app-icon.svg` | App / 網站圖示 |
 | `service-worker.js` | Push-only Service Worker；負責接收與點擊 Web Push，不快取 App 資源 |
@@ -900,7 +904,7 @@ MLB Stats API
 
 ## 版本號規則
 
-目前版本：`v1.8.1`
+目前版本：`v2.0.0`
 
 版本格式：
 
@@ -1124,3 +1128,52 @@ v主版號.功能版號.修正版號
 - 開啟時明確觸發滑入動畫，關閉時待滑出結束才隱藏 Dialog。
 - 遮罩同步淡入淡出；快速反向操作不會被過期動畫關閉。
 - 減少動態效果模式使用短淡入淡出，避免大幅位移。
+
+## v2.0.0 React 前端與新版 App 圖示
+
+- React 接管 App 掛載、頁面切換、側邊欄、主比分、場次列表、本場焦點與設定頁。
+- 焦點輪播以 Hook 管理計時與清理，相同的比分輪詢不會重建動畫節點。
+- 現有統計、賽況、系列賽、對戰名單、安裝與推播保留。設定頁仍只顯示「開發中」，既有隱藏項目維持隱藏。
+- App 圖示在棒球後面加入球棒，提供 SVG 以及 180/192/512 PNG；iOS 使用 apple-touch-icon。
+- Cloudflare Worker、Durable Object 與訂閱儲存格式不變，保留通知深連結與既有訂閱。
+
+### React 架構與維護邊界
+
+- `src/main.jsx`：React root 與錯誤邊界。
+- `src/App.jsx`：頁面生命週期、導航與 React 頁面容器。
+- `src/components/`：JSX 頁面、側邊欄、主比分、場次與焦點等元件。
+- `src/store.js`：透過 `useSyncExternalStore` 讓 React 訂閱比分資料模型。
+- `src/engine/`：保留經驗證的 MLB 解析、詳細表格渲染、手勢、安裝與 Web Push 整合。此版並未把所有表格產生器都重寫為 JSX；它們只操作 React 保留的固定 host，不與 React 管理同一塊動態內容。後續可逐個元件替換。
+- `scripts/engine-plugin.mjs`：把相依的 engine 模組封裝成私有服務工廠，避免全域變數；追蹤事件、請求、排程及 ResizeObserver，React 卸載時一併清理。
+- `scripts/build.mjs`：esbuild 打包 npm 的 React，沒有 CDN runtime；由 sharp 從 SVG 產生 App PNG。
+- `src/index.html` 是 HTML 來源；根目錄 `index.html` 與 `assets/app-<version>.js` 是部署產物，請用建置產生，不手動修改 bundle。
+
+### 開發與驗證
+
+需要 Node.js 22 以上。
+
+```sh
+npm ci
+npm run dev
+```
+
+本機開啟 http://127.0.0.1:5173/。若修改 HTML 模板或 App SVG，重新執行建置。
+
+```sh
+npm run build
+npx playwright install chromium
+npm test
+```
+
+測試涵蓋 React 手機/桌面互動、焦點輪詢穩定、側邊欄進退場、NO GAME、通知深連結、訂閱狀態與 Worker 通知次序。瀏覽器測試使用固定賽事資料及攔截 API，不會發送真實推播；iPhone 加入主畫面與真實 APNs 推播仍需實機確認。
+
+### 發布流程
+
+維持既有 GitHub Pages 從 main 根目錄部署，無需更改 Pages 設定。
+
+1. 修改來源，更新 package.json、React 頁尾版本、README、manifest/icon 與相關版本引用。
+2. `npm ci`、`npm run build`、`npm test`，提交來源、lockfile、HTML 及對應 bundle/圖示。
+3. 確認 GitHub Pages 已部署正確的 HTML、CSS、bundle 與圖示。
+4. 最後以獨立 commit 更新 `version.json`，才通知既有裝置更新。
+
+已安裝的主畫面 App 圖示是否立即刷新由 iOS 控制；網站及安裝頁會使用新版圖示。不要為了換圖示直接移除已訂閱通知的 App，移除/重裝後可能需要重新允許及訂閱通知。

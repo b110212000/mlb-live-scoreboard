@@ -5,7 +5,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
  const ctx={els:{recapList:list,recapSummary:{}},state:{selectedGamePk:123,currentFeedGamePk:123,currentFeed:{gameData:{teams:{away:{id:119},home:{id:144}},status:{abstractGameState:'Final'}}}},PUSH_API:'https://worker.test',
  sessionStorage:{getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)},syncLiveDetailHeight(){},esc:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'),requestAnimationFrame:f=>f(),AbortSignal,console,Date,Map,
  fetch:async u=>{requests.push(u);return {ok:true,json:async()=>({status:'setup-required',videos:[],sourceLinks:[{label:'MLB',url:'https://www.youtube.com/@MLB/search?query=123'}]})}},navigator:{userAgent:'desktop'}};
- vm.createContext(ctx);vm.runInContext(fs.readFileSync('highlights.js','utf8'),ctx);
+ vm.createContext(ctx);vm.runInContext('function on(t,n,f,o){t.addEventListener(n,f,o)}; var ManagedResizeObserver=typeof ResizeObserver!=="undefined"?ResizeObserver:null;',ctx);vm.runInContext(fs.readFileSync('src/engine/highlights.js','utf8'),ctx);
  await ctx.loadGameRecap();assert.equal(requests.length,0);assert(!html.includes('<img'));assert(html.includes('同意並查看'));
  const count=writes;await ctx.loadGameRecap();assert.equal(writes,count,'polling must keep consent button DOM stable');
  events.click({target:{closest:()=>({dataset:{recapConsent:'accept'}})}});await new Promise(r=>setImmediate(r));assert.equal(requests.length,1);assert(html.includes('尚未啟用'));assert(html.includes('前往 MLB'));

@@ -52,10 +52,7 @@ function localDateString(d=new Date()){
 }
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
-function showError(msg){
-  els.error.style.display=msg?'block':'none';
-  els.error.textContent=msg||'';
-}
+function showError(msg){bridge.publish({error:msg||''});}
 async function getJSON(url){
   const r=await fetch(url,{cache:'no-store'});
   if(!r.ok) throw new Error(`HTTP ${r.status}`);
