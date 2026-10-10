@@ -123,19 +123,52 @@ async function openSeriesGame(gamePk){
   requestAnimationFrame(()=>document.querySelector('.hero')?.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 
+let featureMenuAnimation=null;
+let featureMenuTransition=0;
 function setFeatureMenuOpen(open){
   const menu=els.featureMenu;
+  const wasOpen=menu.open;
+  const wasClosing=menu.classList.contains('is-closing');
+  if(open&&wasOpen&&!wasClosing)return;
+  if(!open&&wasClosing)return;
+  const transition=++featureMenuTransition;
+  // Capture the current position before cancelling, so quick reversals stay smooth.
+  const from=wasOpen?getComputedStyle(menu).transform:'translateX(-100%)';
+  featureMenuAnimation?.cancel();
+  featureMenuAnimation=null;
+  els.featureMenuButton.setAttribute('aria-expanded',String(open));
   if(open){
-    if(menu.open)return;
     menu.hidden=false;
-    menu.showModal();
+    if(!wasOpen)menu.showModal();
     document.body.classList.add('sidebar-open');
-  }else{
-    if(menu.open)menu.close();
+    menu.classList.remove('is-closing');
+  }else if(!wasOpen){
     menu.hidden=true;
     document.body.classList.remove('sidebar-open');
+    return;
+  }else{
+    menu.classList.add('is-closing');
   }
-  els.featureMenuButton.setAttribute('aria-expanded',String(open));
+  const finish=()=>{
+    if(transition!==featureMenuTransition)return;
+    if(!open){
+      menu.close();
+      menu.hidden=true;
+      menu.classList.remove('is-closing');
+      document.body.classList.remove('sidebar-open');
+    }
+    featureMenuAnimation?.cancel();
+    featureMenuAnimation=null;
+  };
+  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const frames=reduced
+    ?[{opacity:open?0:1},{opacity:open?1:0}]
+    :[{transform:from==='none'?'translateX(0)':from},{transform:open?'translateX(0)':'translateX(-100%)'}];
+  if(typeof menu.animate!=='function'){finish();return;}
+  featureMenuAnimation=menu.animate(frames,{
+    duration:reduced?100:280,easing:'cubic-bezier(.22,.68,0,1)',fill:'both'
+  });
+  featureMenuAnimation.finished.then(finish,()=>{});
 }
 
 function isStandaloneApp(){

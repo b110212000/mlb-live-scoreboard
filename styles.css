@@ -2394,8 +2394,9 @@ body.sidebar-open{overflow:hidden}
   background:#111820;color:#f1f3f5;box-shadow:16px 0 48px #0004;
   text-align:left;overflow:hidden;
 }
-#featureMenu[open]{display:flex;flex-direction:column;animation:sidebar-enter .22s ease-out}
-#featureMenu::backdrop{background:rgba(0,0,0,.52)}
+#featureMenu[open]{display:flex;flex-direction:column;}
+#featureMenu::backdrop{background:rgba(0,0,0,.52);animation:sidebar-backdrop-in .28s ease-out both}
+#featureMenu.is-closing::backdrop{animation:sidebar-backdrop-out .28s ease-out both}
 .sidebar-header{display:flex;align-items:center;justify-content:space-between;padding:0 8px 22px;gap:12px}
 #sidebarTitle{font-size:18px;font-weight:700;letter-spacing:.01em}
 .sidebar-close{width:40px;height:40px;display:grid;place-items:center;padding:8px;border:0;background:transparent;color:#aab4bf;border-radius:9px}
@@ -2411,5 +2412,8 @@ body.sidebar-open{overflow:hidden}
 .settings-shell{margin-top:16px;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
 .settings-shell h2{margin:0;font-size:20px}
 .settings-shell p{margin:0;color:var(--muted);font-size:16px}
-@keyframes sidebar-enter{from{transform:translateX(-100%)}to{transform:translateX(0)}}
-@media(prefers-reduced-motion:reduce){#featureMenu[open]{animation:none}}
+/* v1.8.1: Dialog 使用明確的開關動畫，結束後才隱藏。 */
+@keyframes sidebar-backdrop-in{from{opacity:0}to{opacity:1}}
+@keyframes sidebar-backdrop-out{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){#featureMenu::backdrop{animation-duration:.1s}}
+
