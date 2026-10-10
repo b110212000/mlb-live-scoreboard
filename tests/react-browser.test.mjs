@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {chromium} from '@playwright/test';
+const {version}=JSON.parse(await readFile('package.json','utf8'));
 const fixture=JSON.parse(await readFile('tests/fixtures/game.json','utf8'));
 const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const feed=structuredClone(fixture);
@@ -18,7 +19,7 @@ async function setup({width=390,subscribed=false,empty=false}={}){
  const page=await browser.newPage({viewport:{width,height:844},timezoneId:'Asia/Taipei'}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  let current=structuredClone(feed);
- await page.route('**/version.json*',r=>r.fulfill({json:{version:'2.0.0'}}));
+ await page.route('**/version.json*',r=>r.fulfill({json:{version}}));
  await page.route('https://www.mlbstatic.com/**',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="white"/></svg>'}));
  await page.route('https://img.mlbstatic.com/**',r=>r.abort());
  await page.route('https://statsapi.mlb.com/**',r=>{
@@ -29,7 +30,7 @@ async function setup({width=390,subscribed=false,empty=false}={}){
  });
  await page.route('https://mlb-score-notify.b110212000.workers.dev/**',r=>r.fulfill({json:{ok:true,subscribed}}));
  await page.goto(origin);
- await page.locator('.app-version').filter({hasText:'v2.0.0'}).waitFor();
+ await page.locator('.app-version').filter({hasText:'v'+version}).waitFor();
  await page.waitForFunction(()=>document.querySelector('#liveDot')&&!document.querySelector('#liveDot').classList.contains('off'));
  return {page,errors,setFeed:x=>current=x};
 }

@@ -3,17 +3,22 @@
   <rect x="42" y="42" width="428" height="428" rx="96" fill="#0e233a"/>
   <!-- Bat sits behind the baseball, angled from lower left to upper right. -->
   <g transform="rotate(43 256 246)">
-    <path d="M256 37c-19 0-30 13-30 32v107c0 34 17 63 20 91l2 105h16l2-105c3-28 20-57 20-91V69c0-19-11-32-30-32Z" fill="#d9a56a" stroke="#593c25" stroke-width="6"/>
-    <path d="M247 56c-6 21-6 81-3 125m16-120c-3 33-2 88 1 116" fill="none" stroke="#efc78f" stroke-width="6" stroke-linecap="round"/>
-    <path d="M246 323h20m-20 12h20m-20 12h20m-20 12h20" stroke="#74502f" stroke-width="5"/>
-    <rect x="239" y="371" width="34" height="13" rx="6" fill="#d9a56a" stroke="#593c25" stroke-width="5"/>
+    <path d="M256 12c-25 0-39 17-39 42v112c0 39 22 71 26 102l3 127h20l3-127c4-32 26-63 26-102V54c0-25-14-42-39-42Z" fill="#d9a56a" stroke="#593c25" stroke-width="6"/>
+    <path d="M241 34c-8 27-8 86-4 134m25-126c-4 36-3 88 1 119" fill="none" stroke="#efc78f" stroke-width="6" stroke-linecap="round"/>
+    <path d="M245 337h22m-22 14h22m-22 14h22m-22 14h22" stroke="#74502f" stroke-width="5"/>
+    <rect x="234" y="394" width="44" height="16" rx="6" fill="#d9a56a" stroke="#593c25" stroke-width="5"/>
   </g>
+  <defs><clipPath id="ball-clip"><circle cx="256" cy="232" r="126"/></clipPath></defs>
+  <g transform="translate(256 232) scale(.72) translate(-256 -232)">
+    <g clip-path="url(#ball-clip)">
   <circle cx="256" cy="232" r="126" fill="#f8fafc"/>
   <path d="M170 140c38 36 46 82 30 136-9 31-9 62 2 94" fill="none" stroke="#cf4650" stroke-width="15" stroke-linecap="round"/>
   <path d="M342 140c-38 36-46 82-30 136 9 31 9 62-2 94" fill="none" stroke="#cf4650" stroke-width="15" stroke-linecap="round"/>
   <g stroke="#cf4650" stroke-width="9" stroke-linecap="round">
     <path d="M185 178l-22 15"/><path d="M194 215l-24 11"/><path d="M196 254l-24 5"/><path d="M194 294l-23-3"/>
     <path d="M327 178l22 15"/><path d="M318 215l24 11"/><path d="M316 254l24 5"/><path d="M318 294l23-3"/>
+  </g>
+    </g>
   </g>
   <rect x="145" y="376" width="222" height="62" rx="31" fill="#123f5b"/>
   <circle cx="180" cy="407" r="10" fill="#3ddc97"/>
