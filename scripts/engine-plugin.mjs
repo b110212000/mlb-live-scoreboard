@@ -21,6 +21,7 @@ export async function engineSource(){
     return {
       navigate:switchView,
       async selectGame(gamePk){if(disposed)return;clearNotificationRoute();state.selectedGamePk=Number(gamePk);renderTabs();await loadGame(state.selectedGamePk)},
+      subscriptions:{refresh:()=>disposed?null:loadSubscriptions(),setDefaultPrefs,setGamePrefs,unsubscribeGame,followTeam,unfollowTeam,openGame:openSubscribedGame},
       dispose(){disposed=true;lifetime.abort();timeouts.forEach(window.clearTimeout);intervals.forEach(window.clearInterval);frames.forEach(window.cancelAnimationFrame);observers.forEach(o=>o.disconnect())}
     };
   }`;

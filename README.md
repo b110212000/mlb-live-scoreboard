@@ -4,7 +4,7 @@
 
 公開網站：<https://b110212000.github.io/mlb-live-scoreboard/>
 
-目前版本：`v2.0.2`
+目前版本：`v2.1.0`
 
 ## 功能
 
@@ -30,7 +30,8 @@
 **App 體驗**
 
 - iPhone / iPad 加入主畫面、安裝 / 分享 App 頁、Web Share 與複製網址
-- 單場比賽 Web Push 通知：訂閱成功、開賽前 5 分鐘、正式開賽、比分變更、比賽結束；點通知直達該場
+- 單場比賽 Web Push 通知：開賽前 5 分鐘、比賽開始、主隊得分、客隊得分、比賽結束；點通知直達該場
+- 訂閱管理：查看與取消（需確認）已訂閱的比賽、追蹤球隊自動訂閱接下來的季後賽、設定預設提醒項目並可針對單場自訂
 - 下拉重新整理、網站版本更新偵測
 
 > 賽後精華影片功能（v1.4.0–v1.7.0）的前後端程式仍保留，但自 v1.7.1 起暫時隱藏。
@@ -60,8 +61,9 @@ npm test
 
 | 測試 | 內容 |
 | --- | --- |
-| `tests/react-browser.test.mjs` | Playwright 手機 / 桌面互動、焦點輪詢穩定、側邊欄、NO GAME、通知深連結、訂閱狀態 |
-| `tests/game-monitor.cjs` | Worker GameMonitor 通知次序、失敗重試 |
+| `tests/react-browser.test.mjs` | Playwright 手機 / 桌面互動、焦點輪詢穩定、側邊欄、NO GAME、通知深連結、訂閱狀態、訂閱管理頁 |
+| `tests/game-monitor.cjs` | Worker GameMonitor 通知次序、失敗重試、各裝置提醒項目、延賽 / 取消場次清理 |
+| `tests/device-registry.cjs` | Worker DeviceRegistry：訂閱清單、追蹤球隊同步、預設與單場提醒項目、路由與 CORS |
 | `tests/game-watch-ui.cjs` | 前端鈴鐺 / 訂閱狀態 |
 | `tests/notification-link.cjs` | 通知點擊導向比賽 |
 | `tests/highlights.cjs`、`tests/recap-policy.cjs`、`tests/youtube-link.cjs` | 精華影片 API、同意政策與 YouTube 連結（功能目前隱藏） |
@@ -80,8 +82,9 @@ Browser / iPhone 主畫面 Web App（React，GitHub Pages）
         ├── version.json ────────── 新版偵測
         │
         └── Cloudflare Worker（mlb-score-notify）
-              ├── Durable Object：每場比賽一個 GameMonitor，輪詢 MLB 即時資料
-              └── Web Push ──────── 推播到已訂閱的裝置
+              ├── DeviceRegistry：每台裝置一個，保存訂閱清單、追蹤球隊與提醒項目
+              ├── GameMonitor：每場比賽一個，輪詢 MLB 即時資料並依各裝置提醒項目判斷事件
+              └── PushService ───── Web Push 推播到已訂閱的裝置
                                       ↓
                                 service-worker.js（Push-only）
 ```
@@ -93,7 +96,7 @@ Browser / iPhone 主畫面 Web App（React，GitHub Pages）
 ```text
 createEngine({publish})  ──publish(patch)──▶  store.js  ──useSyncExternalStore──▶  React 元件
         ▲                                                                        │
-        └──────────────── actions.navigate / actions.selectGame ◀────────────────┘
+        └──────── actions.navigate / actions.selectGame / actions.subs.* ◀───────┘
 ```
 
 - `src/engine/` 負責抓取 MLB 資料、輪詢排程、Web Push 訂閱，以及統計 / 賽況 / 系列賽等詳細表格渲染。
@@ -108,9 +111,10 @@ createEngine({publish})  ──publish(patch)──▶  store.js  ──useSyncE
 | --- | --- |
 | `src/main.jsx` | React root 與錯誤邊界 |
 | `src/App.jsx` | 頁面生命週期、導航與頁面容器 |
-| `src/store.js` | 比分資料模型與 actions |
-| `src/components/` | 側邊欄、主比分、場次列表、焦點、各頁面元件 |
-| `src/engine/` | `api.js` 共用設定與 HTTP、`live.js` 即時比賽、`postseason.js` 季後賽、`roster.js` 對戰名單與牛棚、`notifications.js` Web Push、`highlights.js` 精華影片、`ui.js` 手勢與安裝 / 分享、`app.js` 初始化與排程 |
+| `src/store.js` | 比分與訂閱管理資料模型、actions |
+| `src/components/` | 側邊欄、主比分、場次列表、焦點、各頁面元件；`SubscriptionManager.jsx` 為訂閱管理頁 |
+| `src/teams.js` | 追蹤球隊選單用的 30 隊中文隊名 |
+| `src/engine/` | `api.js` 共用設定與 HTTP、`live.js` 即時比賽、`postseason.js` 季後賽、`roster.js` 對戰名單與牛棚、`notifications.js` Web Push 與訂閱管理、`highlights.js` 精華影片、`ui.js` 手勢與安裝 / 分享、`app.js` 初始化與排程 |
 | `src/index.html` | HTML 模板（`__VERSION__` 於建置時替換） |
 | `scripts/` | `build.mjs` 建置、`dev.mjs` 開發伺服器、`test.mjs` 測試、`engine-plugin.mjs` esbuild 外掛 |
 | `tests/` | 瀏覽器與 Node 測試、固定賽事資料 |
@@ -183,12 +187,22 @@ v2.0.0（`b774582`）在根目錄新增 `package-lock.json` 後，Cloudflare Wor
 ```text
 即時比賽
 季後賽戰況
-設定 → 訂閱通知
+設定 → 訂閱管理
      → 安裝 / 分享 App
      → 返回主選單
 ```
 
 「對戰名單」的選單入口暫時隱藏，可從比分區右上角的「對戰名單」按鈕進入。
+
+### 訂閱管理
+
+「設定 → 訂閱管理」管理這台裝置的比賽通知（Web Push 以裝置為單位，iPhone 主畫面 App 與電腦瀏覽器各自獨立）：
+
+- **追蹤球隊**：選擇球隊後，Worker 每小時同步一次賽程，自動訂閱該隊接下來 10 天內的季後賽（本站只涵蓋季後賽）。自動加入的場次不發「訂閱成功」通知。取消追蹤時，只因追蹤而加入的場次會一併取消，手動訂閱的保留。
+- **已訂閱的比賽**：列出手動（比分中央的鈴鐺）與追蹤球隊加入的場次，點比賽可開啟。右側「取消」會先跳出確認視窗；取消過的球隊場次不會再被自動加回，重新按鈴鐺可再訂閱。
+- **提醒項目**：開賽前 5 分鐘、比賽開始、主隊得分、客隊得分、比賽結束。預設值套用到所有場次；在清單中按調整按鈕可針對單場自訂，「改回預設」恢復跟隨預設。
+- 已終場、延賽、取消或被移出賽程（沒打成的 if-necessary）的場次會自動從清單移除；延賽 / 取消的場次不發「比賽結束」通知。
+- 頁面底部保留「通知測試工具」，可確認這台裝置能收到推播。
 
 ### 安裝 / 分享 App
 
@@ -704,6 +718,8 @@ sportId=1
 | 季後賽戰況頁 | 開啟時載入，之後每 60 秒 |
 | 系列賽分頁、對戰名單頁 | 開啟中時每 60 秒 |
 | 網站版本檢查 | 開啟頁面、切回 App / 視窗取得焦點、每 15 秒 |
+| 追蹤球隊賽程同步（Worker） | 追蹤或訂閱時立即一次，之後每小時 |
+| 訂閱管理清單 | 開啟訂閱管理頁、在該頁切回 App 時 |
 
 ### 網站版本更新
 
@@ -712,8 +728,8 @@ sportId=1
 所有前端資源 URL 都帶有版本參數，例如：
 
 ```text
-styles.css?v=2.0.2
-assets/app-2.0.2.js?v=2.0.2
+styles.css?v=2.1.0
+assets/app-2.1.0.js?v=2.1.0
 ```
 
 因此新版部署後可直接避開瀏覽器舊快取，尤其是 iPhone 主畫面 Web App。頁面頂端下拉也可以重新整理整個網站。
@@ -772,6 +788,16 @@ MLB Stats API
 ---
 
 ## 更新紀錄
+
+### v2.1.0 訂閱管理
+
+- 「設定」中的「訂閱通知」改為「訂閱管理」：追蹤球隊、已訂閱的比賽、提醒項目，通知測試工具收合在頁面底部。
+- 追蹤球隊：Worker 新增每台裝置一個的 `DeviceRegistry`（Durable Object），每小時同步賽程，自動訂閱該隊接下來的季後賽；取消過的場次不會被自動加回。
+- 已訂閱的比賽可開啟、單場自訂提醒項目，右側「取消」需要確認；取消追蹤球隊也需要確認。
+- 提醒項目：開賽前 5 分鐘、比賽開始、主隊得分、客隊得分、比賽結束；預設套用到所有場次，可針對單場自訂。比分通知改為「某隊 得分」，沒開啟的那隊得分只更新比分基準、不通知。
+- 鈴鐺訂閱 / 取消改經過 `DeviceRegistry`；v2.1.0 以前直接訂閱的場次會在開啟訂閱管理頁時自動搬入清單，不重發「訂閱成功」。
+- 修正：延賽（MLB 回傳 `Final / Postponed`）原本會被當成終場而送出「比賽結束」；延賽、取消與沒打成的 if-necessary 場次（`codedGameState` X）現在直接結束監控並清除訂閱，不再每 30 秒輪詢。
+- 舊 `/api/watch` 端點與既有訂閱格式保持相容：沒有提醒項目設定的舊訂閱視為全部開啟。
 
 ### v2.0.2 設定子選單
 

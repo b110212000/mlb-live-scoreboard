@@ -207,7 +207,10 @@ on(window,'load',async()=>{
   if(!reloading)checkForAppUpdate();
 });
 on(document,'visibilitychange',()=>{
-  if(!document.hidden)checkForAppUpdate();
+  if(document.hidden)return;
+  checkForAppUpdate();
+  // 回到 App 時更新訂閱清單（追蹤球隊可能已自動加入新場次）。
+  if(state.view==='notifications')loadSubscriptions();
 });
 on(window,'focus',checkForAppUpdate);
 setInterval(checkForAppUpdate,15000);

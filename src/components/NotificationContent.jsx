@@ -1,11 +1,13 @@
 import {memo} from 'react';
+// Stable hosts: notifications.js 直接更新這些元素的文字與狀態，因此這個元件不可重新渲染。
 export const NotificationContent=memo(function NotificationContent(){return <>
 
-<section className="card notification-shell">
+<details className="card notification-shell notification-tools">
+<summary>
+<span className="notification-tools-title">{"通知測試工具"}</span>
+<span className="notification-tools-hint">{"確認這台裝置能正常收到推播"}</span>
+</summary>
 <div className="notification-head">
-<div className="notification-icon">{"🔔"}</div>
-<h2>{"訂閱通知"}</h2>
-<p>{"比分中央的鈴鐺可訂閱單場比賽；此頁保留 Web Push 測試工具。"}</p>
 <div id="notificationStatus" className="notification-status">{"檢查裝置通知能力中…"}</div>
 </div>
 <div className="notification-checks">
@@ -40,6 +42,6 @@ export const NotificationContent=memo(function NotificationContent(){return <>
 <div><b>{"4"}</b><span>{"30 秒後再收到"}</span></div>
 </div>
 <div className="notification-note">{"\n          iPhone / iPad 必須先用 Safari 將網站「加入主畫面」，再從主畫面開啟 MLB 戰況後測試。第二則通知用來確認網站關閉或手機鎖定後，背景 Push 仍可正常送達。\n        "}</div>
-</section>
+</details>
 
 </>});

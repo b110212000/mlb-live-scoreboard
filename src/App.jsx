@@ -7,8 +7,9 @@ import {BracketContent} from './components/BracketContent.jsx';
 import {RosterContent} from './components/RosterContent.jsx';
 import {InstallContent} from './components/InstallContent.jsx';
 import {NotificationContent} from './components/NotificationContent.jsx';
+import {SubscriptionManager} from './components/SubscriptionManager.jsx';
 import {UpdateControls} from './components/UpdateControls.jsx';
-const titles={live:'MLB 季後賽即時戰況',bracket:'MLB 季後賽戰況',roster:'MLB 對戰名單',install:'安裝 / 分享 MLB 戰況',notifications:'MLB 訂閱通知',settings:'設定'};
+const titles={live:'MLB 季後賽即時戰況',bracket:'MLB 季後賽戰況',roster:'MLB 對戰名單',install:'安裝 / 分享 MLB 戰況',notifications:'訂閱管理',settings:'設定'};
 export function App(){
   const {view}=useScoreboard(),[menuOpen,setMenuOpen]=useState(false);
   useEffect(()=>{
@@ -25,9 +26,9 @@ export function App(){
       <div id="bracketView" className="app-view" hidden={view!=='bracket'}><BracketContent/></div>
       <div id="rosterView" className="app-view" hidden={view!=='roster'}><RosterContent/></div>
       <div id="installView" className="app-view" hidden={view!=='install'}><InstallContent/></div>
-      <div id="notificationView" className="app-view" hidden={view!=='notifications'}><NotificationContent/></div>
+      <div id="notificationView" className="app-view" hidden={view!=='notifications'}><SubscriptionManager/><NotificationContent/></div>
       <div id="settingsView" className="app-view" hidden={view!=='settings'}><section className="card settings-shell" aria-label="設定"><h2>設定</h2><p>開發中</p></section></div>
-      <footer className="foot" aria-label="網站資訊"><span>資料來源：MLB Stats API · 每 5 秒更新</span><span className="app-version">v2.0.2</span><span className="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span></footer>
+      <footer className="foot" aria-label="網站資訊"><span>資料來源：MLB Stats API · 每 5 秒更新</span><span className="app-version">v2.1.0</span><span className="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span></footer>
     </main>
   </>;
 }

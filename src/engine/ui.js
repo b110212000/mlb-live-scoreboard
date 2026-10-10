@@ -203,7 +203,7 @@ function switchView(view){
   if(view==='bracket')loadBracket();
   if(view==='roster')loadMatchupRoster();
   if(view==='install')syncInstallPage();
-  if(view==='notifications')syncNotificationPage();
+  if(view==='notifications'){syncNotificationPage();loadSubscriptions();}
 }
 
 function setTopControlsExpanded(expanded){
