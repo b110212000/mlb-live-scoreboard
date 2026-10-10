@@ -147,10 +147,20 @@ Folder: / (root)
 
 1. 修改來源，依版本規則更新 `package.json`、React 頁尾版本（`src/App.jsx`）、README，以及 manifest / 圖示等版本引用。
 2. 執行 `npm ci`、`npm run build`、`npm test`，提交來源、lockfile、`index.html` 及對應的 bundle / 圖示。
-3. 確認 GitHub Pages 已部署正確的 HTML、CSS、bundle 與圖示；若有修改 Worker，也確認 Worker 已部署。
+3. 確認 GitHub Pages 已部署正確的 HTML、CSS、bundle 與圖示；若有修改 `worker/`，確認該 commit 的 **Workers Builds: mlb-score-notify** 檢查為 success（見下方「踩過的坑」）。
 4. **最後**以獨立 commit 更新 `version.json`，才會通知既有裝置更新。
 
 Worker 由 Cloudflare Workers Builds 從 `worker/` 目錄自動部署（`npx wrangler deploy`）。除非任務需要，不要更改 Worker 與訂閱儲存格式，以免既有訂閱失效。
+
+### 踩過的坑：Worker 部署靜默失敗
+
+v2.0.0（`b774582`）在根目錄新增 `package-lock.json` 後，Cloudflare Workers Builds 偵測到 npm，改在 `worker/` 執行 `npm ci`；但 `worker/` 沒有 lockfile，於是每次都以 `npm error code EUSAGE` 失敗，直到 `73e7065` 補上 `worker/package-lock.json` 才恢復。期間線上一直跑舊版 Worker，`/health` 仍回 `ok: true`，所以完全沒被發現。
+
+- **`/health` 正常不代表新版已部署。** 修改 `worker/` 後，要檢查該 commit 在 GitHub 上的 `Workers Builds: mlb-score-notify` 檢查結果，例如：
+  `curl https://api.github.com/repos/b110212000/mlb-live-scoreboard/commits/<sha>/check-runs`
+- 修改 `worker/package.json` 的套件時，在 `worker/` 執行 `npm install` 並一起提交 `worker/package-lock.json`。
+- 可在本機重現 Cloudflare 建置：`cd worker && npm ci && npx wrangler deploy --dry-run --outdir dist`。
+- Worker 重新部署後，確認 `/api/push/public-key` 沒變，否則既有訂閱會全部失效。
 
 已安裝的主畫面 App 圖示是否立即刷新由 iOS 控制。不要為了換圖示直接移除已訂閱通知的 App，移除 / 重裝後可能需要重新允許並訂閱通知。
 
