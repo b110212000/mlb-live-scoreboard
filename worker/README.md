@@ -128,11 +128,13 @@ Secret（在 Cloudflare 後台 Settings → Variables and Secrets 設定，不�
 - Root directory：`worker`
 - Deploy command：`npx wrangler deploy`
 
+Workers Builds 會在 `worker/` 執行 `npm ci`，因此 `worker/package-lock.json` 必須提交。修改 `worker/package.json` 的套件後，請在 `worker/` 執行 `npm install` 更新 lockfile 一起提交，否則建置會以 `EUSAGE` 失敗。
+
 本機開發：
 
 ```sh
 cd worker
-npm install
+npm ci
 npx wrangler dev
 ```
 
