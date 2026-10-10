@@ -32,7 +32,6 @@ Worker (src/index.js) ── 路由與 CORS
 | `src/push-service.js` | `PushService`：VAPID 金鑰、批次發送、測試推播 |
 | `src/mlb.js` | 讀取 MLB live feed 並整理成快照 |
 | `src/highlights.js` | YouTube 影片推薦（前端入口目前隱藏） |
-| `src/push.js` | 早期的推播佔位函式，目前沒有被任何模組引用 |
 | `wrangler.jsonc` | Worker 名稱、Durable Object 綁定與環境變數 |
 
 ## 通知規則
