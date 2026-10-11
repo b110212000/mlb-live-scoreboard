@@ -166,19 +166,32 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await row.locator('.subs-tag.custom').waitFor();
  const custom=mock.calls.find(c=>/^\/games\/\d+\/prefs$/.test(c.path));assert.equal(custom.body.prefs.final,false);assert.equal(custom.body.prefs.homeScore,false);
 
- // 訂閱管理不再有追蹤球隊區塊；追蹤道奇改到主選單的追蹤球隊頁。
- assert.equal(await page.locator('#notificationView .team-option').count(),0);
+ // 訂閱管理沒有追蹤球隊區塊；追蹤道奇在主選單的追蹤球隊頁。
+ assert.equal(await page.locator('#notificationView .team-card').count(),0);
  await openTeams(page);
  assert.equal(await page.locator('#appTitle').innerText(),'追蹤球隊');
- assert.equal(await page.locator('#teamsView .team-option').count(),30);
- const dodgers=page.locator('#teamsView .team-option[data-team-id="119"]');
+ // 左右開關預設美國聯盟；東 / 中 / 西三區各 5 張卡片，卡片有中英文隊名。
+ const sw=page.locator('#teamsView .league-switch');
+ assert.equal(await sw.locator('[data-league=AL]').getAttribute('aria-checked'),'true');
+ assert.deepEqual(await page.locator('#teamsView .division h3').allInnerTexts(),['東區','中區','西區']);
+ assert.deepEqual(await page.locator('#teamsView .division').evaluateAll(list=>list.map(s=>s.querySelectorAll('.team-card').length)),[5,5,5]);
+ const yankees=page.locator('#teamsView .team-card[data-team-id="147"]');
+ assert((await yankees.innerText()).includes('洋基'));assert((await yankees.innerText()).includes('New York Yankees'));
+ assert(await yankees.evaluate(el=>el.closest('.division').querySelector('h3').textContent==='東區'));
+ assert.equal(await page.locator('#teamsView .team-card[data-team-id="119"]').count(),0,'NL team listed under AL');
+ await sw.locator('[data-league=NL]').click();
+ assert.equal(await sw.locator('[data-league=NL]').getAttribute('aria-checked'),'true');
+ const dodgers=page.locator('#teamsView .team-card[data-team-id="119"]');
+ assert((await dodgers.innerText()).includes('道奇'));assert((await dodgers.innerText()).includes('Los Angeles Dodgers'));
+ assert(await dodgers.evaluate(el=>el.closest('.division').querySelector('h3').textContent==='西區'));
  assert.equal(await dodgers.getAttribute('aria-pressed'),'false');
+ // 點一下追蹤。
  await dodgers.click();
- await page.locator('#teamsView .followed-team[data-team-id="119"]').waitFor();
- assert.equal(await dodgers.getAttribute('aria-pressed'),'true');
+ await page.waitForFunction(()=>document.querySelector('#teamsView .team-card[data-team-id="119"]').getAttribute('aria-pressed')==='true');
  assert.equal(mock.calls.find(c=>c.path==='/teams').body.subscription.endpoint,'https://push.example/mock');
  assert((await page.locator('#teamsView .subs-feedback').innerText()).includes('已追蹤道奇'));
- assert((await page.locator('#teamsView .followed-team[data-team-id="119"]').innerText()).includes('已自動訂閱 1 場'));
+ assert((await dodgers.innerText()).includes('自動訂閱 1 場'));
+ assert.equal(await sw.locator('[data-league=NL] .league-count').innerText(),'1');
  await openSubscriptions(page);
  assert.equal(await page.locator('#notificationView .subs-feedback').innerText(),'','stale notice carried over to another page');
  const auto=page.locator('.subs-game[data-game-pk="'+teamGame.gamePk+'"]');await auto.waitFor();
@@ -201,16 +214,13 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await row.waitFor({state:'detached'});
  assert(mock.calls.some(c=>c.method==='DELETE'&&c.path==='/games/'+feed.gamePk));
 
- // 取消追蹤需要確認（點已追蹤的球隊），並移除因追蹤而加入的場次。
+ // 再點一下取消追蹤（不跳確認），並移除因追蹤而加入的場次；聯盟選擇保留。
  await openTeams(page);
+ assert.equal(await sw.locator('[data-league=NL]').getAttribute('aria-checked'),'true','league choice not kept');
  await dodgers.click();
- assert((await page.locator('#teamConfirm').innerText()).includes('取消追蹤道奇'));
- await page.locator('#teamConfirm [data-confirm=cancel]').click();
- assert(!mock.calls.some(c=>c.method==='DELETE'&&c.path==='/teams/119'),'kept team was unfollowed');
- await page.locator('#teamsView .followed-team[data-team-id="119"] .subs-btn').click();
- await page.locator('#teamConfirm [data-confirm=ok]').click();
- await page.locator('#teamsView .followed-team').waitFor({state:'detached'});
- assert.equal(await dodgers.getAttribute('aria-pressed'),'false');
+ await page.waitForFunction(()=>document.querySelector('#teamsView .team-card[data-team-id="119"]').getAttribute('aria-pressed')==='false');
+ assert(mock.calls.some(c=>c.method==='DELETE'&&c.path==='/teams/119'));
+ assert.equal(await sw.locator('.league-count').count(),0);
  await openSubscriptions(page);
  assert.equal(await page.locator('.subs-game').count(),0);
  assert((await page.locator('.subs-empty').allInnerTexts()).some(x=>x.includes('目前沒有訂閱')));

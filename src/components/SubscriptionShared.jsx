@@ -37,9 +37,3 @@ export function ConfirmDialog({id,request,onClose}){
     </div>}
   </dialog>;
 }
-
-export const unfollowRequest=id=>({
-  title:`取消追蹤${teamName(id)}？`,
-  message:`因追蹤${teamName(id)}而自動加入的比賽會一併取消；手動訂閱的比賽會保留。`,
-  confirmLabel:'取消追蹤'
-});
