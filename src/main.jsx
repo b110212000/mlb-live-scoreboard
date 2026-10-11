@@ -1,6 +1,9 @@
 import {Component} from 'react';
 import {createRoot} from 'react-dom/client';
 import {App} from './App.jsx';
+import {applyTheme} from './theme.js';
+// 外觀（深色 / 淺色）：同步網址列顏色；<head> 已先套用 data-theme。
+applyTheme();
 class AppBoundary extends Component{
   state={failed:false};
   static getDerivedStateFromError(){return {failed:true}}

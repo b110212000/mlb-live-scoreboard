@@ -4,7 +4,7 @@
 
 公開網站：<https://b110212000.github.io/mlb-live-scoreboard/>
 
-目前版本：`v2.5.3`
+目前版本：`v2.6.0`
 
 ## 功能
 
@@ -40,6 +40,7 @@
 - 單場比賽 Web Push 通知：開賽前 5 分鐘、比賽開始、主隊得分、客隊得分、比賽結束；點通知直達該場
 - 追蹤球隊（主選單）：左右開關或左右滑動切換美國聯盟 / 國家聯盟，東區、中區、西區三欄並排、各區球隊由上往下排，點一下追蹤、再點一下取消，自動訂閱該隊接下來的季後賽
 - 訂閱管理（主選單）：查看與取消（需確認）已訂閱的比賽、個別加入行事曆、設定預設提醒項目並可針對單場自訂
+- 外觀（設定 → 外觀）：深色 / 淺色 / 跟隨系統，設定存在這台裝置
 - 下拉重新整理、網站版本更新偵測
 
 > 賽後精華影片功能（v1.4.0–v1.7.0）的前後端程式仍保留，但自 v1.7.1 起暫時隱藏。
@@ -124,16 +125,19 @@ createEngine({publish})  ──publish(patch)──▶  store.js  ──useSyncE
 | `src/teams.js` | 追蹤球隊選單用的 30 隊中文隊名 |
 | `src/players.js` | 球員資料共用：照片網址、中文守備位置 / 國家 / 層級、主要獎項對照（依 MLB 獎項 id）、單位換算、舊隊名 |
 | `src/wiki.js` | 球員頁的生平：用 Wikidata（MLB 球員編號）找維基百科條目並取得導言 |
+| `src/theme.js` | 外觀偏好（深色 / 淺色 / 跟隨系統）：存在 localStorage，套用在 `<html data-theme>` |
+| `src/theme-light.css` | 淺色主題的手動調整（接在自動產生的淺色規則後面） |
 | `src/taiwanPlayers.js` | 台灣旅外球員的中文姓名（只放確定的譯名） |
 | `src/engine/` | `api.js` 共用設定與 HTTP、`live.js` 即時比賽、`postseason.js` 季後賽、`roster.js` 對戰名單與牛棚、`notifications.js` Web Push 與訂閱管理、`highlights.js` 精華影片、`ui.js` 手勢與安裝 / 分享、`app.js` 初始化與排程 |
 | `src/index.html` | HTML 模板（`__VERSION__` 於建置時替換） |
-| `scripts/` | `build.mjs` 建置、`dev.mjs` 開發伺服器、`test.mjs` 測試、`engine-plugin.mjs` esbuild 外掛 |
+| `scripts/` | `build.mjs` 建置、`dev.mjs` 開發伺服器、`test.mjs` 測試、`engine-plugin.mjs` esbuild 外掛、`theme-light.mjs` 由 `styles.css` 產生淺色主題 |
 | `tests/` | 瀏覽器與 Node 測試、固定賽事資料 |
 | `worker/` | Cloudflare Worker 與 Durable Object（見 `worker/README.md`） |
 | `index.html` | **建置產物**：部署用 HTML 入口 |
 | `assets/app-<version>.js` | **建置產物**：打包後的 React 與 App 程式，附 `.LEGAL.txt` 授權檔 |
 | `assets/app-icon-{180,192,512}.png` | **建置產物**：由 `app-icon.svg` 以 sharp 產生 |
-| `styles.css` | 全站樣式 |
+| `styles.css` | 全站樣式（深色；淺色由它自動產生） |
+| `theme-light.css` | **建置產物**：淺色主題，由 `styles.css` + `src/theme-light.css` 自動產生，不要手動修改 |
 | `app-icon.svg` | App / 網站圖示來源 |
 | `manifest.json` | Web App / 加入主畫面設定 |
 | `service-worker.js` | Push-only Service Worker：接收與點擊 Web Push，不快取 App 資源 |
@@ -203,7 +207,8 @@ v2.0.0（`b774582`）在根目錄新增 `package-lock.json` 後，Cloudflare Wor
 名人堂
 追蹤球隊
 訂閱管理
-設定 → 訂閱測試
+設定 → 外觀
+     → 訂閱測試
      → 安裝 / 分享 App
      → 返回主選單
 ```
@@ -278,6 +283,19 @@ v2.0.0（`b774582`）在根目錄新增 `package-lock.json` 後，Cloudflare Wor
 ### 訂閱測試
 
 「設定 → 訂閱測試」檢查這台裝置的通知權限與 Push 訂閱，按「測試訂閱」後 Worker 會立即送一則、30 秒後再送一則推播，用來確認關閉網站或鎖定手機後仍收得到。iPhone / iPad 需先從 Safari 加入主畫面，再從主畫面開啟後測試。
+
+### 外觀（深色 / 淺色）
+
+「設定 → 外觀」可選深色（預設）、淺色或跟隨系統（依手機 / 電腦的深色模式自動切換，系統切換時立即跟著變）。設定存在這台裝置的瀏覽器（`localStorage` 的 `mlb-theme`），`index.html` 的 `<head>` 會先套用，重新整理不會先閃一下深色；網址列顏色（`theme-color`）也會跟著換。
+
+淺色主題不是另外手寫一份，而是 `npm run build` 時由 `scripts/theme-light.mjs` 從深色的 `styles.css` 自動產生 `theme-light.css`：
+
+- 每條含顏色的規則複製一份，選擇器前加 `html[data-theme=light]`，顏色依亮度換算（深色表面變淺色、保留層次；淺色文字變深色；鮮豔的強調 / 狀態色加深以便在白底上閱讀；陰影與遮罩維持深色但淡一點）。頁面底色、面板、文字、強調色等重點顏色另外直接指定。
+- 與顏色有關但值不是顏色的宣告（`background:none`、`border:0`、`var(...)`）也照抄，淺色層的權重關係才會和原本一致。
+- `@media` 保留，`@keyframes`、`mask`、選擇器含 `data-theme` 的規則不轉換（例如外觀頁的預覽色塊）。
+- 換算結果不理想的地方寫在 `src/theme-light.css`，會接在最後面；例如開關圓鈕維持白色、iPhone 主畫面 App 在淺色模式於狀態列墊一條深色底（狀態列文字是白色）。
+
+所以平常只要改 `styles.css`，淺色會在建置時自動同步；`tests/theme.cjs` 會檢查 `theme-light.css` 是否為目前 `styles.css` 產生的版本。
 
 ### 安裝 / 分享 App
 
@@ -877,8 +895,9 @@ sportId=1
 所有前端資源 URL 都帶有版本參數，例如：
 
 ```text
-styles.css?v=2.5.3
-assets/app-2.5.3.js?v=2.5.3
+styles.css?v=2.6.0
+theme-light.css?v=2.6.0
+assets/app-2.6.0.js?v=2.6.0
 ```
 
 因此新版部署後可直接避開瀏覽器舊快取，尤其是 iPhone 主畫面 Web App。頁面頂端下拉也可以重新整理整個網站。
@@ -939,6 +958,12 @@ MLB Stats API
 ---
 
 ## 更新紀錄
+
+### v2.6.0 外觀：深色 / 淺色模式
+
+- 新功能「設定 → 外觀」：深色（預設）、淺色、跟隨系統；設定存在這台裝置，重新整理不會先閃深色，網址列顏色跟著換。
+- 淺色主題由 `styles.css` 在建置時自動產生（`theme-light.css`），手動調整寫在 `src/theme-light.css`；改樣式時深淺色會一起更新。
+- iPhone 主畫面 App 在淺色模式於狀態列墊深色底，讓白色的時間與電量看得到。
 
 ### v2.5.3 逐年成績以大聯盟為主
 

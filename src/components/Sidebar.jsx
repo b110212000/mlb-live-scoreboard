@@ -1,7 +1,9 @@
 import {useEffect,useRef,useState} from 'react';
 import {Icon} from './Icon.jsx';
 const links=[['live','即時比賽'],['bracket','季後賽戰況'],['standings','戰績排行'],['taiwan','台灣旅外'],['hof','名人堂'],['teams','追蹤球隊'],['notifications','訂閱管理']];
-const settingsLinks=[['notificationTest','訂閱測試'],['install','安裝 / 分享 App']];
+const settingsLinks=[['settings','外觀'],['notificationTest','訂閱測試'],['install','安裝 / 分享 App']];
+// 選單項目的圖示（預設與頁面同名）；「外觀」用太陽 / 月亮，與「設定」的齒輪區分。
+const ICONS={settings:'theme'};
 export function Sidebar({open,view,onClose,onNavigate}){
   const ref=useRef(null);
   const [section,setSection]=useState('main');
@@ -20,7 +22,7 @@ export function Sidebar({open,view,onClose,onNavigate}){
     return ()=>{cancelled=true;animation.cancel()};
   },[open]);
   useEffect(()=>()=>document.body.classList.remove('sidebar-open'),[]);
-  const item=([id,label])=><button key={id} className={'feature-menu-item'+(view===id?' active':'')} type="button" data-view={id} aria-current={view===id?'page':undefined} onClick={()=>{onNavigate(id);onClose()}}><span className="feature-menu-icon"><Icon name={id}/></span><span className="feature-menu-copy"><b>{label}</b></span></button>;
+  const item=([id,label])=><button key={id} className={'feature-menu-item'+(view===id?' active':'')} type="button" data-view={id} aria-current={view===id?'page':undefined} onClick={()=>{onNavigate(id);onClose()}}><span className="feature-menu-icon"><Icon name={ICONS[id]||id}/></span><span className="feature-menu-copy"><b>{label}</b></span></button>;
   return <dialog ref={ref} id="featureMenu" className="feature-menu" aria-labelledby="sidebarTitle" hidden onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target!==e.currentTarget)return;const r=e.currentTarget.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)onClose()}}>
     <div className="sidebar-header"><span id="sidebarTitle">{section==='settings'?'設定':'MLB 戰況'}</span><button id="featureMenuClose" className="sidebar-close" type="button" aria-label="關閉側邊欄" autoFocus onClick={onClose}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16m7-12-3 4 3 4"/></svg></button></div>
     <nav className="sidebar-nav" aria-label={section==='settings'?'設定選單':'主要功能'}>

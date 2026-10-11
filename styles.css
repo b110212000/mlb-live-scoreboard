@@ -2742,3 +2742,14 @@ body.sidebar-open{overflow:hidden}
 .year-more{min-width:22px;padding:0 5px;border-radius:999px;background:#17476b;color:#bfe3ff;font-size:10px;font-weight:800;line-height:1.7;text-align:center}
 .player-years tr.sub td{color:var(--muted);font-size:12px;background:#ffffff05}
 .player-years tr.sub td.team-col{padding-left:14px;font-weight:500}
+
+/* v2.6.0 外觀設定（深色 / 淺色 / 跟隨系統）。預覽色塊的選擇器含 data-theme，淺色主題不會轉換它們。 */
+.theme-shell{gap:14px}
+.theme-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.theme-options button{min-height:0;padding:12px 8px;border:1px solid #294966;border-radius:14px;background:#0b1a2b;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:8px}
+.theme-options button[aria-checked=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.theme-options b{font-size:14px}
+.theme-swatch{width:100%;max-width:120px;aspect-ratio:4/3;border-radius:10px;border:1px solid #3b5470}
+.theme-options [data-theme-option=dark] .theme-swatch{background:linear-gradient(180deg,#0c1b2d 0 32%,#06111f 32%)}
+.theme-options [data-theme-option=light] .theme-swatch{background:linear-gradient(180deg,#ffffff 0 32%,#e9eff6 32%);border-color:#c7d3e0}
+.theme-options [data-theme-option=system] .theme-swatch{background:linear-gradient(135deg,#e9eff6 0 50%,#06111f 50%)}

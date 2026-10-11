@@ -75,7 +75,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=live]').count(),0);
  assert.equal(await page.locator('[data-view=teams]').count(),0);
  assert.equal(await page.locator('[data-view=notifications]').count(),0);
- assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['notificationTest','install']);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['settings','notificationTest','install']);
  assert.equal(await page.locator('[data-view=notificationTest]').innerText(),'訂閱測試');
  await page.locator('[data-view=notificationTest]').click();
  assert(await page.locator('#featureMenu').evaluate(d=>d.open),'must remain open during exit');
@@ -88,9 +88,9 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  await page.locator('[data-menu-back]').click();assert.equal(await page.locator('#sidebarTitle').innerText(),'MLB 戰況');
  await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
- for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['hof','hofView'],['teams','teamsView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
+ for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['hof','hofView'],['teams','teamsView'],['install','installView'],['settings','settingsView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
-   if(['install','notificationTest'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+   if(['install','notificationTest','settings'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
    if(['live','bracket','standings','taiwan','hof','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
@@ -617,5 +617,47 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  // 找不到的球員顯示錯誤，不讓頁面壞掉。
  await page.goto(origin+'/?view=player&playerId=1');
  await page.locator('#playerView .subs-banner').filter({hasText:'球員資料讀取失敗'}).waitFor();
+ assert.deepEqual(errors,[]);await page.close();
+});
+
+// ---------- v2.6.0 外觀：深色 / 淺色 / 跟隨系統 ----------
+test('Appearance setting: dark, light and follow system',async()=>{
+ const {page,errors}=await setup();
+ const theme=()=>page.evaluate(()=>document.documentElement.dataset.theme);
+ const panel=()=>page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--panel').trim());
+ const option=value=>page.locator(`#settingsView [data-theme-option=${value}]`);
+ // 預設深色。
+ assert.equal(await theme(),'dark');assert.equal(await panel(),'#0c1b2d');
+ await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
+ await page.locator('[data-menu-settings]').click();
+ await page.locator('[data-view=settings]').click();await page.waitForTimeout(320);
+ assert.equal(await page.locator('#appTitle').innerText(),'外觀');
+ assert.deepEqual(await page.locator('#settingsView [data-theme-option] b').allInnerTexts(),['深色','淺色','跟隨系統']);
+ assert.equal(await option('dark').getAttribute('aria-checked'),'true');
+ // 淺色：整頁換色、網址列顏色、記在這台裝置。
+ await option('light').click();
+ assert.equal(await theme(),'light');assert.equal(await panel(),'#ffffff');
+ assert.equal(await option('light').getAttribute('aria-checked'),'true');assert.equal(await option('dark').getAttribute('aria-checked'),'false');
+ assert.equal(await page.locator('meta[name="theme-color"]').getAttribute('content'),'#eef2f7');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('mlb-theme')),'light');
+ assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('#settingsView .card')).color),'rgb(19, 32, 46)');
+ // 重新整理後仍是淺色（<head> 先套用，不會先閃深色）。
+ await page.reload();
+ assert.equal(await theme(),'light');
+ await page.locator('.app-version').filter({hasText:'v'+version}).waitFor();
+ assert.equal(await page.locator('meta[name="theme-color"]').getAttribute('content'),'#eef2f7');
+ // 跟隨系統：系統是深色就深色，切到淺色立刻跟著變。
+ await page.emulateMedia({colorScheme:'dark'});
+ await page.goto(origin+'/?view=settings');
+ await option('system').click();
+ assert.equal(await theme(),'dark');assert.equal(await page.evaluate(()=>localStorage.getItem('mlb-theme')),'system');
+ await page.emulateMedia({colorScheme:'light'});
+ await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');
+ await page.reload();assert.equal(await theme(),'light');
+ // 回到深色。
+ await page.goto(origin+'/?view=settings');
+ await option('dark').click();
+ assert.equal(await theme(),'dark');assert.equal(await panel(),'#0c1b2d');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('mlb-theme')),'dark');
  assert.deepEqual(errors,[]);await page.close();
 });

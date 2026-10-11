@@ -13,7 +13,9 @@
   <link rel="icon" href="./app-icon.svg?v=__VERSION__" type="image/svg+xml" />
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/app-icon-180.png?v=__VERSION__" />
   <title>MLB 即時戰況 Pro</title>
+  <script>try{var t=localStorage.getItem('mlb-theme');if(t==='system')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
   <link rel="stylesheet" href="./styles.css?v=__VERSION__">
+  <link rel="stylesheet" href="./theme-light.css?v=__VERSION__">
   <meta name="app-version" content="__VERSION__" />
 </head>
 <body>

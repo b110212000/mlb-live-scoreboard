@@ -1,0 +1,13 @@
+/* 淺色主題的手動調整：接在自動產生的規則後面（同權重時以這裡為準）。
+   一般顏色請直接改 styles.css，淺色會在 npm run build 時自動換算；只有換算結果不理想時才在這裡補。 */
+html[data-theme=light]{color-scheme:light}
+
+/* 開關：圓鈕維持白色（自動換算會把淺灰 / 白色圓鈕變成深色），開啟時的底色用飽和的綠色。 */
+html[data-theme=light] .subs-pref input::after,html[data-theme=light] .subs-pref input:checked::after{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+html[data-theme=light] .subs-pref input:checked{background:#1f9d6b;border-color:#1f9d6b}
+
+/* iPhone 主畫面 App 的狀態列文字是白色（apple-mobile-web-app-status-bar-style: black-translucent），
+   淺色模式在最上方墊一條深色底，時間與電量才看得到。 */
+@media (display-mode: standalone){
+  html[data-theme=light] body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:#13202e;z-index:2147483647;pointer-events:none}
+}

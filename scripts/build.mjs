@@ -2,7 +2,10 @@ import {build} from 'esbuild';
 import sharp from 'sharp';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {enginePlugin} from './engine-plugin.mjs';
+import {buildLightTheme} from './theme-light.mjs';
 const {version}=JSON.parse(await readFile('package.json','utf8'));
+// 淺色主題由 styles.css 自動產生（加上 src/theme-light.css 的手動調整）。
+await writeFile('theme-light.css',buildLightTheme(await readFile('styles.css','utf8'),await readFile('src/theme-light.css','utf8')));
 await mkdir('assets',{recursive:true});
 await Promise.all([180,192,512].map(size=>sharp('app-icon.svg').resize(size,size).png().toFile(`assets/app-icon-${size}.png`)));
 

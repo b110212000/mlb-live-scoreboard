@@ -13,9 +13,10 @@ import {StandingsPage} from './components/StandingsPage.jsx';
 import {TaiwanPlayers} from './components/TaiwanPlayers.jsx';
 import {HallOfFame} from './components/HallOfFame.jsx';
 import {PlayerPage} from './components/PlayerPage.jsx';
+import {SettingsPage} from './components/SettingsPage.jsx';
 import {Toast} from './components/Toast.jsx';
 import {UpdateControls} from './components/UpdateControls.jsx';
-const titles={live:'MLB 即時戰況',bracket:'MLB 季後賽戰況',standings:'戰績排行',taiwan:'台灣旅外球員',hof:'名人堂',player:'球員資料',teams:'追蹤球隊',roster:'MLB 對戰名單',install:'安裝 / 分享 MLB 戰況',notifications:'訂閱管理',notificationTest:'訂閱測試',settings:'設定'};
+const titles={live:'MLB 即時戰況',bracket:'MLB 季後賽戰況',standings:'戰績排行',taiwan:'台灣旅外球員',hof:'名人堂',player:'球員資料',teams:'追蹤球隊',roster:'MLB 對戰名單',install:'安裝 / 分享 MLB 戰況',notifications:'訂閱管理',notificationTest:'訂閱測試',settings:'外觀'};
 export function App(){
   const {view}=useScoreboard(),[menuOpen,setMenuOpen]=useState(false);
   useEffect(()=>{
@@ -40,8 +41,8 @@ export function App(){
       <div id="installView" className="app-view" hidden={view!=='install'}><InstallContent/></div>
       <div id="notificationView" className="app-view" hidden={view!=='notifications'}><SubscriptionManager/></div>
       <div id="notificationTestView" className="app-view" hidden={view!=='notificationTest'}><NotificationContent/></div>
-      <div id="settingsView" className="app-view" hidden={view!=='settings'}><section className="card settings-shell" aria-label="設定"><h2>設定</h2><p>開發中</p></section></div>
-      <footer className="foot" aria-label="網站資訊"><span>資料來源：MLB Stats API · 每 5 秒更新</span><span className="app-version">v2.5.3</span><span className="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span></footer>
+      <div id="settingsView" className="app-view" hidden={view!=='settings'}><SettingsPage/></div>
+      <footer className="foot" aria-label="網站資訊"><span>資料來源：MLB Stats API · 每 5 秒更新</span><span className="app-version">v2.6.0</span><span className="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span></footer>
     </main>
   </>;
 }
