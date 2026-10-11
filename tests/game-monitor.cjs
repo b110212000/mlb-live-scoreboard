@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),cp=require('child_process');
 const root=process.cwd();
-for(const f of fs.readdirSync(root).filter(f=>f.endsWith('.js')).concat(['worker/src/index.js','worker/src/game-monitor.js','worker/src/mlb.js','worker/src/push-service.js','worker/src/prefs.js','worker/src/device-registry.js','worker/src/calendar.js']))cp.execFileSync('node',['--check',f]);
+for(const f of fs.readdirSync(root).filter(f=>f.endsWith('.js')).concat(['worker/src/index.js','worker/src/game-monitor.js','worker/src/mlb.js','worker/src/push-service.js','worker/src/prefs.js','worker/src/device-registry.js','worker/src/calendar.js','worker/src/taiwan.js']))cp.execFileSync('node',['--check',f]);
 let snapshot;const sends=[];let failed=new Set();
 const ctx={console,Response,Request,URL,Date,DurableObject:class{},fetchGameSnapshot:async()=>structuredClone(snapshot),isFinalGame:s=>/final/i.test(s?.abstractState||''),isLiveGame:s=>/live/i.test(s?.abstractState||''),isCalledOffGame:s=>['D','C','X'].includes(s?.codedState)};
 vm.createContext(ctx);vm.runInContext('function on(t,n,f,o){t.addEventListener(n,f,o)}; var ManagedResizeObserver=typeof ResizeObserver!=="undefined"?ResizeObserver:null;',ctx);vm.runInContext(fs.readFileSync('worker/src/prefs.js','utf8').replace(/^export /gm,''),ctx);let src=fs.readFileSync('worker/src/game-monitor.js','utf8').replace(/^import[\s\S]*?;$/gm,'').replace('export class GameMonitor','globalThis.GameMonitor = class GameMonitor');vm.runInContext(src,ctx);
@@ -44,6 +44,13 @@ snapshot=base('Live',3,2);await mixed.m.checkGame();assert.equal(sends.at(-1).pa
 const off=monitor();snapshot={...base('Live',1,0)};await off.m.watch(watchWith('rain'));mark=sends.length;
 snapshot={...base('Final',1,0),detailedState:'Postponed',codedState:'D'};await off.m.checkGame();assert.equal(sends.length,mark,'called-off game pushed a notification');assert.equal(off.data.get('subscribers').length,0);assert.equal(off.alarm,null);
 const removed=monitor();snapshot={...base('Other'),detailedState:'Unknown',codedState:'X'};const rejected=await removed.m.watch(watchWith('gone'));assert.equal(rejected.status,409);assert.equal((await rejected.json()).error,'GAME_CALLED_OFF');
+// 儲存寫入量：比賽狀態沒變的檢查不寫入（例行賽每天都有比賽，避免超過免費額度）。
+const quietMon=monitor();snapshot=base('Live',1,0);await quietMon.m.watch(watchWith('q1'));
+let puts=0;const realPut=quietMon.storage.put;quietMon.storage.put=async(...a)=>{puts++;return realPut(...a)};
+for(let i=0;i<20;i++)await quietMon.m.checkGame();
+assert.equal(puts,0,'unchanged checks should not write storage, got '+puts);
+snapshot=base('Live',2,0);await quietMon.m.checkGame();assert(puts>0&&puts<=3,'a score change should write a few keys, got '+puts);
+assert.equal(quietMon.data.get('lastSnapshot').awayScore,2);
 console.log('PASS: per-device prefs (pregame/start/home/away/final), silent baseline, no retroactive start, mixed prefs routing, confirm:false, called-off cleanup; subscription confirmation, retry, duplicate suppression, resubscribe, legacy compatibility;  JS syntax, pregame, start, both scores, score-before-final, cleanup, late baseline, per-device baseline, failed score retry, status, cancel, alarms, DO forwarding');
 })().catch(e=>{console.error(e);process.exit(1)});
 

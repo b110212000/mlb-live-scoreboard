@@ -11,6 +11,8 @@ const LIVE_INTERVAL_MS = 5_000;
 const IDLE_INTERVAL_MS = 30_000;
 const ERROR_RETRY_MS = 30_000;
 const PREGAME_NOTICE_MS = 5 * 60_000;
+// 只有比賽狀態改變才寫入快照；lastCheckedAt 最多每 5 分鐘寫一次（診斷用）。
+const CHECK_PERSIST_MS = 5 * 60_000;
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -33,6 +35,16 @@ function publicSnapshot(snapshot) {
     currentInning: snapshot.currentInning ?? null,
     inningState: snapshot.inningState || ""
   };
+}
+
+// 影響通知判斷的欄位；這些都沒變時不必重寫快照。
+function snapshotKey(snapshot) {
+  if (!snapshot) return "";
+  return JSON.stringify([
+    snapshot.abstractState, snapshot.detailedState, snapshot.codedState, snapshot.gameDate,
+    snapshot.awayScore, snapshot.homeScore, snapshot.currentInning, snapshot.inningState,
+    snapshot.isTopInning, snapshot.scoringCount, snapshot.awayTeamId, snapshot.homeTeamId
+  ]);
 }
 
 function subscriptionEndpoint(item) {
@@ -138,11 +150,31 @@ export class GameMonitor extends DurableObject {
 
   async getSubscribers() {
     const raw = await this.ctx.storage.get("subscribers") || [];
+    this.persistedSubscribers = JSON.stringify(raw);
     return raw.map(normalizeSubscriber).filter(Boolean);
   }
 
+  // 內容沒變就不寫入：每 5 秒的檢查大多沒有變化，可大幅減少 Durable Object 寫入量。
   async putSubscribers(subscribers) {
+    const key = JSON.stringify(subscribers);
+    if (key === this.persistedSubscribers) return;
     await this.ctx.storage.put("subscribers", subscribers);
+    this.persistedSubscribers = key;
+  }
+
+  async saveCheck(snapshot, previous) {
+    const now = Date.now();
+    const patch = {};
+    const changed = snapshotKey(snapshot) !== snapshotKey(previous);
+    if (changed) patch.lastSnapshot = snapshot;
+    if (changed || !this.lastCheckedSavedAt || now - this.lastCheckedSavedAt >= CHECK_PERSIST_MS) {
+      patch.lastCheckedAt = new Date(now).toISOString();
+    }
+    if (await this.ctx.storage.get("lastError")) patch.lastError = null;
+    if (Object.keys(patch).length) {
+      await this.ctx.storage.put(patch);
+      if (patch.lastCheckedAt) this.lastCheckedSavedAt = now;
+    }
   }
 
   async startMonitor(request) {
@@ -595,11 +627,7 @@ export class GameMonitor extends DurableObject {
       }
 
       await this.putSubscribers(subscribers);
-      await this.ctx.storage.put({
-        lastSnapshot: snapshot,
-        lastCheckedAt: new Date().toISOString(),
-        lastError: null
-      });
+      await this.saveCheck(snapshot, previous);
 
       const final = isFinalGame(snapshot);
       const live = isLiveGame(snapshot);

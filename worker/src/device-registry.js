@@ -2,8 +2,11 @@ import { DurableObject } from "cloudflare:workers";
 import { normalizePrefs, samePrefs } from "./prefs.js";
 
 const MLB_API = "https://statsapi.mlb.com/api";
-// 與前端相同：本站只涵蓋季後賽。
+// 追蹤球隊自動訂閱的賽事：例行賽（R）與季後賽。
 const POSTSEASON_TYPES = ["F", "D", "L", "W", "P"];
+const SYNC_TYPES = ["R", ...POSTSEASON_TYPES];
+// 例行賽幾乎天天有比賽，只預先訂閱 3 天內的場次；季後賽賽程較疏，看 10 天。
+const REGULAR_LOOKAHEAD_MS = 3 * 86_400_000;
 // 追蹤球隊的下一輪對手要等前一輪結束、MLB 把佔位隊伍（例如 CLE/CWS、AL Champion）換成真正球隊後才查得到，
 // 所以同步間隔不能太長；開啟頁面時若資料超過 STALE_SYNC_MS 也會先同步。
 const SYNC_INTERVAL_MS = 15 * 60_000;
@@ -11,7 +14,7 @@ const STALE_SYNC_MS = 10 * 60_000;
 const LOOKAHEAD_DAYS = 10;
 // 已不在賽程中的場次（沒打成的 if-necessary）在預定時間過後多久從清單移除。
 const MISSING_GRACE_MS = 6 * 60 * 60_000;
-const MAX_GAMES = 40;
+const MAX_GAMES = 60;
 const MAX_DISMISSED = 200;
 const MLB_TEAM_IDS = new Set([
   108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 133,
@@ -422,11 +425,12 @@ export class DeviceRegistry extends DurableObject {
         teamId: teamIds.join(","),
         startDate: utcDate(now - 86_400_000),
         endDate: utcDate(now + LOOKAHEAD_DAYS * 86_400_000),
-        gameType: POSTSEASON_TYPES.join(",")
+        gameType: SYNC_TYPES.join(",")
       });
       for (const game of games) {
         const gamePk = Number(game.gamePk);
-        if (!POSTSEASON_TYPES.includes(game.gameType) || scheduleState(game) !== "active") continue;
+        if (!SYNC_TYPES.includes(game.gameType) || scheduleState(game) !== "active") continue;
+        if (game.gameType === "R" && Date.parse(game.gameDate || "") > now + REGULAR_LOOKAHEAD_MS) continue;
         const matched = teamIds.filter(id =>
           Number(game.teams?.away?.team?.id) === id || Number(game.teams?.home?.team?.id) === id
         );

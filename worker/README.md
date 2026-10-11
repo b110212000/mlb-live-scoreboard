@@ -35,6 +35,7 @@ Worker (src/index.js) ── 路由與 CORS
 | `src/index.js` | 入口、路由、CORS（只允許 `FRONTEND_ORIGIN`） |
 | `src/device-registry.js` | `DeviceRegistry`：每台裝置的訂閱清單、追蹤球隊同步、提醒項目 |
 | `src/game-monitor.js` | `GameMonitor`：單場訂閱者、輪詢、依提醒項目判斷通知與重試 |
+| `src/taiwan.js` | 台灣旅外球員：依出生地找出 MLB 與小聯盟各層級的台灣球員與本季成績（快取 3 小時） |
 | `src/calendar.js` | 單場比賽行事曆檔（.ics）：中文標題、UTC 時間、開賽前 15 分鐘提醒、連回 App |
 | `src/prefs.js` | 提醒項目（`pregame5`、`start`、`homeScore`、`awayScore`、`final`）的預設值與正規化 |
 | `src/push-service.js` | `PushService`：VAPID 金鑰、批次發送、測試推播 |
@@ -65,6 +66,10 @@ Worker (src/index.js) ── 路由與 CORS
 - 同一場比賽的訂閱、取消與 Alarm 透過 `exclusive()` 依序處理，避免互相覆蓋。
 - 通知內含 `gamePk` 與 `./?view=live&gamePk=...`，前端點擊後直接開啟該場比賽。
 
+## 儲存寫入
+
+例行賽幾乎天天有比賽，Cloudflare 免費方案每天有 10 萬筆 Durable Object 寫入上限。GameMonitor 只有在比賽狀態（比分、局數、狀態等）改變時才寫入快照，訂閱者資料內容沒變也不寫入；`lastCheckedAt` 最多每 5 分鐘寫一次，因此 `/api/monitor/:gamePk` 的最後檢查時間可能落後最多 5 分鐘。
+
 ## 輪詢頻率
 
 | 比賽狀態 | 下次檢查 |
@@ -82,7 +87,7 @@ DeviceRegistry 在有追蹤球隊或已訂閱場次時，每 15 分鐘同步一�
 
 同步內容：
 
-- 追蹤球隊：查詢該隊昨天到 10 天後的季後賽（`gameType` F / D / L / W / P），自動訂閱尚未開打或進行中的場次；使用者取消過的場次（`dismissed`）不會加回。
+- 追蹤球隊：查詢該隊昨天到 10 天後的例行賽與季後賽（`gameType` R / F / D / L / W / P），自動訂閱尚未開打或進行中的場次；例行賽只預先訂閱 3 天內的場次。使用者取消過的場次（`dismissed`）不會加回。每台裝置最多 60 場。
 - 清單整理：終場移除；延賽 / 取消會先取消 GameMonitor 訂閱再移除；已不在賽程中的場次在預定時間 6 小時後移除（GameMonitor 會先依 feed 的 X 狀態自行停止）。
 
 ## API
@@ -105,6 +110,7 @@ DeviceRegistry 在有追蹤球隊或已訂閱場次時，每 15 分鐘同步一�
 | `GET` | `/api/watch/:gamePk/status?deviceId=...` | 查詢裝置是否已訂閱與其 `prefs`，前端用來恢復鈴鐺狀態 |
 | `POST` | `/api/push/test` | 測試推播：立即送一則，30 秒後再送一則 |
 | `GET` | `/api/push/status` | 測試推播的待送狀態 |
+| `GET` | `/api/taiwan-players?season=YYYY` | 台灣旅外球員名單：各層級（MLB、3A、2A、高階1A、1A、新人聯盟）本季成績、目前球隊與母隊 |
 | `GET` | `/api/calendar/:gamePk.ics` | 單場比賽行事曆檔（`text/calendar`），iPhone 開啟後可直接加入行事曆；開賽時間未定時為全天行程 |
 | `GET` | `/api/highlights/:gamePk` | 賽後影片推薦（需 `YOUTUBE_API_KEY`） |
 | `POST` | `/api/monitor/start` | 診斷用：不訂閱，只啟動監控 `{gamePk}` |

@@ -29,6 +29,8 @@ assert(escaped.replace(/\r\n /g,'').includes('LOCATION:Field\\, A\\; B\\\\C'));
 // 開賽時間未定：全天行程，不設提醒。
 const tbd=ctx.buildGameCalendar({...game,status:{startTimeTBD:true}},{now}).replace(/\r\n /g,'');
 assert(tbd.includes('DTSTART;VALUE=DATE:20261011')&&tbd.includes('DTEND;VALUE=DATE:20261012'));assert(!tbd.includes('VALARM'));
+// 例行賽標題不放連戰場次編號。
+assert(ctx.buildGameCalendar({...game,gameType:'R',seriesDescription:'Regular Season',seriesGameNumber:2},{now}).replace(/\r\n /g,'').includes('SUMMARY:例行賽｜道奇 @ 釀酒人'));
 // 世界大賽與沒有分區資訊的場次名稱。
 assert(ctx.buildGameCalendar({...game,gameType:'W',seriesGameNumber:7},{now}).replace(/\r\n /g,'').includes('SUMMARY:世界大賽 G7｜'));
 

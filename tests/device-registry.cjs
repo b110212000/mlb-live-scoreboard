@@ -71,12 +71,12 @@ const ALL={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
   schedule.set(3,sched(3));monitorStatus.set(3,409);
   res=await d.call('POST','/games',{gamePk:3});assert.equal(res.status,409);assert.equal(res.data.error,'GAME_FINAL');assert(!res.data.games.some(g=>g.gamePk===3));
 
-  // 追蹤球隊：只自動訂閱進行中/未開打的季後賽，不發訂閱成功。
+  // 追蹤球隊：自動訂閱進行中/未開打的例行賽（3 天內）與季後賽，不發訂閱成功。
   teamGames=[sched(10),sched(11,{state:'Final',detailed:'Final',coded:'F'}),sched(12,{type:'R'}),sched(13,{state:'Final',detailed:'Postponed',coded:'D'}),sched(14,{away:147,home:158}),sched(1)];
   for(const g of teamGames)schedule.set(g.gamePk,g);
-  res=await d.call('POST','/teams',{teamId:119});assert.equal(res.status,200);assert.deepEqual(res.data.added,[10]);
+  res=await d.call('POST','/teams',{teamId:119});assert.equal(res.status,200);assert.deepEqual(res.data.added,[10,12]);
   assert.equal(lastWatch(10).body.confirm,false);assert.deepEqual(res.data.teams.map(t=>t.teamId),[119]);
-  const teamQuery=mlbCalls.filter(u=>u.searchParams.has('teamId')).at(-1);assert.equal(teamQuery.searchParams.get('teamId'),'119');assert.equal(teamQuery.searchParams.get('gameType'),'F,D,L,W,P');
+  const teamQuery=mlbCalls.filter(u=>u.searchParams.has('teamId')).at(-1);assert.equal(teamQuery.searchParams.get('teamId'),'119');assert.equal(teamQuery.searchParams.get('gameType'),'R,F,D,L,W,P');
   assert.deepEqual(res.data.games.find(g=>g.gamePk===1).teamIds,[119],'manual game not linked to followed team');
   assert.equal(res.data.games.find(g=>g.gamePk===10).source,'team');
   res=await d.call('POST','/teams',{teamId:999});assert.equal(res.status,400);
@@ -112,6 +112,13 @@ const ALL={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
   res=await d.call('PUT','/subscription',{subscription:sub('two')});assert.equal(res.data.subscriptionEndpoint,'https://push.example/two');
   assert.equal(lastWatch(4).body.subscription.endpoint,'https://push.example/two');assert.equal(lastWatch(5).body.subscription.endpoint,'https://push.example/two');
   res=await d.call('PUT','/subscription',{subscription:{endpoint:'http://bad'}});assert.equal(res.status,400);
+
+  // 例行賽只預先訂閱 3 天內的比賽；季後賽看 10 天。
+  const ahead=registry();
+  teamGames=[sched(40,{type:'R',at:now+5*86400000}),sched(41,{type:'R',at:now+2*86400000}),sched(42,{type:'L',at:now+5*86400000})];
+  for(const g of teamGames)schedule.set(g.gamePk,g);
+  res=await ahead.call('POST','/teams',{teamId:119,subscription:sub('ahead')});
+  assert.deepEqual(res.data.added.sort(),[41,42],'regular-season lookahead should be 3 days');
 
   // 開啟頁面（GET /state）時，追蹤球隊的資料超過 10 分鐘就先同步：佔位隊伍換成真正球隊後馬上補訂閱。
   const fresh=registry();

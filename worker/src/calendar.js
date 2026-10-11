@@ -17,6 +17,8 @@ function teamZh(team) {
 
 function seriesZh(game) {
   const type = game?.gameType;
+  if (type === "R") return "例行賽";
+  if (type === "S") return "春訓";
   if (type === "W") return "世界大賽";
   const desc = String(game?.seriesDescription || "");
   const league = /^(AL|American)/i.test(desc) ? "美聯" : /^(NL|National)/i.test(desc) ? "國聯" : "";
@@ -62,7 +64,8 @@ export function buildGameCalendar(game, { appUrl = "", now = Date.now() } = {}) 
   const gamePk = Number(game.gamePk);
   const away = game.teams?.away?.team || {};
   const home = game.teams?.home?.team || {};
-  const number = Number(game.seriesGameNumber);
+  // 例行賽的 seriesGameNumber 是 3～4 連戰中的第幾場，不放進標題。
+  const number = game.gameType === "R" ? 0 : Number(game.seriesGameNumber);
   const title = `${seriesZh(game)}${number > 0 ? ` G${number}` : ""}｜${teamZh(away)} @ ${teamZh(home)}`;
   const link = appUrl ? `${appUrl}${appUrl.includes("?") ? "&" : "?"}view=live&gamePk=${gamePk}` : "";
   const description = [

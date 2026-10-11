@@ -1,5 +1,6 @@
 import { getGameHighlights } from "./highlights.js";
 import { gameCalendarResponse } from "./calendar.js";
+import { taiwanPlayersResponse } from "./taiwan.js";
 export { GameMonitor } from "./game-monitor.js";
 export { PushService } from "./push-service.js";
 export { DeviceRegistry } from "./device-registry.js";
@@ -104,6 +105,21 @@ export default {
       } catch (error) {
         console.warn("Highlights source unavailable", error.message);
         return json({error: "HIGHLIGHTS_UNAVAILABLE"}, env, 502);
+      }
+    }
+
+    // 台灣旅外球員（MLB 與小聯盟），快取 3 小時。
+    if (request.method === "GET" && url.pathname === "/api/taiwan-players") {
+      const season = Number(url.searchParams.get("season")) || new Date().getUTCFullYear();
+      if (season < 2000 || season > 2100) return json({ error: "INVALID_SEASON" }, env, 400);
+      try {
+        const data = await taiwanPlayersResponse(season, typeof caches !== "undefined" ? caches.default : null);
+        const headers = new Headers(data.headers);
+        for (const [key, value] of Object.entries(corsHeaders(env))) headers.set(key, value);
+        return new Response(data.body, { status: 200, headers });
+      } catch (error) {
+        console.warn("Taiwan players unavailable", error.message);
+        return json({ error: "TAIWAN_PLAYERS_UNAVAILABLE" }, env, 502);
       }
     }
 
@@ -258,7 +274,8 @@ export default {
         "POST /api/devices/:deviceId/teams",
         "DELETE /api/devices/:deviceId/teams/:teamId",
         "POST /api/devices/:deviceId/sync",
-        "GET /api/calendar/:gamePk.ics"
+        "GET /api/calendar/:gamePk.ics",
+        "GET /api/taiwan-players?season=YYYY"
       ]
     }, env, 404);
   }
