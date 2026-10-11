@@ -10,6 +10,8 @@
 - Postponed/cancelled/removed games (codedGameState D/C/X, MLB reports Postponed as abstract "Final") are NOT final: never send 「比賽結束」 for them; use isCalledOffGame in worker/src/mlb.js.
 - Only integrate official public APIs or properly licensed data. The owner rejected CPBL/NPB support because they lack public APIs (scraping or undocumented internal endpoints are not acceptable).
 - Follow user version rules: bug/UI patch +1, feature minor +1, major only explicitly requested.
+- Bump package.json / footer / resource versions BEFORE running npm run build: the bundle is named after the package version, so building first rewrites the already-deployed assets/app-<old>.js in the working tree (restore it with git checkout before committing).
+- npm run build regenerates assets/app-icon-*.png from app-icon.svg; output differs slightly between machines (anti-aliasing). If app-icon.svg did not change, git checkout the committed PNGs instead of committing the re-render.
 - Before repository writes, read the latest main SHA. Never overwrite concurrent changes.
 - Keep footer, package version, resource version references, README and icons in sync. version.json must be updated LAST in a separate commit after deployed assets have been verified.
 - Do not describe browser simulations as physical iPhone/Web Push tests.
