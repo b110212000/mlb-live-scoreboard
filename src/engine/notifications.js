@@ -353,6 +353,10 @@ function subscribedGameStatus(game){
 }
 
 function subscribedSeriesName(game){
+  if(game?.gameType==='R'){
+    const total=Number(game.gamesInSeries),number=Number(game.seriesGameNumber);
+    return '例行賽'+(total>1&&number>0?` · ${total} 連戰第 ${number} 場`:'');
+  }
   const round=({F:'外卡系列賽',D:'分區賽',L:'冠軍賽',W:'世界大賽'})[game?.gameType]||'季後賽';
   const desc=String(game?.seriesDescription||'');
   const league=game?.gameType==='W'?'':/^(AL|American)/i.test(desc)?'美聯':/^(NL|National)/i.test(desc)?'國聯':'';
@@ -533,7 +537,7 @@ function followTeam(teamId){
     const added=Array.isArray(data?.added)?data.added.length:0;
     return added
       ?`已追蹤${name}，自動訂閱 ${added} 場比賽`
-      :`已追蹤${name}；目前沒有即將進行的季後賽，有新賽程時會自動訂閱`;
+      :`已追蹤${name}；目前沒有即將進行的比賽，有新賽程時會自動訂閱`;
   });
 }
 

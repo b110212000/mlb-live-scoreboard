@@ -64,7 +64,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=install]').count(),0);
  assert.equal(await page.locator('[data-view=notificationTest]').count(),0);
  // 追蹤球隊與訂閱管理在主選單，不在設定子選單。
- assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','bracket','teams','notifications']);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','bracket','standings','taiwan','teams','notifications']);
  assert.equal(await page.locator('[data-view=teams]').innerText(),'追蹤球隊');
  assert.equal(await page.locator('[data-view=notifications]').innerText(),'訂閱管理');
  await page.locator('[data-menu-settings]').click();
@@ -87,10 +87,10 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  await page.locator('[data-menu-back]').click();assert.equal(await page.locator('#sidebarTitle').innerText(),'MLB 戰況');
  await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
- for(const [view,id] of [['bracket','bracketView'],['teams','teamsView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
+ for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['teams','teamsView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
    if(['install','notificationTest'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
-   if(['live','bracket','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+   if(['live','bracket','standings','taiwan','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
  }
@@ -287,5 +287,99 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  // 頁尾連結前往獨立的訂閱測試頁。
  await page.locator('.subs-footnote .subs-link').click();
  assert(await page.locator('#notificationTestView').isVisible());assert(!(await page.locator('#notificationView').isVisible()));
+ assert.deepEqual(errors,[]);await page.close();
+});
+
+// ---------- v2.3.0 例行賽、戰績排行、台灣旅外 ----------
+const rec=(id,w,l,rank,extra={})=>({team:{id},wins:w,losses:l,gamesPlayed:w+l,winningPercentage:(w/(w+l)).toFixed(3).slice(1),divisionRank:String(rank),gamesBack:rank===1?'-':String((rank-1)*3),
+  wildCardRank:extra.wc,wildCardGamesBack:extra.wcgb??'-',clinchIndicator:extra.clinch,streak:{streakCode:extra.streak||'W3'},records:{splitRecords:[{type:'lastTen',wins:6,losses:4}]}});
+const standingsDivision={records:[
+  {league:{id:103},division:{id:201},teamRecords:[rec(147,93,68,2,{clinch:'w'}),rec(139,98,64,1,{clinch:'y'}),rec(111,87,75,3,{clinch:'w'})]},
+  {league:{id:103},division:{id:202},teamRecords:[rec(114,88,74,1,{clinch:'y'}),rec(145,84,78,2)]},
+  {league:{id:103},division:{id:200},teamRecords:[rec(117,90,72,1,{clinch:'y'}),rec(140,80,82,2,{streak:'L2'})]},
+  {league:{id:104},division:{id:204},teamRecords:[rec(144,95,67,1,{clinch:'y'})]},
+  {league:{id:104},division:{id:205},teamRecords:[rec(158,92,70,1,{clinch:'y'})]},
+  {league:{id:104},division:{id:203},teamRecords:[rec(119,98,64,1,{clinch:'z'}),rec(137,80,82,2)]}]};
+const standingsWild={records:[
+  {league:{id:103},teamRecords:[rec(147,93,68,2,{wc:1,wcgb:'+9.5',clinch:'w'}),rec(111,87,75,3,{wc:2,wcgb:'+3.0',clinch:'w'}),rec(145,84,78,2,{wc:3}),rec(140,80,82,2,{wc:4,wcgb:'4.0',clinch:'e'})]},
+  {league:{id:104},teamRecords:[rec(137,80,82,2,{wc:1})]}]};
+const twData={season:2026,levels:[{sportId:1,label:'MLB'},{sportId:11,label:'3A'},{sportId:12,label:'2A'},{sportId:13,label:'高階1A'},{sportId:14,label:'1A'},{sportId:16,label:'新人聯盟'}],players:[
+  {id:701678,fullName:'Hao-Yu Lee',position:'2B',pitcher:false,topLevel:0,currentTeam:{id:116,name:'Detroit Tigers'},levels:[{sportId:1,label:'MLB',hitting:{gamesPlayed:114,avg:'.264',homeRuns:12,rbi:50,ops:'.750'}},{sportId:11,label:'3A',hitting:{gamesPlayed:14,avg:'.232',homeRuns:3,rbi:12}}]},
+  {id:827734,fullName:'Wei-En Lin',position:'P',pitcher:true,topLevel:1,currentTeam:{id:400,name:'Las Vegas Aviators',parentOrgId:133},levels:[{sportId:11,label:'3A',pitching:{gamesPlayed:20,inningsPitched:'90.0',era:'3.10',wins:5,losses:3,strikeOuts:80}}]}]};
+async function openMain(page,view){
+ await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
+ if(await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+ await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(320);
+}
+test('Regular season, standings and Taiwan players',async()=>{
+ const worker=r=>{const u=new URL(r.request().url());
+  if(u.pathname.endsWith('/state'))return r.fulfill({json:{ok:true,teams:[{teamId:119}],games:[],defaults:ALL}});
+  if(u.pathname==='/api/taiwan-players')return r.fulfill({json:twData});
+  return r.fulfill({json:{ok:true,subscribed:false}});};
+ const {page,errors}=await setup({worker});
+ const rGames=[0,1,2,3,4].map(i=>({...structuredClone(game),gamePk:900000+i,gameType:'R',seriesDescription:'Regular Season',seriesGameNumber:1,gamesInSeries:3,status:{abstractGameState:'Preview',detailedState:'Scheduled',codedGameState:'S'},gameDate:today+'T0'+(3+i)+':00:00Z'}));
+ const rFeed=structuredClone(feed);rFeed.gamePk=900000;rFeed.gameData.game={...rFeed.gameData.game,pk:900000,type:'R',gameType:'R'};rFeed.gameData.status={abstractGameState:'Preview',detailedState:'Scheduled',codedGameState:'S'};
+ const h2h=[{...structuredClone(game),gamePk:880001,gameType:'R',gameDate:'2026-05-01T02:00:00Z',seriesGameNumber:1,gamesInSeries:3,status:{abstractGameState:'Final',detailedState:'Final'},teams:{away:{team:feed.gameData.teams.away,score:5},home:{team:feed.gameData.teams.home,score:2}}},
+  {...structuredClone(game),gamePk:880002,gameType:'R',gameDate:'2026-05-02T02:00:00Z',seriesGameNumber:2,gamesInSeries:3,status:{abstractGameState:'Final',detailedState:'Final'},teams:{away:{team:feed.gameData.teams.away,score:1},home:{team:feed.gameData.teams.home,score:4}}},
+  {...rGames[0]}];
+ const twToday={...structuredClone(game),gamePk:770001,gameType:'R',gameDate:today+'T03:30:00Z',status:{abstractGameState:'Live',detailedState:'In Progress'},teams:{away:{team:{id:116,name:'Detroit Tigers'},score:2},home:{team:{id:500,name:'Some Club'},score:1}}};
+ await page.route('https://statsapi.mlb.com/**',r=>{const u=new URL(r.request().url());
+  if(u.pathname.endsWith('/standings'))return r.fulfill({json:u.searchParams.get('standingsTypes')==='wildCard'?standingsWild:standingsDivision});
+  if(u.pathname.endsWith('/schedule')&&u.searchParams.has('opponentId'))return r.fulfill({json:{dates:[{games:h2h}]}});
+  if(u.pathname.endsWith('/schedule')&&u.searchParams.get('sportId')==='1,11,12,13,14,16')return r.fulfill({json:{dates:[{games:[twToday]}]}});
+  if(u.pathname.endsWith('/schedule')&&!u.searchParams.has('gamePks')&&!u.searchParams.has('teamId'))return r.fulfill({json:{dates:[{date:today,games:[game,...rGames]}]}});
+  if(u.pathname.includes('/game/900000/feed/live'))return r.fulfill({json:rFeed});
+  return r.fallback();});
+
+ // 例行賽出現在場次列表；比賽多時可展開成格狀。
+ await page.locator('#refreshBtn').click();
+ const toggle=page.locator('.game-selector-row > .game-tabs-toggle');await toggle.waitFor();
+ assert.equal(await toggle.innerText(),'全部 6 場');assert.equal(await page.locator('#gameTabs .game-tab').count(),6);
+ await toggle.click();assert.equal(await page.locator('#gameTabs').getAttribute('class'),'grid');assert.equal(await toggle.innerText(),'收合列表');
+ // 追蹤道奇：費城人 @ 道奇的場次加星號排在最前面。
+ assert(await page.locator('#gameTabs .game-tab').first().evaluate(el=>el.classList.contains('followed')));
+ // 例行賽的系列賽分頁改為兩隊本季對戰。
+ await page.locator('#gameTabs .game-tab').nth(1).click();
+ await page.locator('#seriesText').filter({hasText:'例行賽'}).waitFor();
+ await page.locator('[data-live-tab=series]').click();
+ await page.locator('#currentSeriesTitle').filter({hasText:'本季對戰'}).waitFor();
+ assert((await page.locator('#currentSeriesSummary').innerText()).includes('本季交手 3 場'));
+ assert.equal(await page.locator('#currentSeriesGames .series-game-row').count(),3);
+ assert((await page.locator('#currentSeriesGames').innerText()).includes('3 連戰第 2 場'));
+ assert.equal(await page.locator('#currentSeriesGames .series-game-if').count(),0,'regular season has no if-necessary games');
+
+ // 戰績排行：分區（東 / 中 / 西）依名次排列，追蹤的球隊標星號。
+ await openMain(page,'standings');
+ assert.equal(await page.locator('#appTitle').innerText(),'戰績排行');
+ const al=page.locator('#standingsView .league-panel[data-league=AL]');
+ await al.locator('.standings-table').first().waitFor();
+ assert.deepEqual(await al.locator('.standings-section h3').allInnerTexts(),['東區','中區','西區']);
+ assert.deepEqual(await al.locator('.standings-section').first().locator('tbody tr').evaluateAll(rows=>rows.map(r=>r.dataset.teamId)),['139','147','111']);
+ assert((await al.locator('tr[data-team-id="139"]').innerText()).includes('光芒'));
+ assert.equal(await al.locator('tr[data-team-id="139"] .clinch').innerText(),'y');
+ assert((await al.locator('tr[data-team-id="140"]').innerText()).includes('2 連敗'));
+ await page.locator('#standingsView .league-switch [data-league=NL]').click();
+ const nl=page.locator('#standingsView .league-panel[data-league=NL]');
+ assert(await nl.locator('tr[data-team-id="119"]').evaluate(el=>el.classList.contains('followed')),'followed team row not highlighted');
+ assert.equal(await nl.locator('tr[data-team-id="119"] .standings-star').count(),1);
+ // 外卡：分區領先 + 外卡排名，前 3 名下方有晉級線。
+ await page.locator('#standingsView .league-switch [data-league=AL]').click();
+ await page.locator('#standingsView [data-mode=wildcard]').click();
+ assert.deepEqual(await al.locator('.standings-section h3').evaluateAll(list=>list.map(h=>h.firstChild.textContent)),['分區領先','外卡']);
+ assert.deepEqual(await al.locator('.standings-section').nth(1).locator('tbody tr').evaluateAll(rows=>rows.map(r=>r.dataset.teamId)),['147','111','145','140']);
+ assert.equal(await al.locator('.standings-section').nth(1).locator('tr.cutline').getAttribute('data-team-id'),'145');
+ assert((await al.locator('.standings-section').nth(1).innerText()).includes('+9.5'));
+
+ // 台灣旅外球員：依最高層級分組，中文名、英文名、母隊、各層級成績與今日比賽。
+ await openMain(page,'taiwan');
+ assert.equal(await page.locator('#appTitle').innerText(),'台灣旅外球員');
+ const lee=page.locator('.tw-card[data-player-id="701678"]');await lee.waitFor();
+ assert.deepEqual(await page.locator('#taiwanView .tw-group h3').allInnerTexts(),['大聯盟','3A']);
+ const leeText=await lee.innerText();
+ for(const text of ['李灝宇','Hao-Yu Lee','二壘手','老虎','打擊率 .264','12 轟','3A','打擊率 .232'])assert(leeText.includes(text),'Lee card missing '+text);
+ await lee.locator('.tw-today.live').filter({hasText:'比賽進行中 2 : 1 @ Some Club'}).waitFor();
+ const linText=await page.locator('.tw-card[data-player-id="827734"]').innerText();
+ for(const text of ['林維恩','投手','運動家體系 · Las Vegas Aviators','90.0 局','防禦率 3.10','5 勝 3 敗','80 三振'])assert(linText.includes(text),'Lin card missing '+text);
+ assert((await page.locator('#taiwanView .subs-intro').innerText()).includes('共 2 人（大聯盟 1 人）'));
  assert.deepEqual(errors,[]);await page.close();
 });

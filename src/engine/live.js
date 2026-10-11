@@ -16,7 +16,7 @@ async function loadSchedule(keepSelection=true,requestedGamePk=null){
     const all=(data.dates||[]).flatMap(d=>d.games||[]);
     const unique=[...new Map(all.map(g=>[g.gamePk,g])).values()];
     state.games=unique
-      .filter(g=>POSTSEASON.has(g.gameType)&&gameLocalDateKey(g)===date)
+      .filter(g=>LIVE_TYPES.has(g.gameType)&&gameLocalDateKey(g)===date)
       .sort((a,b)=>new Date(a.gameDate)-new Date(b.gameDate));
 
     if(requestedGamePk!=null){
@@ -178,12 +178,13 @@ function findSeriesDescription(){
     'AL Championship Series':'美聯冠軍系列賽',
     'National League Wild Card Series':'國聯外卡系列賽',
     'American League Wild Card Series':'美聯外卡系列賽',
-    'World Series':'世界大賽'
+    'World Series':'世界大賽',
+    'Regular Season':'例行賽'
   };
   return names[raw]||raw;
 }
 function seriesName(type){
-  return ({F:'外卡系列賽',D:'分區系列賽',L:'聯盟冠軍系列賽',W:'世界大賽',P:'季後賽'})[type]||'MLB 季後賽';
+  return ({R:'例行賽',F:'外卡系列賽',D:'分區系列賽',L:'聯盟冠軍系列賽',W:'世界大賽',P:'季後賽'})[type]||'MLB';
 }
 function inningLabel(ls){
   if(!ls.currentInning) return ls.inningState||'--';

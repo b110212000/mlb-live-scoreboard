@@ -2600,3 +2600,57 @@ body.sidebar-open{overflow:hidden}
 @keyframes toast-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @keyframes toast-out{to{opacity:0;transform:translateY(-8px)}}
 @media(prefers-reduced-motion:reduce){.toast{animation:none}}
+
+/* v2.3.0 場次列表：比賽多時可展開成格狀 */
+.game-tabs-toggle{flex:none;align-self:flex-start;min-height:40px;padding:6px 12px;border-radius:10px;border:1px dashed #4a6888;background:#10233a;color:#c5d4e2;font-size:12px;font-weight:800;white-space:nowrap}
+.game-tabs-toggle[aria-expanded=true]{border-style:solid;color:var(--accent)}
+#gameTabs.grid{flex-wrap:wrap;overflow:visible}
+#gameTabs.grid .game-tab{flex:1 1 140px}
+
+/* v2.3.0 戰績排行 */
+.standings-modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:3px;border-radius:12px;background:#081624;border:1px solid #294966}
+.standings-modes button{min-height:36px;padding:4px 8px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:800}
+.standings-modes button[aria-selected=true]{background:#17476b;color:#fff}
+.standings-group{display:flex;flex-direction:column;gap:14px}
+.standings-section h3{margin:0 0 6px;font-size:15px;display:flex;align-items:baseline;gap:8px}
+.standings-section h3 small{color:var(--muted);font-size:12px;font-weight:600}
+.standings-scroll{overflow-x:auto;border:1px solid #294966;border-radius:12px}
+.standings-table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.standings-table th,.standings-table td{padding:7px 6px;text-align:center;white-space:nowrap;border-bottom:1px solid #ffffff0d}
+.standings-table thead th{color:var(--muted);font-size:11px;font-weight:700;background:#0b1a2b}
+.standings-table tbody tr:last-child th,.standings-table tbody tr:last-child td{border-bottom:0}
+.standings-table .team-col{text-align:left;font-weight:700}
+.standings-table th.team-col{display:flex;align-items:center;gap:6px;min-width:120px}
+.standings-rank{width:16px;color:var(--muted);font-size:11px;text-align:right}
+.standings-name{display:inline-flex;align-items:center;gap:3px}
+.standings-star{color:#ffc857}
+.standings-table tr.followed{background:#ffc85712}
+.standings-table tr.cutline th,.standings-table tr.cutline td{border-bottom:2px dashed #3ddc97}
+.clinch{margin-left:2px;padding:0 4px;border-radius:4px;background:#ffffff14;color:#c5d4e2;font-size:10px;font-weight:800;line-height:1.4}
+.clinch-y,.clinch-z{background:#1f8a6333;color:#bff4dd}
+.clinch-w,.clinch-x{background:#1f5f8d33;color:#bfe3ff}
+.clinch-e{background:#7a3a4033;color:#ffc9cd}
+.standings-legend{margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--muted);font-size:12px}
+.standings-legend span{display:inline-flex;align-items:center;gap:4px}
+
+/* v2.3.0 台灣旅外球員 */
+.tw-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.tw-card{display:flex;gap:12px;padding:12px;border:1px solid #294966;border-radius:14px;background:#0b1a2b;min-width:0}
+.tw-photo{width:64px;height:64px;flex:none;border-radius:50%;object-fit:cover;object-position:top;background:#203449}
+.tw-body{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}
+.tw-name{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px}
+.tw-name b{font-size:16px}
+.tw-name small{color:var(--muted);font-size:12px}
+.tw-team{display:flex;align-items:center;gap:6px;color:#c5d4e2;font-size:12px;line-height:1.4}
+.tw-today{align-self:flex-start;padding:2px 8px;border-radius:999px;border:1px solid #3b5470;color:#dce8f2;font-size:12px;font-weight:700}
+.tw-today.live{border-color:#2d6b57;background:#0c211a;color:#bff4dd}
+.tw-stats{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.tw-stats li{display:flex;align-items:baseline;gap:8px;font-size:12px;color:var(--muted);line-height:1.45}
+.tw-level{flex:none;min-width:52px;padding:0 6px;border-radius:6px;background:#10233a;color:#bfe3ff;font-size:11px;font-weight:800;text-align:center}
+@media(max-width:600px){
+  .standings-table{font-size:12px}
+  .standings-table th,.standings-table td{padding:6px 4px}
+  .standings-table th.team-col{min-width:104px}
+  .tw-photo{width:56px;height:56px}
+}
+

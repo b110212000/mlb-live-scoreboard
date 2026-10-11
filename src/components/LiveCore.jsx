@@ -10,7 +10,7 @@ export function Scoreboard(){
   const team=side=>score?.[side]||{};
   const rhe=side=>{const t=team(side);return `R ${t.runs??0} · H ${t.hits??0} · E ${t.errors??0}`};
   return <section className="card hero">
-    <div className="statusline"><div><span id="seriesText">{score?.series||(emptyDate?`${emptyDate} 沒有 MLB 季後賽賽事`:'等待載入賽事')}</span><span id="statePill" className="pill">{score?.status||(emptyDate?'NO GAME':'--')}</span></div><div className="hero-status-right"><div id="inningText" className="inning">{score?.inning||'--'}</div><button id="heroRosterBtn" className="matchup-roster-btn" type="button" onClick={()=>actions.navigate('roster')}>對戰名單</button></div></div>
+    <div className="statusline"><div><span id="seriesText">{score?.series||(emptyDate?`${emptyDate} 沒有 MLB 賽事`:'等待載入賽事')}</span><span id="statePill" className="pill">{score?.status||(emptyDate?'NO GAME':'--')}</span></div><div className="hero-status-right"><div id="inningText" className="inning">{score?.inning||'--'}</div><button id="heroRosterBtn" className="matchup-roster-btn" type="button" onClick={()=>actions.navigate('roster')}>對戰名單</button></div></div>
     <div className="teams"><div className="team"><span className="logo-shell">{favStar('away')}<img id="awayLogo" className="logo" src={logo(team('away').id)} data-team-id={team('away').id||''} alt={team('away').name||'客隊'}/></span><div><div id="awayName" className="team-name">{team('away').name||'客隊'}</div><div id="awayRhe" className="team-sub">{rhe('away')}</div></div></div>
       <div className="score-center"><WatchButton/><div id="bigScore" className="bigscore"><span>{team('away').runs??0}</span><span>{team('home').runs??0}</span></div></div>
       <div className="team home"><div><div id="homeName" className="team-name">{team('home').name||'主隊'}</div><div id="homeRhe" className="team-sub">{rhe('home')}</div></div><span className="logo-shell">{favStar('home')}<img id="homeLogo" className="logo" src={logo(team('home').id)} data-team-id={team('home').id||''} alt={team('home').name||'主隊'}/></span></div>
@@ -18,17 +18,27 @@ export function Scoreboard(){
   </section>;
 }
 // 追蹤球隊的比賽加上星號並排在前面（其餘維持開賽時間順序）。
+// 例行賽一天最多 15 場：比賽多時可展開成格狀一次看完（記住使用者的選擇）。
+const GRID_KEY='mlb-game-tabs-grid';
 export function GameTabs(){
   const {games,selectedGamePk,subs}=useScoreboard();
+  const [grid,setGrid]=useState(()=>{try{return localStorage.getItem(GRID_KEY)==='1'}catch(_){return false}});
   const followed=new Set(subs.teams);
   const isFollowed=g=>followed.has(g.awayId)||followed.has(g.homeId);
   const ordered=[...games.filter(isFollowed),...games.filter(g=>!isFollowed(g))];
-  return <div id="gameTabs">{ordered.map(g=>{
+  const canGrid=games.length>4;
+  const toggleGrid=()=>setGrid(current=>{
+    const next=!current;
+    try{localStorage.setItem(GRID_KEY,next?'1':'0')}catch(_){}
+    return next;
+  });
+  // 切換按鈕放在可橫向捲動的列表外面，捲動到後面的場次時也看得到。
+  return <><div id="gameTabs" className={canGrid&&grid?'grid':undefined}>{ordered.map(g=>{
     const fav=isFollowed(g);
     return <button type="button" key={g.gamePk} className={'game-tab '+(g.gamePk===selectedGamePk?'active':'')+(fav?' followed':'')} title={fav?'追蹤的球隊':undefined} onClick={()=>actions.selectGame(g.gamePk)}>
       <span className="game-tab-main">{fav&&<span className="game-tab-star" aria-label="追蹤的球隊">★</span>}{g.label}</span><span className="game-tab-time">{g.time}</span>
     </button>;
-  })}</div>;
+  })}</div>{canGrid&&<button type="button" className="game-tabs-toggle" aria-expanded={grid} aria-controls="gameTabs" onClick={toggleGrid}>{grid?'收合列表':`全部 ${games.length} 場`}</button>}</>;
 }
 export function ErrorMessage(){const {error}=useScoreboard();return <div id="errorBox" className="error" style={{display:error?'block':'none'}} role="alert">{error}</div>}
 function HighlightIcon({item,className}){return item.teamId?<span className={className+' highlight-team-logo-shell'} aria-hidden="true"><img className="highlight-team-logo" src={logo(item.teamId)} alt=""/></span>:<span className={className}>{item.icon}</span>}

@@ -112,6 +112,13 @@ function buildGameSummaryHTML(feed){
     <div class="summary-final"><strong>${awayRuns} : ${homeRuns}</strong><small>終場${innings>9?` · 延長 ${innings} 局`:''}</small></div>
     ${teamBlock(home,'home',homeRuns)}
   </div>`;
+  const record=side=>{
+    const r=scheduleGame?.teams?.[side]?.leagueRecord;
+    return r&&Number.isFinite(Number(r.wins))?`${teamZhName(side==='away'?away:home)} ${r.wins}–${r.losses}`:'';
+  };
+  if(gd.game?.type==='R'&&(record('away')||record('home'))){
+    html+=`<p class="summary-records">本季戰績：${esc([record('away'),record('home')].filter(Boolean).join(' · '))}</p>`;
+  }
 
   const decisions=live.decisions||{};
   const decisionRows=[['winner','勝投','win'],['loser','敗投','loss'],['save','救援','save']].map(([key,label,tone])=>{

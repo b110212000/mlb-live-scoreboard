@@ -3,6 +3,8 @@
 
 const API = 'https://statsapi.mlb.com/api';
 const POSTSEASON = new Set(['F','D','L','W','P']);
+// 即時比賽頁顯示例行賽與季後賽。
+const LIVE_TYPES = new Set(['R',...POSTSEASON]);
 const REFRESH_MS = 5000;
 const $ = id => document.getElementById(id);
 

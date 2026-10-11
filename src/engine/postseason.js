@@ -17,6 +17,7 @@ function currentSeriesName(gd){
   const homeLeague=Number(gd?.teams?.home?.league?.id);
   const league=awayLeague===104&&homeLeague===104?'國家聯盟':
     awayLeague===103&&homeLeague===103?'美國聯盟':'';
+  if(type==='R')return '例行賽';
   const round=({F:'外卡系列賽',D:'分區賽',L:'冠軍賽',P:'季後賽'})[type]||seriesName(type);
   return league+round;
 }
@@ -42,7 +43,8 @@ function seriesGameStatusInfo(g,index,type){
   const final=abstract==='Final'||/final|game over|completed/i.test(detailed);
   const live=abstract==='Live'||/progress|live|inning/i.test(detailed);
   const need=playoffNeedWins(type);
-  const conditional=index+1>need;
+  // 「如有需要」只適用季後賽；官方有標示 ifNecessary 時以官方為準。
+  const conditional=g.ifNecessary==='Y'||(POSTSEASON.has(type)&&index+1>need);
 
   if(final)return {kind:'final',status:'終場',time:'',conditional:false};
   if(live)return {kind:'live',status:'進行中',time:'',conditional:false};
@@ -87,13 +89,36 @@ function renderCurrentSeries(gd,games){
   }
 
   els.currentSeriesGames.innerHTML=games.map((g,index)=>{
+    const info=seriesGameStatusInfo(g,index,type);
+    const label=seriesGameNumber(index+1)+'比賽'+(info.kind==='preview'&&seriesGameDateText(g)?' · '+seriesGameDateText(g):'');
+    return seriesRowHTML(g,info,label);
+  }).join('');
+  if(state.liveDetailTab==='series')requestAnimationFrame(()=>syncLiveDetailHeight());
+}
+// 例行賽：列出兩隊本季所有交手，彙總勝負。
+function renderHeadToHead(gd,games){
+  const away=gd?.teams?.away||{},home=gd?.teams?.home||{};
+  els.currentSeriesTitle.textContent='本季對戰';
+  const played=games.filter(g=>g.status?.abstractGameState==='Final').length;
+  els.currentSeriesSummary.textContent=played?`${seriesStanding(games,away,home)} · 本季交手 ${games.length} 場`:`本季交手 ${games.length} 場`;
+  state.currentSeriesGames=games;
+  if(!games.length){
+    els.currentSeriesGames.innerHTML='<div class="series-overview-empty">找不到兩隊本季的交手紀錄</div>';
+    return;
+  }
+  els.currentSeriesGames.innerHTML=games.map((g,index)=>{
+    const info=seriesGameStatusInfo(g,index,'R');
+    const series=Number(g.gamesInSeries)>1&&Number(g.seriesGameNumber)>0?` · ${g.gamesInSeries} 連戰第 ${g.seriesGameNumber} 場`:'';
+    return seriesRowHTML(g,info,(seriesGameDateText(g)||'日期未定')+series);
+  }).join('');
+  if(state.liveDetailTab==='series')requestAnimationFrame(()=>syncLiveDetailHeight());
+}
+function seriesRowHTML(g,info,label){
     const aRaw=g.teams?.away?.team||{},hRaw=g.teams?.home?.team||{};
     const a={...aRaw,name:aRaw.name||aRaw.teamName||'對手待定'};
     const h={...hRaw,name:hRaw.name||hRaw.teamName||'對手待定'};
     const aScore=g.teams?.away?.score,hScore=g.teams?.home?.score;
-    const info=seriesGameStatusInfo(g,index,type);
     const showScore=info.kind!=='preview'&&aScore!=null&&hScore!=null;
-    const label=seriesGameNumber(index+1)+'比賽'+(info.kind==='preview'&&seriesGameDateText(g)?' · '+seriesGameDateText(g):'');
     const center=info.kind==='preview'
       ? '<span class="series-game-time">'+esc(info.time)+'</span>'+(info.conditional?'<span class="series-game-if">如有需要</span>':'')
       : '<span class="series-game-status '+(info.kind==='live'?'live':'')+'">'+esc(info.status)+'</span>';
@@ -106,8 +131,6 @@ function renderCurrentSeries(gd,games){
       '<span class="series-game-side-score home '+(showScore?'':'pending')+'">'+(showScore?esc(hScore):'0')+'</span>'+
       '<span class="series-side home">'+(h.id?'<span class="series-side-logo-shell"><img src="'+esc(teamLogo(h.id))+'" alt=""></span>':'<span class="series-tbd-logo">?</span>')+'<span class="series-side-name">'+esc(h.id?teamZhName(h):'對手待定')+'</span></span>'+
     '</button>';
-  }).join('');
-  if(state.liveDetailTab==='series')requestAnimationFrame(()=>syncLiveDetailHeight());
 }
 async function loadCurrentSeries(force=false){
   if(state.seriesLoading)return;
@@ -136,6 +159,12 @@ async function loadCurrentSeries(force=false){
     let games;
     if(!force&&cached&&Date.now()-cached.time<60000){
       games=cached.games;
+    }else if(type==='R'){
+      const data=await getJSON(
+        API+'/v1/schedule?sportId=1&season='+season+'&gameType=R&teamId='+away.id+'&opponentId='+home.id+'&hydrate=team,linescore'
+      );
+      games=(data.dates||[]).flatMap(d=>d.games||[]).sort((a,b)=>new Date(a.gameDate)-new Date(b.gameDate));
+      state.seriesCache.set(key,{time:Date.now(),games});
     }else{
       // MLB 有專門依系列賽分組的 postseason endpoint。
       // 直接找出包含目前 gamePk 的官方 series，能保留完整未來賽程，
@@ -162,7 +191,8 @@ async function loadCurrentSeries(force=false){
       }
       state.seriesCache.set(key,{time:Date.now(),games});
     }
-    renderCurrentSeries(gd,games);
+    if(type==='R')renderHeadToHead(gd,games);
+    else renderCurrentSeries(gd,games);
   }catch(err){
     els.currentSeriesTitle.textContent='系列賽';
     els.currentSeriesSummary.textContent='系列賽資料讀取失敗';
