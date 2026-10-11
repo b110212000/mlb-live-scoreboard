@@ -2724,3 +2724,13 @@ body.sidebar-open{overflow:hidden}
   .player-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
   .player-tile b{font-size:16px}
 }
+
+/* v2.5.0 球員資料：維基百科生平 */
+.player-wiki-text{color:#dce8f2;font-size:14px;line-height:1.8;overflow-wrap:anywhere}
+.player-wiki-text p{margin:0 0 .7em}
+.player-wiki-text p:last-child{margin-bottom:0}
+.player-wiki-text.clamp{max-height:12.6em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 60%,transparent);mask-image:linear-gradient(#000 60%,transparent)}
+.player-wiki-toggle{align-self:flex-start;font-weight:700;text-decoration:none}
+.player-wiki-note{margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+.player-wiki-credit{margin:0;color:var(--muted);font-size:11px;line-height:1.6}
+.player-wiki-credit a{color:var(--accent)}

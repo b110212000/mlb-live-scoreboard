@@ -24,6 +24,7 @@ async function setup({width=390,subscribed=false,empty=false,worker=null,push=fa
  await page.route('**/version.json*',r=>r.fulfill({json:{version}}));
  await page.route('https://www.mlbstatic.com/**',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="white"/></svg>'}));
  await page.route('https://img.mlbstatic.com/**',r=>r.abort());
+ await page.route(/^https:\/\/(www\.wikidata\.org|[a-z]+\.wikipedia\.org)\//,r=>r.fulfill({json:{query:{search:[],pages:[]},entities:{}}}));
  await page.route('https://statsapi.mlb.com/**',r=>{
   const u=new URL(r.request().url());
   if(u.pathname.includes('/feed/live'))return r.fulfill({json:current});
@@ -423,6 +424,13 @@ const playerFixtures={
       yearRow(2026,'AAA',{id:400,name:'Las Vegas Aviators'},{gamesPlayed:20,gamesStarted:20,wins:5,losses:3,inningsPitched:'90.0',strikeOuts:80,era:'3.10'}),
       yearRow(2026,'Minors',{id:400,name:'Las Vegas Aviators'},{gamesPlayed:20})]}]}}}
 };
+const wikiEntity=(sitelinks,birth)=>({sitelinks:Object.fromEntries(Object.entries(sitelinks).map(([site,title])=>[site,{site,title}])),...(birth?{claims:{P569:[{mainsnak:{datavalue:{value:{time:birth}}}}]}}:{})});
+const wikiData={
+  search:{'haswbstatement:P3541=400085':['Q600'],'Babe Ruth baseball haswbstatement:P31=Q5':['Q1','Q213812']},
+  entities:{Q600:wikiEntity({zhwiki:'鈴木一朗',enwiki:'Ichiro Suzuki'}),Q1:wikiEntity({enwiki:'Babe Ruth (band)'},'+1970-01-01T00:00:00Z'),Q213812:wikiEntity({enwiki:'Babe Ruth'},'+1895-02-06T00:00:00Z')},
+  extracts:{'zh|鈴木一朗':'鈴木一朗（1973年10月22日—）是日本棒球選手。\n\n他在2001年加入西雅圖水手。',
+    'en|Babe Ruth':['George Herman "Babe" Ruth (; February 6, 1895 – August 16, 1948) was an American professional baseball player.',...Array.from({length:4},(_,i)=>`Paragraph ${i+2}: `+'Ruth played for the Red Sox and the Yankees and set many records. '.repeat(6))].join('\n')}
+};
 test('Hall of Fame, player page and Taiwan player link',async()=>{
  const worker=r=>{const u=new URL(r.request().url());
   if(u.pathname.endsWith('/state'))return r.fulfill({json:{ok:true,teams:[],games:[],defaults:ALL}});
@@ -430,6 +438,16 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
   return r.fulfill({json:{ok:true,subscribed:false}});};
  const {page,errors}=await setup({worker});
  const calls=[];
+ // 維基百科：鈴木一朗以 MLB 編號找到中文條目；Babe Ruth 沒有編號，用姓名 + 生日找到英文條目；其他人查不到。
+ await page.route(/^https:\/\/(www\.wikidata\.org|[a-z]+\.wikipedia\.org)\//,r=>{const u=new URL(r.request().url());
+  if(u.hostname==='www.wikidata.org'){
+   if(u.searchParams.get('list')==='search'){calls.push('wiki:'+u.searchParams.get('srsearch'));return r.fulfill({json:{query:{search:(wikiData.search[u.searchParams.get('srsearch')]||[]).map(title=>({title}))}}});}
+   return r.fulfill({json:{entities:Object.fromEntries(u.searchParams.get('ids').split('|').map(id=>[id,wikiData.entities[id]]))}});
+  }
+  const lang=u.hostname.split('.')[0],key=lang+'|'+u.searchParams.get('titles');
+  if(lang==='zh')assert.equal(u.searchParams.get('variant'),'zh-tw');
+  return r.fulfill({json:{query:{pages:[key in wikiData.extracts?{title:u.searchParams.get('titles'),extract:wikiData.extracts[key]}:{title:u.searchParams.get('titles'),missing:true}]}}});
+ });
  await page.route('https://statsapi.mlb.com/**',r=>{const u=new URL(r.request().url());
   if(u.pathname.endsWith('/awards/MLBHOF/recipients')){calls.push('hof');return r.fulfill({json:hofData});}
   const m=u.pathname.match(/\/people\/(\d+)(\/stats)?$/);
@@ -487,7 +505,16 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  assert.equal(await page.locator('#playerView .player-tiles').count(),1);
  assert.deepEqual(await page.locator('#playerView .player-tile b').allInnerTexts(),['2653','3089','117','780','509','.311','.355','.757']);
  // 主要獎項在逐年成績上方。
- assert.deepEqual(await page.locator('#playerView .subs-section h3').allInnerTexts(),['大聯盟生涯','主要獎項','逐年成績']);
+ assert.deepEqual(await page.locator('#playerView .subs-section h3').allInnerTexts(),['大聯盟生涯','主要獎項','逐年成績','生平']);
+ // 生平（最下方）：中文維基（台灣正體），短文不收合；標示條目連結與 CC BY-SA 授權。
+ const wiki=page.locator('#playerView .player-wiki');
+ await wiki.locator('.player-wiki-text').waitFor();
+ assert.equal(await wiki.locator('.player-wiki-text').getAttribute('lang'),'zh-Hant-TW');
+ assert.deepEqual(await wiki.locator('.player-wiki-text p').allInnerTexts(),['鈴木一朗（1973年10月22日—）是日本棒球選手。','他在2001年加入西雅圖水手。']);
+ assert.equal(await wiki.locator('.player-wiki-toggle').count(),0);
+ assert.equal(await wiki.locator('.player-wiki-credit a').first().getAttribute('href'),'https://zh.wikipedia.org/zh-tw/%E9%88%B4%E6%9C%A8%E4%B8%80%E6%9C%97');
+ assert.equal(await wiki.locator('.player-wiki-credit a').nth(1).getAttribute('href'),'https://creativecommons.org/licenses/by-sa/4.0/');
+ assert((await wiki.locator('.player-wiki-credit').innerText()).includes('維基百科貢獻者'));
  // 逐年成績舊到新（同年轉隊依先後），去掉沒有球隊的合計列；只有大聯盟時不標「含小聯盟」。
  const rows=()=>page.locator('#playerView .player-years tbody tr').evaluateAll(list=>list.map(row=>[...row.cells].slice(0,4).map(cell=>cell.textContent).join('|')));
  assert.deepEqual(await rows(),['2001|MLB|水手|157','2012|MLB|水手|95','2012|MLB|洋基|67']);
@@ -507,6 +534,17 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  assert((await page.locator('#playerView .player-facts').innerText()).includes('1895-02-06 – 1948-08-16'));
  assert.equal(await page.locator('#playerView .player-years').count(),2);
  assert((await page.locator('#playerView .player-years').first().innerText()).includes('勇士'));
+ // 沒有中文條目：英文維基並註明；姓名搜尋選生日相符的人；長文先收合，可展開 / 收合；清掉發音殘骸。
+ const ruthWiki=page.locator('#playerView .player-wiki');
+ await ruthWiki.locator('.player-wiki-text[lang=en]').waitFor();
+ assert((await ruthWiki.innerText()).includes('中文維基百科沒有這個條目'));
+ assert((await ruthWiki.locator('.player-wiki-text p').first().innerText()).startsWith('George Herman "Babe" Ruth (February 6, 1895'));
+ assert.equal(await ruthWiki.locator('.player-wiki-credit a').first().getAttribute('href'),'https://en.wikipedia.org/wiki/Babe_Ruth');
+ const toggle=ruthWiki.locator('.player-wiki-toggle');
+ assert.equal(await toggle.innerText(),'展開全文');assert(await ruthWiki.locator('.player-wiki-text.clamp').count());
+ await toggle.click();
+ assert.equal(await toggle.innerText(),'收合');assert.equal(await toggle.getAttribute('aria-expanded'),'true');assert.equal(await ruthWiki.locator('.player-wiki-text.clamp').count(),0);
+ await toggle.click();assert.equal(await toggle.innerText(),'展開全文');
  await page.goBack();
  await page.waitForFunction(()=>!document.querySelector('#hofView').hidden);
  assert.equal(new URL(page.url()).searchParams.get('playerId'),null);
@@ -515,8 +553,9 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  await page.waitForFunction(()=>!document.querySelector('#playerView').hidden);
  await page.goBack();
  await page.waitForFunction(()=>!document.querySelector('#hofView').hidden);
- // 同一位球員只抓一次（快取）。
+ // 同一位球員只抓一次（快取），維基百科也是。
  assert.equal(calls.filter(c=>c==='121578').length,1);
+ assert.equal(calls.filter(c=>c==='wiki:haswbstatement:P3541=121578').length,1);
 
  // 台灣旅外卡片點進球員資料：中文名、母隊體系、只有小聯盟成績；返回台灣旅外。
  await openMain(page,'taiwan');
@@ -527,6 +566,9 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  // 同一年依 API 順序（層級由低到高）。
  assert.deepEqual(await rows(),['2025|高階1A|Lansing Lugnuts|8','2025|2A|Midland RockHounds|12','2026|3A|Las Vegas Aviators|20']);
  assert.equal(await page.locator('#playerView .player-awards').count(),0);
+ // 維基百科查不到：不顯示生平。
+ await page.waitForFunction(()=>!document.querySelector('#playerView .player-wiki'));
+ assert(calls.includes('wiki:Wei-En Lin baseball haswbstatement:P31=Q5'));
  assert.equal(await page.locator('#playerView .player-back').innerText(),'← 返回台灣旅外');
  await page.locator('#playerView .player-back').click();
  await page.waitForFunction(()=>!document.querySelector('#taiwanView').hidden);

@@ -1,9 +1,10 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {useScoreboard,actions} from '../store.js';
 import {teamById} from '../teams.js';
 import {TAIWAN_PLAYER_NAMES} from '../taiwanPlayers.js';
 import {logo} from './SubscriptionShared.jsx';
 import {headshot,POSITION_ZH,POSITION_TYPE_ZH,countryZh,LEVEL_ZH,handsText,heightCm,weightKg,ageOn,majorAwards,seasonsText,teamNameZh} from '../players.js';
+import {loadWikiBio,wikiUrl} from '../wiki.js';
 
 const API='https://statsapi.mlb.com/api/v1';
 const BACK_LABEL={hof:'名人堂',taiwan:'台灣旅外',live:'即時比賽',standings:'戰績排行'};
@@ -82,6 +83,44 @@ function Facts({person}){
   return <dl className="player-facts">{rows.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
 }
 
+// 生平：維基百科條目導言，放在球員頁最下方；必須標示條目、作者（維基百科貢獻者）與 CC BY-SA 4.0 授權。
+// 維基百科沒有這個人時整段不顯示。
+function WikiBio({person,visible}){
+  const [state,setState]=useState({id:null,bio:undefined,error:''});
+  const [expanded,setExpanded]=useState(false);
+  const [clamp,setClamp]=useState(true);
+  const textRef=useRef(null);
+  useEffect(()=>{
+    let cancelled=false;
+    setState({id:person.id,bio:undefined,error:''});setExpanded(false);setClamp(true);
+    loadWikiBio(person)
+      .then(bio=>{if(!cancelled)setState({id:person.id,bio,error:''})})
+      .catch(err=>{if(!cancelled)setState({id:person.id,bio:null,error:'維基百科資料讀取失敗：'+err.message})});
+    return ()=>{cancelled=true};
+  },[person]);
+  const bio=state.id===person.id?state.bio:undefined;
+  // 內容放得下就不收合；頁面隱藏時量不到高度，等顯示時再量。
+  useLayoutEffect(()=>{
+    const el=textRef.current;
+    if(!el||!visible||expanded||!el.clientHeight)return;
+    setClamp(el.scrollHeight>el.clientHeight+2);
+  },[bio,visible,expanded]);
+  if(bio===null&&!state.error)return null;
+  return <section className="subs-section player-wiki" aria-labelledby="playerWikiTitle">
+    <div className="subs-section-head"><h3 id="playerWikiTitle">生平</h3><span>維基百科</span></div>
+    {bio===undefined&&!state.error&&<p className="player-wiki-note">載入維基百科資料中…</p>}
+    {state.error&&<p className="player-wiki-note">{state.error}</p>}
+    {bio&&<>
+      {bio.lang==='en'&&<p className="player-wiki-note">中文維基百科沒有這個條目，以下為英文維基百科的介紹。</p>}
+      <div ref={textRef} className={'player-wiki-text'+(clamp&&!expanded?' clamp':'')} lang={bio.lang==='zh'?'zh-Hant-TW':'en'}>
+        {bio.paragraphs.map((text,i)=><p key={i}>{text}</p>)}
+      </div>
+      {clamp&&<button type="button" className="subs-link player-wiki-toggle" aria-expanded={expanded} onClick={()=>setExpanded(value=>!value)}>{expanded?'收合':'展開全文'}</button>}
+      <p className="player-wiki-credit">以上摘自維基百科〈<a href={wikiUrl(bio)} target="_blank" rel="noopener">{bio.title}</a>〉條目導言，由維基百科貢獻者撰寫，依 <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授權。</p>
+    </>}
+  </section>;
+}
+
 export function PlayerPage(){
   const {view,playerId,playerFrom}=useScoreboard();
   const [loaded,setLoaded]=useState({id:null,data:null,error:''});
@@ -153,6 +192,8 @@ export function PlayerPage(){
           </table>
         </div>
       </section>:null)}
+
+      <WikiBio person={person} visible={view==='player'}/>
     </>}
   </section>;
 }

@@ -4,7 +4,7 @@
 
 公開網站：<https://b110212000.github.io/mlb-live-scoreboard/>
 
-目前版本：`v2.4.1`
+目前版本：`v2.5.0`
 
 ## 功能
 
@@ -25,7 +25,7 @@
 - 戰績排行（主選單）：例行賽分區（東 / 中 / 西）與外卡排名，含勝差、近 10 場、連勝敗、晉級標記，左右滑動切換聯盟
 - 台灣旅外球員（主選單）：MLB 與小聯盟（3A、2A、高階1A、1A、新人聯盟）的台灣球員、各層級本季成績與今日比賽，點卡片看球員資料
 - 名人堂（主選單）：美國棒球名人堂歷年入選者，依入選年份分組，可搜尋姓名 / 球隊，依身分與年代篩選
-- 球員資料：從名人堂或台灣旅外點選人物，顯示基本資料、大聯盟生涯數據、主要獎項與逐年成績（含小聯盟）
+- 球員資料：從名人堂或台灣旅外點選人物，顯示基本資料、大聯盟生涯數據、主要獎項、逐年成績（含小聯盟），最下方是維基百科的生平介紹
 
 - 季後賽淘汰賽戰況、系列賽勝敗與晉級狀態
 - 對戰名單：兩隊 active roster、先發打線、先發投手
@@ -123,6 +123,7 @@ createEngine({publish})  ──publish(patch)──▶  store.js  ──useSyncE
 | `src/components/` | 側邊欄、主比分、場次列表、焦點、各頁面元件；`SubscriptionManager.jsx` 為訂閱管理頁、`HallOfFame.jsx` 名人堂、`PlayerPage.jsx` 球員資料 |
 | `src/teams.js` | 追蹤球隊選單用的 30 隊中文隊名 |
 | `src/players.js` | 球員資料共用：照片網址、中文守備位置 / 國家 / 層級、主要獎項對照（依 MLB 獎項 id）、單位換算、舊隊名 |
+| `src/wiki.js` | 球員頁的生平：用 Wikidata（MLB 球員編號）找維基百科條目並取得導言 |
 | `src/taiwanPlayers.js` | 台灣旅外球員的中文姓名（只放確定的譯名） |
 | `src/engine/` | `api.js` 共用設定與 HTTP、`live.js` 即時比賽、`postseason.js` 季後賽、`roster.js` 對戰名單與牛棚、`notifications.js` Web Push 與訂閱管理、`highlights.js` 精華影片、`ui.js` 手勢與安裝 / 分享、`app.js` 初始化與排程 |
 | `src/index.html` | HTML 模板（`__VERSION__` 於建置時替換） |
@@ -253,6 +254,7 @@ v2.0.0（`b774582`）在根目錄新增 `package-lock.json` 後，Cloudflare Wor
 - 大聯盟生涯：打者看出賽、安打、全壘打、打點、盜壘、打擊率、上壘率、OPS；投手看出賽、勝敗、防禦率、局數、三振、救援、WHIP。二刀流，或另一項也有足夠出賽（例如 Babe Ruth 的投球）時兩項都列。還沒上過大聯盟的球員顯示小聯盟成績。
 - 主要獎項：名人堂、世界大賽 / 聯盟冠軍賽 / 明星賽 MVP、MVP、賽揚獎、新人王、明星賽、白金 / 金手套、銀棒獎、漢克阿倫獎、年度最佳救援投手、東山再起獎、克萊門特獎、年度最佳指定打擊、退休背號。依 MLB 獎項 id 對照（同名的小聯盟、球隊與媒體獎項不列）。
 - 逐年成績（在主要獎項下方）：年份由舊到新，含小聯盟層級（3A、2A…）；同一年依層級由低到高（新人 → 1A → … → 大聯盟），同層級轉隊依先後。去掉「小聯盟合計」等沒有球隊的合計列。同一支球隊的舊隊名保留英文（例如 Washington Senators 不會顯示成雙城），暱稱相同的（Brooklyn Dodgers）才用中文隊名。
+- 生平（最下方）：維基百科條目的導言。優先中文維基百科（轉成台灣正體用語），沒有中文條目時顯示英文維基百科並註明；維基百科沒有這個人時整段不顯示。內容較長時先收合，可按「展開全文」。下方標示條目名稱與連結、作者（維基百科貢獻者）與 CC BY-SA 4.0 授權，這是使用維基百科內容的授權條件，不能拿掉。
 - 返回：左上「← 返回」、手機返回鍵或瀏覽器上一頁都會回到原本的頁面與捲動位置。
 - 只在使用者點開時查詢該位球員（個人、非大量使用），同一次開啟會快取，不批次下載所有球員資料。
 
@@ -662,6 +664,28 @@ GET /v1/people/{playerId}/stats?stats=yearByYear&group=pitching&leagueListId=mlb
 
 ---
 
+### 8. 維基百科生平
+
+球員頁最下方的生平使用 Wikimedia 官方 API（瀏覽器直接呼叫，帶 `origin=*` 與 `Api-User-Agent`）。先用 Wikidata 的「MLB.com 球員編號」（`P3541`）找到對應的條目：
+
+```http
+GET https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=haswbstatement:P3541={playerId}
+GET https://www.wikidata.org/w/api.php?action=wbgetentities&ids={Q 編號}&props=sitelinks&sitefilter=zhwiki|enwiki
+```
+
+找不到（多半是以總教練、裁判、經營者身分入選的名人堂成員或黑人聯盟球員）時，改搜「姓名 + baseball」的人物條目，並比對出生日期確認是同一人（舊時代球員各資料來源的生日常有出入，相差兩年內都算）。名人堂 354 人中有 351 人找得到條目，其中 269 人有中文條目。
+
+再取條目導言（純文字），中文維基加上 `variant=zh-tw` 轉成台灣正體用語：
+
+```http
+GET https://zh.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={條目}&variant=zh-tw
+GET https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={條目}
+```
+
+維基百科文字依 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) 授權，畫面上必須標示條目名稱與連結、作者（維基百科貢獻者）與授權。只在開啟球員頁時查詢那一位。
+
+---
+
 ## MLB 靜態資源
 
 ### 球隊 Logo
@@ -840,6 +864,7 @@ sportId=1
 | 台灣旅外頁 | 開啟時載入，之後每 10 分鐘（Worker 名單與成績快取 3 小時） |
 | 名人堂頁 | 第一次開啟時載入，同一次開啟不再重抓 |
 | 球員資料 | 點開球員時載入，同一位球員同一次開啟只抓一次 |
+| 維基百科生平 | 開啟球員頁時載入，同一位球員同一次開啟只抓一次 |
 | 系列賽分頁、對戰名單頁 | 開啟中時每 60 秒 |
 | 網站版本檢查 | 開啟頁面、切回 App / 視窗取得焦點、每 15 秒 |
 | 追蹤球隊賽程同步（Worker） | 追蹤或訂閱時立即一次，之後每 15 分鐘；開啟頁面時資料超過 10 分鐘也會先同步 |
@@ -852,8 +877,8 @@ sportId=1
 所有前端資源 URL 都帶有版本參數，例如：
 
 ```text
-styles.css?v=2.4.1
-assets/app-2.4.1.js?v=2.4.1
+styles.css?v=2.5.0
+assets/app-2.5.0.js?v=2.5.0
 ```
 
 因此新版部署後可直接避開瀏覽器舊快取，尤其是 iPhone 主畫面 Web App。頁面頂端下拉也可以重新整理整個網站。
@@ -905,6 +930,7 @@ MLB Stats API
 - 本專案目前沒有離線比賽資料模式。
 - 球隊 Logo、球員照片與比賽資料來源皆屬 MLB 相關資料來源。
 - 球員資料只在使用者點開時查詢該位球員，不批次下載所有球員的生涯資料（MLB 資料只允許個人、非商業、非大量使用）。
+- 球員頁的生平文字來自維基百科（CC BY-SA 4.0），必須保留條目連結、作者（維基百科貢獻者）與授權標示。
 
 ## License
 
@@ -913,6 +939,12 @@ MLB Stats API
 ---
 
 ## 更新紀錄
+
+### v2.5.0 球員生平（維基百科）
+
+- 球員資料最下方新增「生平」：維基百科條目導言，優先中文（台灣正體），沒有中文條目改顯示英文；內容較長時可展開 / 收合。
+- 用 Wikidata 的 MLB 球員編號精準對到條目，找不到時以姓名 + 生日比對；名人堂 354 人中 351 人有條目。
+- 標示條目連結、作者（維基百科貢獻者）與 CC BY-SA 4.0 授權。
 
 ### v2.4.1 球員資料版面調整
 
