@@ -14,30 +14,41 @@ function PrefToggles({prefs,disabled,label,onChange}){
   </div>;
 }
 
-function GameRow({game,busy,expanded,onToggle,onCancel}){
+function CardTeam({id,name,side}){
+  return <span className="game-card-team">
+    <span className="subs-logo" aria-hidden="true">{id?<img src={logo(id)} alt=""/>:'?'}</span>
+    <b>{name||'待定'}</b>
+    <small>{side}</small>
+  </span>;
+}
+
+// 一場比賽一張卡片：上方系列賽與狀態、中間客隊 @ 主隊、下方時間與來源；底部左「提醒項目」、右「取消訂閱」。
+function GameCard({game,busy,expanded,onToggle,onCancel}){
   const title=gameTitle(game);
-  const meta=[game.timeText,game.series].filter(Boolean);
-  const score=game.live&&game.awayScore!=null?` ${game.awayScore}：${game.homeScore}`:'';
-  return <li className="subs-game" data-game-pk={game.gamePk}>
-    <div className="subs-game-row">
-      <button type="button" className="subs-game-main" aria-label={`開啟 ${title}`} onClick={()=>actions.subs.openGame(game.gamePk)}>
-        <span className="subs-game-logos" aria-hidden="true">{[game.awayId,game.homeId].map((id,i)=><span key={i} className="subs-logo">{id?<img src={logo(id)} alt=""/>:'?'}</span>)}</span>
-        <span className="subs-game-text">
-          <b>{title}</b>
-          <small>{meta.map((part,i)=><span key={i} className="subs-meta-part">{i?' · ':''}{part}</span>)}</small>
-          <span className="subs-tags">
-            {game.statusText&&<span className={'subs-tag status'+(game.live?' live':'')}>{game.statusText+score}</span>}
-            <span className="subs-tag">{game.source==='team'?'追蹤 '+game.teamIds.map(teamName).join('、'):'手動訂閱'}</span>
-            {game.custom&&<span className="subs-tag custom">自訂提醒</span>}
-          </span>
-        </span>
+  const scored=game.live&&game.awayScore!=null;
+  return <li className={'subs-game game-card'+(game.live?' live':'')} data-game-pk={game.gamePk}>
+    <button type="button" className="subs-game-main game-card-main" aria-label={`開啟 ${title}`} onClick={()=>actions.subs.openGame(game.gamePk)}>
+      <span className="game-card-top">
+        <span className="game-card-series">{game.series||'季後賽'}</span>
+        {game.statusText&&<span className={'subs-tag status'+(game.live?' live':'')}>{game.statusText}</span>}
+      </span>
+      <span className="game-card-teams">
+        <CardTeam id={game.awayId} name={game.awayName} side="客隊"/>
+        <span className={'game-card-vs'+(scored?' score':'')}>{scored?`${game.awayScore} : ${game.homeScore}`:'@'}</span>
+        <CardTeam id={game.homeId} name={game.homeName} side="主隊"/>
+      </span>
+      <span className="game-card-time">{game.timeText}</span>
+    </button>
+    <div className="subs-tags game-card-tags">
+      <span className="subs-tag">{game.source==='team'?'追蹤 '+game.teamIds.map(teamName).join('、'):'手動訂閱'}</span>
+      {game.custom&&<span className="subs-tag custom">自訂提醒</span>}
+    </div>
+    <div className="game-card-actions">
+      <button type="button" className="subs-icon-btn game-card-prefs-btn" aria-expanded={expanded} aria-label={`調整 ${title} 的提醒項目`} onClick={onToggle}>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+        <span>提醒項目</span>
       </button>
-      <div className="subs-game-actions">
-        <button type="button" className="subs-icon-btn" aria-expanded={expanded} aria-label={`調整 ${title} 的提醒項目`} title="提醒項目" onClick={onToggle}>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
-        </button>
-        <button type="button" className="subs-btn danger subs-cancel" disabled={busy} onClick={onCancel}>取消</button>
-      </div>
+      <button type="button" className="subs-btn danger subs-cancel" disabled={busy} onClick={onCancel}>取消訂閱</button>
     </div>
     {expanded&&<div className="subs-game-prefs">
       <PrefToggles prefs={game.prefs} disabled={busy} label={`${title} 的提醒項目`} onChange={prefs=>actions.subs.setGamePrefs(game.gamePk,prefs)}/>
@@ -69,7 +80,7 @@ export function SubscriptionManager(){
     <section className="subs-section" aria-labelledby="subsGamesTitle">
       <div className="subs-section-head"><h3 id="subsGamesTitle">已訂閱的比賽</h3><span>{subs.games.length?`共 ${subs.games.length} 場 · 點比賽可開啟`:''}</span></div>
       {subs.games.length?<ul className="subs-game-list">
-        {subs.games.map(game=><GameRow key={game.gamePk} game={game} busy={busy('game:'+game.gamePk)} expanded={openPrefs===game.gamePk}
+        {subs.games.map(game=><GameCard key={game.gamePk} game={game} busy={busy('game:'+game.gamePk)} expanded={openPrefs===game.gamePk}
           onToggle={()=>setOpenPrefs(openPrefs===game.gamePk?null:game.gamePk)} onCancel={()=>askCancel(game)}/>)}
       </ul>:<p className="subs-empty">{subs.status==='loading'||subs.status==='idle'?'載入中…':'目前沒有訂閱任何比賽。在即時比賽頁按比分中央的鈴鐺，或到「追蹤球隊」自動訂閱。'}</p>}
     </section>

@@ -150,7 +150,13 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  assert.equal(await page.locator('#appTitle').innerText(),'訂閱管理');
  const row=page.locator('.subs-game[data-game-pk="'+feed.gamePk+'"]');await row.waitFor();
  assert.equal(await page.locator('.subs-game').count(),1);
- assert((await row.locator('.subs-game-text b').innerText()).includes(' @ '));assert((await row.innerText()).includes('手動訂閱'));
+ // 卡片：客隊 @ 主隊兩側各有隊徽、中文隊名與客隊 / 主隊標示，底部左提醒項目、右取消訂閱。
+ assert((await row.locator('.game-card-main').getAttribute('aria-label')).includes(' @ '));assert((await row.innerText()).includes('手動訂閱'));
+ assert.deepEqual(await row.locator('.game-card-team small').allInnerTexts(),['客隊','主隊']);
+ assert.equal(await row.locator('.game-card-team img').count(),2);
+ assert.equal(await row.locator('.subs-cancel').innerText(),'取消訂閱');
+ const actionBoxes=await row.locator('.game-card-actions button').evaluateAll(list=>list.map(b=>b.getBoundingClientRect().x));
+ assert(actionBoxes[0]<actionBoxes[1],'cancel button should be on the right');
 
  // 預設提醒項目：關閉主隊得分，所有未自訂的場次一起套用。
  const defaults=page.locator('[aria-label="預設提醒項目"]');

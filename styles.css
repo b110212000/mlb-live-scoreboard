@@ -2472,26 +2472,32 @@ body.sidebar-open{overflow:hidden}
   .team-card-badge{position:static;order:3;flex:none;width:24px;height:24px;font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.league-switch-thumb{transition:none}}
-.subs-game-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.subs-game{border:1px solid #294966;border-radius:13px;background:#0b1a2b;overflow:hidden}
-.subs-game-row{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 8px}
-.subs-game-main{flex:1;min-width:0;min-height:0;display:flex;align-items:center;gap:10px;padding:4px;border:0;border-radius:9px;background:transparent;color:inherit;text-align:left}
-.subs-game-main:hover{background:#ffffff08}
-.subs-game-logos{display:flex;flex:none}
-.subs-game-logos .subs-logo+.subs-logo{margin-left:-6px}
-.subs-game-text{min-width:0;display:flex;flex-direction:column;gap:3px}
-.subs-game-text b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.subs-game-text small{color:var(--muted);font-size:12px;line-height:1.4}
-.subs-meta-part{white-space:nowrap}
+/* v2.1.6 已訂閱的比賽：卡片 */
+.subs-game-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;align-items:start}
+.game-card{display:flex;flex-direction:column;min-width:0;border:1px solid #294966;border-radius:14px;background:#0b1a2b;overflow:hidden}
+.game-card.live{border-color:#2d6b57}
+.game-card-main{min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px 12px 8px;border:0;border-radius:0;background:transparent;color:inherit;text-align:left}
+.game-card-main:hover{background:#ffffff06}
+.game-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.game-card-series{color:#c5d4e2;font-size:12px;font-weight:700}
+.game-card-teams{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px}
+.game-card-team{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center}
+.game-card-team .subs-logo{width:48px;height:48px;padding:6px;margin-bottom:2px}
+.game-card-team b{max-width:100%;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.game-card-team small{color:var(--muted);font-size:11px}
+.game-card-vs{color:var(--muted);font-size:16px;font-weight:800}
+.game-card-vs.score{color:#fff;font-size:24px;font-variant-numeric:tabular-nums}
+.game-card-time{color:var(--muted);font-size:12px;text-align:center}
+.game-card-tags{justify-content:center;padding:0 12px 10px}
+.game-card-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-top:1px solid #ffffff10}
 .subs-tags{display:flex;flex-wrap:wrap;gap:5px}
 .subs-tag{padding:1px 7px;border-radius:999px;border:1px solid #2b4a68;color:#b8cbdc;font-size:11px}
 .subs-tag.custom{border-color:#6b5a2a;color:#ffe19a}
 .subs-tag.status{border-color:#3b5470;color:#dce8f2}
 .subs-tag.status.live{border-color:#2d6b57;background:#0c211a;color:#bff4dd}
-.subs-game-actions{display:flex;align-items:center;gap:6px;flex:none}
-.subs-icon-btn{width:38px;height:38px;min-height:38px;padding:0;display:grid;place-items:center;border-radius:10px}
+.subs-icon-btn{min-height:38px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;border-radius:10px;font-size:13px;font-weight:700}
 .subs-icon-btn[aria-expanded=true]{border-color:var(--accent);color:var(--accent)}
-.subs-icon-btn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.subs-icon-btn svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 .subs-game-prefs{padding:4px 12px 12px;border-top:1px solid #ffffff10;background:#091827}
 .subs-game-prefs-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;color:var(--muted);font-size:12px}
 .subs-prefs{display:flex;flex-direction:column}
@@ -2512,7 +2518,5 @@ body.sidebar-open{overflow:hidden}
 .subs-footnote .subs-link{margin:0 2px}
 @media(max-width:600px){
   .subs-shell{padding:14px 12px;border-radius:0}
-  .subs-game-row{padding:6px 8px 6px 4px;gap:6px}
-  .subs-game-text b{font-size:14px}
   .subs-btn{padding:7px 11px}
 }
