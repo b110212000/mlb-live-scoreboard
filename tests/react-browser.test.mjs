@@ -150,13 +150,21 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  assert.equal(await page.locator('#appTitle').innerText(),'訂閱管理');
  const row=page.locator('.subs-game[data-game-pk="'+feed.gamePk+'"]');await row.waitFor();
  assert.equal(await page.locator('.subs-game').count(),1);
- // 卡片：客隊 @ 主隊兩側各有隊徽、中文隊名與客隊 / 主隊標示，底部左提醒項目、右取消訂閱。
- assert((await row.locator('.game-card-main').getAttribute('aria-label')).includes(' @ '));assert((await row.innerText()).includes('手動訂閱'));
+ // 提醒項目在已訂閱的比賽上方，比賽多時不會被擠下去。
+ assert((await page.locator('#subsPrefsTitle').boundingBox()).y<(await page.locator('#subsGamesTitle').boundingBox()).y,'reminder items should be above the game list');
+ // 一場一列、預設收合；點一列（右側箭頭）展開卡片，再點收合。
+ const head=row.locator('.game-row');
+ assert.equal(await head.getAttribute('aria-expanded'),'false');assert.equal(await row.locator('.game-card').count(),0);
+ assert((await head.innerText()).includes(' @ '));assert.equal(await head.locator('.game-row-chevron').count(),1);
+ await head.click();assert.equal(await head.getAttribute('aria-expanded'),'true');
+ assert((await row.innerText()).includes('手動訂閱'));
  assert.deepEqual(await row.locator('.game-card-team small').allInnerTexts(),['客隊','主隊']);
  assert.equal(await row.locator('.game-card-team img').count(),2);
  assert.equal(await row.locator('.subs-cancel').innerText(),'取消訂閱');
- const actionBoxes=await row.locator('.game-card-actions button').evaluateAll(list=>list.map(b=>b.getBoundingClientRect().x));
- assert(actionBoxes[0]<actionBoxes[1],'cancel button should be on the right');
+ const actionBoxes=await row.locator('.game-card-actions button').evaluateAll(list=>list.map(b=>b.getBoundingClientRect().right));
+ assert.equal(Math.max(...actionBoxes),actionBoxes.at(-1),'cancel button should be right-most');
+ await head.click();assert.equal(await row.locator('.game-card').count(),0,'row did not collapse');
+ await head.click();
 
  // 預設提醒項目：關閉主隊得分，所有未自訂的場次一起套用。
  const defaults=page.locator('[aria-label="預設提醒項目"]');
@@ -179,10 +187,10 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  // 左右開關預設美國聯盟；東 / 中 / 西三區各 5 張卡片，卡片有中英文隊名。
  const sw=page.locator('#teamsView .league-switch');
  assert.equal(await sw.locator('[data-league=AL]').getAttribute('aria-checked'),'true');
- assert.deepEqual(await page.locator('#teamsView .division h3').allInnerTexts(),['東區','中區','西區']);
- assert.deepEqual(await page.locator('#teamsView .division').evaluateAll(list=>list.map(s=>s.querySelectorAll('.team-card').length)),[5,5,5]);
+ assert.deepEqual(await page.locator('#teamsView .league-panel.active .division h3').allInnerTexts(),['東區','中區','西區']);
+ assert.deepEqual(await page.locator('#teamsView .league-panel.active .division').evaluateAll(list=>list.map(s=>s.querySelectorAll('.team-card').length)),[5,5,5]);
  // 三區並排成三欄，每區球隊由上往下排，三欄同一列對齊。
- const layout=await page.locator('#teamsView .division').evaluateAll(list=>list.map(s=>({x:s.getBoundingClientRect().x,y:s.getBoundingClientRect().y,cards:[...s.querySelectorAll('.team-card')].map(c=>{const r=c.getBoundingClientRect();return {x:r.x,y:r.y,h:r.height}})})));
+ const layout=await page.locator('#teamsView .league-panel.active .division').evaluateAll(list=>list.map(s=>({x:s.getBoundingClientRect().x,y:s.getBoundingClientRect().y,cards:[...s.querySelectorAll('.team-card')].map(c=>{const r=c.getBoundingClientRect();return {x:r.x,y:r.y,h:r.height}})})));
  assert(layout[0].x<layout[1].x&&layout[1].x<layout[2].x,'divisions are not side by side');
  assert(layout.every(d=>Math.abs(d.y-layout[0].y)<1),'division columns do not start on the same row');
  for(const d of layout)assert(d.cards.every((c,i)=>Math.abs(c.x-d.cards[0].x)<1&&(i===0||c.y>d.cards[i-1].y)),'teams do not stack vertically');
@@ -190,9 +198,28 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  const yankees=page.locator('#teamsView .team-card[data-team-id="147"]');
  assert((await yankees.innerText()).includes('洋基'));assert((await yankees.innerText()).includes('New York Yankees'));
  assert(await yankees.evaluate(el=>el.closest('.division').querySelector('h3').textContent==='東區'));
- assert.equal(await page.locator('#teamsView .team-card[data-team-id="119"]').count(),0,'NL team listed under AL');
- await sw.locator('[data-league=NL]').click();
- assert.equal(await sw.locator('[data-league=NL]').getAttribute('aria-checked'),'true');
+ assert.equal(await page.locator('#teamsView .league-panel.active .team-card[data-team-id="119"]').count(),0,'NL team listed under AL');
+ // 球隊區向左滑切到國家聯盟；從卡片上開始滑不會誤觸追蹤。
+ const athletics=await page.locator('#teamsView .team-card[data-team-id="133"]').boundingBox();
+ await page.mouse.move(athletics.x+athletics.width/2,athletics.y+athletics.height/2);await page.mouse.down();
+ await page.mouse.move(athletics.x+athletics.width/2-220,athletics.y+athletics.height/2+6,{steps:10});await page.mouse.up();await page.waitForTimeout(400);
+ assert.equal(await sw.locator('[data-league=NL]').getAttribute('aria-checked'),'true','swipe left did not switch to NL');
+ assert(!mock.calls.some(c=>c.path==='/teams'),'swiping toggled a team');
+ assert.equal(await page.locator('#teamsView .league-panel.active').getAttribute('data-league'),'NL');
+ assert(await page.locator('#teamsView .league-panel[data-league=AL]').evaluate(el=>el.inert),'hidden league must be inert');
+ // 向右滑回美國聯盟。
+ const vp=await page.locator('#teamsView .league-viewport').boundingBox();
+ await page.mouse.move(vp.x+60,vp.y+150);await page.mouse.down();await page.mouse.move(vp.x+280,vp.y+156,{steps:10});await page.mouse.up();await page.waitForTimeout(400);
+ assert.equal(await sw.locator('[data-league=AL]').getAttribute('aria-checked'),'true','swipe right did not switch back to AL');
+ // 開關可以直接往右拖選國家聯盟，方向鍵也能切換。
+ const sb=await sw.boundingBox();
+ await page.mouse.move(sb.x+sb.width*.25,sb.y+sb.height/2);await page.mouse.down();await page.mouse.move(sb.x+sb.width*.75,sb.y+sb.height/2,{steps:8});await page.mouse.up();await page.waitForTimeout(400);
+ assert.equal(await sw.locator('[data-league=NL]').getAttribute('aria-checked'),'true','dragging the switch did not select NL');
+ await sw.locator('[data-league=NL]').focus();await page.keyboard.press('ArrowLeft');
+ assert.equal(await sw.locator('[data-league=AL]').getAttribute('aria-checked'),'true','ArrowLeft did not select AL');
+ await page.keyboard.press('ArrowRight');
+ assert.equal(await sw.locator('[data-league=NL]').getAttribute('aria-checked'),'true','ArrowRight did not select NL');
+ await page.waitForTimeout(400);
  const dodgers=page.locator('#teamsView .team-card[data-team-id="119"]');
  assert((await dodgers.innerText()).includes('道奇'));assert((await dodgers.innerText()).includes('Los Angeles Dodgers'));
  assert(await dodgers.evaluate(el=>el.closest('.division').querySelector('h3').textContent==='西區'));
@@ -207,10 +234,11 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await openSubscriptions(page);
  assert.equal(await page.locator('#notificationView .subs-feedback').innerText(),'','stale notice carried over to another page');
  const auto=page.locator('.subs-game[data-game-pk="'+teamGame.gamePk+'"]');await auto.waitFor();
- assert((await auto.innerText()).includes('追蹤 道奇'));assert((await auto.innerText()).includes('國聯冠軍賽 G1'));
+ assert((await auto.innerText()).includes('國聯冠軍賽 G1'));
+ await auto.locator('.game-row').click();assert((await auto.innerText()).includes('追蹤 道奇'));
 
  // 點比賽開啟即時比賽頁，再回到訂閱管理。
- await row.locator('.subs-game-main').click();
+ await row.locator('.game-card-open').click();
  await page.locator('#awayName').filter({hasText:feed.gameData.teams.away.name}).waitFor();
  assert(await page.locator('#liveView').isVisible());
  await openSubscriptions(page);await row.waitFor();
