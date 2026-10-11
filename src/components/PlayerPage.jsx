@@ -116,7 +116,7 @@ function WikiBio({person,visible}){
         {bio.paragraphs.map((text,i)=><p key={i}>{text}</p>)}
       </div>
       {clamp&&<button type="button" className="subs-link player-wiki-toggle" aria-expanded={expanded} onClick={()=>setExpanded(value=>!value)}>{expanded?'收合':'展開全文'}</button>}
-      <p className="player-wiki-credit">以上摘自維基百科〈<a href={wikiUrl(bio)} target="_blank" rel="noopener">{bio.title}</a>〉條目導言，由維基百科貢獻者撰寫，依 <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授權。</p>
+      <p className="player-wiki-credit">以上摘自維基百科〈<a href={wikiUrl(bio)} target="_blank" rel="noopener">{bio.displayTitle}</a>〉條目導言，由維基百科貢獻者撰寫，依 <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> 授權。</p>
     </>}
   </section>;
 }

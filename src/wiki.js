@@ -29,19 +29,26 @@ export function birthGap(wikidataTime,birthDate){
   return Math.abs(day(wd)-day(mlb))/86_400_000;
 }
 
-async function findEntity(person){
-  const [byId]=await search(`haswbstatement:P3541=${person.id}`);
-  if(byId)return (await entities([byId],'sitelinks'))[byId]||null;
-  if(!person.fullName||!person.birthDate)return null;
-  const hits=await search(`${person.fullName} baseball haswbstatement:P31=Q5`);
+// 姓名搜尋的候選人中，選生日最接近（兩年內）的那位。
+async function findByName(query,birthDate){
+  const hits=await search(query);
   if(!hits.length)return null;
   const found=await entities(hits,'sitelinks|claims');
   let best=null,bestGap=Infinity;
   for(const id of hits){
-    const gap=birthGap(found[id]?.claims?.P569?.[0]?.mainsnak?.datavalue?.value?.time,person.birthDate);
+    const gap=birthGap(found[id]?.claims?.P569?.[0]?.mainsnak?.datavalue?.value?.time,birthDate);
     if(gap<bestGap){best=found[id];bestGap=gap}
   }
   return bestGap<=MAX_BIRTH_GAP_DAYS?best:null;
+}
+
+async function findEntity(person){
+  const [byId]=await search(`haswbstatement:P3541=${person.id}`);
+  if(byId)return (await entities([byId],'sitelinks'))[byId]||null;
+  if(!person.fullName||!person.birthDate)return null;
+  // 球團老闆、聯盟主席的 Wikidata 說明常不含 baseball（例如 Jacob Ruppert 是釀酒商），找不到再不加 baseball 搜一次。
+  return await findByName(`${person.fullName} baseball haswbstatement:P31=Q5`,person.birthDate)
+    ||await findByName(`${person.fullName} haswbstatement:P31=Q5`,person.birthDate);
 }
 
 // 純文字摘要會留下發音模板被拿掉後的殘骸，例如「Selig (; born July 30, 1934)」、空括號。
@@ -52,13 +59,15 @@ export const tidy=text=>text
 
 async function intro(lang,title){
   const params={action:'query',prop:'extracts',exintro:'1',explaintext:'1',redirects:'1',titles:title};
-  if(lang==='zh')params.variant='zh-tw';
+  // 中文維基的內文轉成台灣正體；條目名稱可能是簡體，另外取台灣正體的顯示名稱（連結仍用原條目名稱）。
+  if(lang==='zh')Object.assign(params,{prop:'extracts|info',inprop:'varianttitles',variant:'zh-tw'});
   const page=(await api(`https://${lang}.wikipedia.org/w/api.php`,params)).query?.pages?.[0];
   const paragraphs=String(page?.extract||'').split(/\n+/).map(tidy).filter(Boolean);
-  return page&&!page.missing&&paragraphs.length?{lang,title:page.title,paragraphs}:null;
+  if(!page||page.missing||!paragraphs.length)return null;
+  return {lang,title:page.title,displayTitle:page.varianttitles?.['zh-tw']||page.title,paragraphs};
 }
 
-// 回傳 {lang:'zh'|'en', title, paragraphs} 或 null（維基百科沒有這個人）。
+// 回傳 {lang:'zh'|'en', title（原條目名稱）, displayTitle, paragraphs} 或 null（維基百科沒有這個人）。
 export function loadWikiBio(person){
   const key=Number(person?.id);
   if(!cache.has(key)){
