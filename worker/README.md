@@ -14,7 +14,7 @@ Worker (src/index.js) ── 路由與 CORS
    │
    ├── DeviceRegistry Durable Object（每個 deviceId 一個）
    │     ├── 保存推播訂閱、預設提醒項目、追蹤球隊、已訂閱場次（含單場自訂）
-   │     ├── 每小時以 Alarm 同步賽程：自動訂閱追蹤球隊的季後賽、清掉終場 / 延賽場次
+   │     ├── 每 15 分鐘以 Alarm 同步賽程：自動訂閱追蹤球隊的季後賽、清掉終場 / 延賽場次
    │     └── 以 POST/DELETE /watch 呼叫各場 GameMonitor
    │
    ├── GameMonitor Durable Object（每個 gamePk 一個）
@@ -76,7 +76,11 @@ Worker (src/index.js) ── 路由與 CORS
 | 延賽 / 取消 / 移出賽程 | 停止並清除訂閱 |
 | 讀取 MLB 失敗 | 30 秒後重試 |
 
-DeviceRegistry 在有追蹤球隊或已訂閱場次時，每小時同步一次（追蹤球隊、新增場次時也會立即同步）：
+DeviceRegistry 在有追蹤球隊或已訂閱場次時，每 15 分鐘同步一次（追蹤球隊、新增場次時也會立即同步；`GET /state` 時若有追蹤球隊且超過 10 分鐘未同步，會先同步再回傳）。
+
+下一輪對手確定前，MLB 賽程以佔位隊伍表示（例如 ALCS 的「CLE/CWS」、世界大賽的「AL Champion」／「NL Champion」，各有自己的 team id），`teamId` 查詢不會包含這些場次；前一輪結束、MLB 換成真正球隊後的下一次同步才會自動訂閱。
+
+同步內容：
 
 - 追蹤球隊：查詢該隊昨天到 10 天後的季後賽（`gameType` F / D / L / W / P），自動訂閱尚未開打或進行中的場次；使用者取消過的場次（`dismissed`）不會加回。
 - 清單整理：終場移除；延賽 / 取消會先取消 GameMonitor 訂閱再移除；已不在賽程中的場次在預定時間 6 小時後移除（GameMonitor 會先依 feed 的 X 狀態自行停止）。

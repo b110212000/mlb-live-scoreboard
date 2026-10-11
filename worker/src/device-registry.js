@@ -4,7 +4,10 @@ import { normalizePrefs, samePrefs } from "./prefs.js";
 const MLB_API = "https://statsapi.mlb.com/api";
 // 與前端相同：本站只涵蓋季後賽。
 const POSTSEASON_TYPES = ["F", "D", "L", "W", "P"];
-const SYNC_INTERVAL_MS = 60 * 60_000;
+// 追蹤球隊的下一輪對手要等前一輪結束、MLB 把佔位隊伍（例如 CLE/CWS、AL Champion）換成真正球隊後才查得到，
+// 所以同步間隔不能太長；開啟頁面時若資料超過 STALE_SYNC_MS 也會先同步。
+const SYNC_INTERVAL_MS = 15 * 60_000;
+const STALE_SYNC_MS = 10 * 60_000;
 const LOOKAHEAD_DAYS = 10;
 // 已不在賽程中的場次（沒打成的 if-necessary）在預定時間過後多久從清單移除。
 const MISSING_GRACE_MS = 6 * 60 * 60_000;
@@ -99,7 +102,7 @@ export class DeviceRegistry extends DurableObject {
     const path = url.pathname;
     const body = method === "GET" ? {} : await request.json().catch(() => ({}));
 
-    if (method === "GET" && path === "/state") return json(this.view(state));
+    if (method === "GET" && path === "/state") return this.getState(state);
     if (method === "PUT" && path === "/defaults") return this.setDefaults(state, body);
     if (method === "PUT" && path === "/subscription") return this.setSubscription(state, body);
     if (method === "POST" && path === "/games") return this.addGame(state, body);
@@ -176,6 +179,20 @@ export class DeviceRegistry extends DurableObject {
       lastSyncAt: state.lastSyncAt,
       ...extra
     };
+  }
+
+  async getState(state) {
+    const last = Date.parse(state.lastSyncAt || "");
+    if (state.teams.length && (!Number.isFinite(last) || Date.now() - last > STALE_SYNC_MS)) {
+      try {
+        await this.sync(state);
+      } catch (error) {
+        state.lastSyncError = error?.message || String(error);
+      }
+      await this.save(state);
+      await this.scheduleSync(state);
+    }
+    return json(this.view(state));
   }
 
   monitor(gamePk) {

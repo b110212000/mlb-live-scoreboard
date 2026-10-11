@@ -113,6 +113,20 @@ const ALL={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
   assert.equal(lastWatch(4).body.subscription.endpoint,'https://push.example/two');assert.equal(lastWatch(5).body.subscription.endpoint,'https://push.example/two');
   res=await d.call('PUT','/subscription',{subscription:{endpoint:'http://bad'}});assert.equal(res.status,400);
 
+  // 開啟頁面（GET /state）時，追蹤球隊的資料超過 10 分鐘就先同步：佔位隊伍換成真正球隊後馬上補訂閱。
+  const fresh=registry();
+  schedule.set(30,sched(30,{away:114,home:139}));teamGames=[];
+  await fresh.call('POST','/teams',{teamId:114,subscription:sub('cle')});
+  teamGames=[schedule.get(30)];
+  let calls=mlbCalls.length;res=await fresh.call('GET','/state');
+  assert.equal(mlbCalls.length,calls,'fresh state should not resync');assert(!res.data.games.some(g=>g.gamePk===30));
+  fresh.data.set('lastSyncAt',iso(now-11*60000));
+  res=await fresh.call('GET','/state');
+  assert(res.data.games.some(g=>g.gamePk===30&&g.source==='team'),'stale GET /state did not pick up newly assigned games');
+  assert(fresh.alarm-Date.now()<=15*60000+1000,'sync interval should be 15 minutes');
+  // 沒有追蹤球隊時 GET /state 不會呼叫 MLB。
+  const idle=registry();calls=mlbCalls.length;await idle.call('GET','/state');assert.equal(mlbCalls.length,calls);
+
   // Alarm 會同步並重新排程。
   await d.r.alarm();assert(d.alarm>Date.now());
 
@@ -129,5 +143,5 @@ const ALL={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
   wr=await w.workerEntry.fetch(new Request('https://worker.test/api/devices/bad%20id/state'),env);assert.equal(wr.status,400);
   wr=await w.workerEntry.fetch(new Request('https://worker.test/api/devices/device-abc-123/state',{method:'OPTIONS'}),env);assert(wr.headers.get('access-control-allow-methods').includes('PUT'));
 
-  console.log('PASS device registry: manual/import add, defaults vs custom prefs, final 409, team follow (postseason only, no confirmation), dismissed games, unfollow cleanup, sync pruning (final/postponed/missing), endpoint migration, alarm, device isolation, router + CORS; mlb called-off detection');
+  console.log('PASS device registry: stale GET /state resync (placeholder opponents), 15-min alarm; manual/import add, defaults vs custom prefs, final 409, team follow (postseason only, no confirmation), dismissed games, unfollow cleanup, sync pruning (final/postponed/missing), endpoint migration, alarm, device isolation, router + CORS; mlb called-off detection');
 })().catch(e=>{console.error(e);process.exit(1)});
