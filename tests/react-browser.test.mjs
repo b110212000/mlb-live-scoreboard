@@ -414,7 +414,8 @@ const playerFixtures={
     mlbDebutDate:'1914-07-11',lastPlayedDate:'1935-05-30',primaryPosition:{type:'Outfielder',abbreviation:'RF'},pitchHand:{code:'L'},batSide:{code:'L'},
     awards:[{id:'MLBHOF',name:'Hall Of Fame',season:'1936'}],
     stats:[career('hitting',{gamesPlayed:2504,hits:2873,homeRuns:714,rbi:2213,stolenBases:123,avg:'.342',obp:'.474',ops:'1.164'}),career('pitching',{gamesPlayed:163,wins:94,losses:46,era:'2.28',inningsPitched:'1221.1',strikeOuts:488,saves:4,whip:'1.16'})]},
-    years:{hitting:{stats:[{splits:[yearRow(1927,'MLB',{id:147,name:'New York Yankees'},{gamesPlayed:151,homeRuns:60,avg:'.356'}),yearRow(1935,'MLB',{id:144,name:'Boston Braves'},{gamesPlayed:28,avg:'.181'})]}]},
+    years:{hitting:{stats:[{splits:[yearRow(1914,'Minors',null,{gamesPlayed:46}),yearRow(1914,'AAA',{id:9001,name:'Providence Grays'},{gamesPlayed:46}),yearRow(1914,'MLB',{id:111,name:'Boston Red Sox'},{gamesPlayed:5,avg:'.200'}),
+      yearRow(1927,'MLB',{id:147,name:'New York Yankees'},{gamesPlayed:151,homeRuns:60,avg:'.356'}),yearRow(1935,'MLB',{id:144,name:'Boston Braves'},{gamesPlayed:28,avg:'.181'})]}]},
       pitching:{stats:[{splits:[yearRow(1916,'MLB',{id:111,name:'Boston Red Sox'},{gamesPlayed:44,wins:23,losses:12,era:'1.75'})]}]}}},
   827734:{person:{id:827734,fullName:'Wei-En Lin',primaryNumber:'61',birthDate:'2005-11-25',birthCity:'Taitung',birthCountry:'Taiwan',active:true,
     currentTeam:{id:400,name:'Las Vegas Aviators',parentOrgId:133},primaryPosition:{type:'Pitcher',abbreviation:'P'},pitchHand:{code:'L'},batSide:{code:'L'},
@@ -518,9 +519,20 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  assert.equal(await wiki.locator('.player-wiki-credit a').first().getAttribute('href'),'https://zh.wikipedia.org/zh-tw/%E9%88%B4%E6%9C%A8%E4%B8%80%E6%9C%97');
  assert.equal(await wiki.locator('.player-wiki-credit a').nth(1).getAttribute('href'),'https://creativecommons.org/licenses/by-sa/4.0/');
  assert((await wiki.locator('.player-wiki-credit').innerText()).includes('維基百科貢獻者'));
- // 逐年成績舊到新（同年轉隊依先後），去掉沒有球隊的合計列；只有大聯盟時不標「含小聯盟」。
- const rows=()=>page.locator('#playerView .player-years tbody tr').evaluateAll(list=>list.map(row=>[...row.cells].slice(0,4).map(cell=>cell.textContent).join('|')));
- assert.deepEqual(await rows(),['2001|MLB|水手|157','2012|MLB|水手|95','2012|MLB|洋基|67']);
+ // 逐年成績：每年一列、舊到新；同年兩隊顯示合計「2 隊」，點一下展開各隊（依先後），再點收合。
+ const rows=(table=page.locator('#playerView .player-years').first())=>table.locator('tbody tr').evaluateAll(list=>list.map(row=>[...row.cells].slice(0,4).map((cell,i)=>i===0?(cell.querySelector('.year-num')?.textContent||''):cell.textContent).join('|')));
+ assert.deepEqual(await rows(),['2001|MLB|水手|157','2012|MLB|2 隊|162']);
+ const year2012=page.locator('#playerView .player-years tbody tr.has-more').filter({hasText:'2012'});
+ assert.equal(await year2012.locator('.year-more').innerText(),'+2');
+ assert.equal(await year2012.locator('.year-toggle').getAttribute('aria-expanded'),'false');
+ await year2012.click();
+ assert.deepEqual(await rows(),['2001|MLB|水手|157','2012|MLB|2 隊|162','|MLB|水手|95','|MLB|洋基|67']);
+ assert.equal(await year2012.locator('.year-toggle').getAttribute('aria-expanded'),'true');
+ assert.equal(await page.locator('#playerView .player-years tr.sub').count(),2);
+ // 鍵盤：年份按鈕按 Enter 收合（點擊冒泡到整列，只切換一次）。
+ await year2012.locator('.year-toggle').focus();await page.keyboard.press('Enter');
+ assert.deepEqual(await rows(),['2001|MLB|水手|157','2012|MLB|2 隊|162']);
+ // 只有大聯盟時不標「含小聯盟」。
  assert.equal(await page.locator('#playerView .subs-section-head span').filter({hasText:'含小聯盟'}).count(),0);
  // 主要獎項依 MLB 獎項 id：小聯盟明星賽與球隊 MVP 不列；退休背號。
  assert.deepEqual(await page.locator('#playerView .player-awards b').evaluateAll(list=>list.map(b=>b.firstChild.textContent)),['名人堂','明星賽 MVP','美聯 MVP','美聯明星賽','美聯金手套','水手退休背號']);
@@ -537,6 +549,12 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  assert((await page.locator('#playerView .player-facts').innerText()).includes('1895/02/06 – 1948/08/16'));
  assert.equal(await page.locator('#playerView .player-years').count(),2);
  assert((await page.locator('#playerView .player-years').first().innerText()).includes('勇士'));
+ // 有大聯盟的年份以大聯盟為主，同年的小聯盟收合，點一下展開。
+ const ruthHitting=page.locator('#playerView .player-years').first();
+ assert.deepEqual(await rows(ruthHitting),['1914|MLB|紅襪|5','1927|MLB|洋基|151','1935|MLB|勇士|28']);
+ await ruthHitting.locator('tbody tr.has-more').filter({hasText:'1914'}).click();
+ assert.deepEqual(await rows(ruthHitting),['1914|MLB|紅襪|5','|3A|Providence Grays|46','1927|MLB|洋基|151','1935|MLB|勇士|28']);
+ assert.equal(await page.locator('#playerView .subs-section-head span').filter({hasText:'含小聯盟'}).count(),1);
  // 沒有中文條目：英文維基並註明；姓名搜尋選生日相符的人；長文先收合，可展開 / 收合；清掉發音殘骸。
  const ruthWiki=page.locator('#playerView .player-wiki');
  await ruthWiki.locator('.player-wiki-text[lang=en]').waitFor();
@@ -566,8 +584,10 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  await page.locator('#playerView .player-head').filter({hasText:'林維恩'}).waitFor();
  const lin=await page.locator('#playerView').innerText();
  for(const text of ['林維恩','Wei-En Lin','#61 · 投手 · 左投左打','現役','運動家體系 · Las Vegas Aviators','台灣 · Taitung','尚未在大聯盟出賽，以下為小聯盟成績。','含小聯盟'])assert(lin.includes(text),'Lin page missing '+text);
- // 同一年依 API 順序（層級由低到高）。
- assert.deepEqual(await rows(),['2025|高階1A|Lansing Lugnuts|8','2025|2A|Midland RockHounds|12','2026|3A|Las Vegas Aviators|20']);
+ // 只有小聯盟的年份：同年多隊顯示小聯盟合計，展開後依 API 順序（層級由低到高）。
+ assert.deepEqual(await rows(),['2025|小聯盟|2 隊|20','2026|3A|Las Vegas Aviators|20']);
+ await page.locator('#playerView .player-years tbody tr.has-more').filter({hasText:'2025'}).click();
+ assert.deepEqual(await rows(),['2025|小聯盟|2 隊|20','|高階1A|Lansing Lugnuts|8','|2A|Midland RockHounds|12','2026|3A|Las Vegas Aviators|20']);
  assert.equal(await page.locator('#playerView .player-awards').count(),0);
  // 維基百科查不到：不顯示生平。
  await page.waitForFunction(()=>!document.querySelector('#playerView .player-wiki'));

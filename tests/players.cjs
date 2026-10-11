@@ -50,6 +50,33 @@ const assert=require('assert/strict');
   assert.equal(p.ageOn('1973-10-12',new Date(2026,9,11)),52);
   assert.equal(p.ageOn('',new Date(2026,9,11)),null);
 
+  // 逐年成績分組：每年一列主要成績，同年其他紀錄收在 details。
+  const row=(season,sport,team,games,extra={})=>({season:String(season),sport:{abbreviation:sport},...(team?{team:{id:team,name:'T'+team}}:{}),stat:{gamesPlayed:games},...extra});
+  const seasons=p.groupSeasons([
+    // 2026：小聯盟復健（1A、3A）+ 大聯盟 → 大聯盟為主。
+    row(2026,'Minors',null,17),row(2026,'A',1,3),row(2026,'AAA',2,14),row(2026,'MLB',116,114),
+    // 2012：大聯盟兩隊 → 合計列（2 隊）為主，兩隊收合。
+    row(2012,'MLB',136,95),row(2012,'MLB',147,67),row(2012,'MLB',null,162,{numTeams:2}),
+    // 2023：只有小聯盟、多層級 → 小聯盟合計為主；同層級合計列不列入。
+    row(2023,'Minors',null,75),row(2023,'ROK',3,3),row(2023,'A+',4,64),row(2023,'A+',5,8),row(2023,'A+',null,72),
+    // 2021：只有一隊。
+    row(2021,'ROK',3,9),
+    // 2019：兩隊但沒有合計列 → 出賽多的那隊為主。
+    row(2019,'MLB',110,20),row(2019,'MLB',111,40),
+    // 2018：只有合計列（沒有球隊）→ 不顯示。
+    row(2018,'Minors',null,5),
+  ]);
+  assert.deepEqual(seasons.map(s=>s.season),['2012','2019','2021','2023','2026']);
+  const [s2012,s2019,s2021,s2023,s2026]=seasons;
+  assert.equal(s2026.level,'MLB');assert.equal(s2026.main.team.id,116);assert.equal(s2026.total,false);
+  assert.deepEqual(s2026.details.map(d=>d.team.id),[1,2]);
+  assert.equal(s2012.total,true);assert.equal(s2012.teams,2);assert.equal(s2012.main.stat.gamesPlayed,162);assert.deepEqual(s2012.details.map(d=>d.team.id),[136,147]);
+  assert.equal(s2023.level,'Minors');assert.equal(s2023.total,true);assert.equal(s2023.teams,3);assert.equal(s2023.main.stat.gamesPlayed,75);assert.deepEqual(s2023.details.map(d=>d.team.id),[3,4,5]);
+  assert.equal(s2021.level,'ROK');assert.equal(s2021.total,false);assert.deepEqual(s2021.details,[]);
+  assert.equal(s2019.main.team.id,111);assert.deepEqual(s2019.details.map(d=>d.team.id),[110]);
+  assert.equal(p.LEVEL_ZH.Minors,'小聯盟');
+  assert.deepEqual(p.groupSeasons(undefined),[]);
+
   // 畫面上的日期用斜線。
   assert.equal(p.slashDate('2001-04-02'),'2001/04/02');
   assert.equal(p.slashDate(undefined),'');

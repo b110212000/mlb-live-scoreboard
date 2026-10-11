@@ -3,7 +3,7 @@ import {useScoreboard,actions} from '../store.js';
 import {teamById} from '../teams.js';
 import {TAIWAN_PLAYER_NAMES} from '../taiwanPlayers.js';
 import {logo} from './SubscriptionShared.jsx';
-import {headshot,POSITION_ZH,POSITION_TYPE_ZH,countryZh,LEVEL_ZH,handsText,heightCm,weightKg,ageOn,majorAwards,seasonsText,teamNameZh,slashDate} from '../players.js';
+import {headshot,POSITION_ZH,POSITION_TYPE_ZH,countryZh,LEVEL_ZH,handsText,heightCm,weightKg,ageOn,majorAwards,seasonsText,teamNameZh,slashDate,groupSeasons} from '../players.js';
 import {loadWikiBio,wikiUrl} from '../wiki.js';
 
 const API='https://statsapi.mlb.com/api/v1';
@@ -39,11 +39,8 @@ async function loadPlayer(id){
   const yearly={};
   await Promise.all(groups.map(async group=>{
     const stats=await getJSON(`${API}/people/${id}/stats?stats=yearByYear&group=${group}&leagueListId=mlb_milb`).catch(()=>({stats:[]}));
-    // 只保留有球隊的列（去掉「小聯盟合計」與同層級多隊的合計列）；年份由舊到新。
-    // 同一年保留 API 的順序：層級由低到高（新人 → 1A → … → 大聯盟），同層級轉隊依先後。
-    yearly[group]=(stats.stats?.[0]?.splits||[])
-      .filter(split=>split.team?.id&&split.sport?.abbreviation!=='Minors')
-      .sort((a,b)=>Number(a.season)-Number(b.season));
+    // 年份由舊到新，每年一列主要成績（大聯盟優先），同年其他紀錄收在 details。
+    yearly[group]=groupSeasons(stats.stats?.[0]?.splits||[]);
   }));
   const result={person,groups,yearly,career};
   cache.set(id,result);
@@ -59,6 +56,41 @@ const YEAR_COLUMNS={
   pitching:[['場','gamesPlayed'],['先發','gamesStarted'],['勝','wins'],['敗','losses'],['救援','saves'],['局數','inningsPitched'],['三振','strikeOuts'],['防禦率','era'],['WHIP','whip']]
 };
 const GROUP_ZH={hitting:'打擊',pitching:'投球'};
+
+// 逐年成績：每年一列（有大聯盟就顯示大聯盟，同年多隊顯示合計「N 隊」）；
+// 同年的其他紀錄（小聯盟、各隊）收合，點那一年展開。
+function YearTable({group,seasons}){
+  const [open,setOpen]=useState(()=>new Set());
+  const toggle=season=>setOpen(current=>{
+    const next=new Set(current);
+    if(next.has(season))next.delete(season);else next.add(season);
+    return next;
+  });
+  const statCells=split=>YEAR_COLUMNS[group].map(([label,key])=><td key={label}>{split.stat?.[key]??'-'}</td>);
+  return <div className="standings-scroll">
+    <table className="standings-table player-years">
+      <thead><tr><th scope="col">年</th><th scope="col">層級</th><th scope="col" className="team-col">球隊</th>{YEAR_COLUMNS[group].map(([label])=><th key={label} scope="col">{label}</th>)}</tr></thead>
+      <tbody>{seasons.flatMap(row=>{
+        const more=row.details.length,expanded=more>0&&open.has(row.season);
+        // 整列可點；年份是按鈕（鍵盤也能操作，點擊冒泡到整列，只切換一次）。
+        const main=<tr key={row.season} className={[row.level==='MLB'?'mlb':'',more?'has-more':'',expanded?'expanded':''].filter(Boolean).join(' ')} onClick={more?()=>toggle(row.season):undefined}>
+          <td>{more
+            ?<button type="button" className="year-toggle" aria-expanded={expanded} aria-label={`${row.season} 年，${expanded?'收合':'展開'}同年其他 ${more} 筆紀錄`}><span className="year-num">{row.season}</span><span className="year-more" aria-hidden="true">{expanded?'−':`+${more}`}</span></button>
+            :<span className="year-num">{row.season}</span>}</td>
+          <td>{LEVEL_ZH[row.level]||row.level||''}</td>
+          <td className="team-col">{row.total?`${row.teams} 隊`:teamNameZh(row.main.team)}</td>
+          {statCells(row.main)}
+        </tr>;
+        if(!expanded)return [main];
+        return [main,...row.details.map((split,i)=><tr key={`${row.season}-${i}`} className="sub">
+          <td/><td>{LEVEL_ZH[split.sport?.abbreviation]||split.sport?.abbreviation||''}</td>
+          <td className="team-col">{teamNameZh(split.team)}</td>
+          {statCells(split)}
+        </tr>)];
+      })}</tbody>
+    </table>
+  </div>;
+}
 
 // 小聯盟球隊加上母隊體系，與台灣旅外頁一致（例：響尾蛇體系 · Reno Aces）。
 function currentTeamText(team){
@@ -180,17 +212,8 @@ export function PlayerPage(){
       </section>}
 
       {data.groups.map(group=>data.yearly[group]?.length?<section key={group} className="subs-section" aria-label={'逐年成績'+GROUP_ZH[group]}>
-        <div className="subs-section-head"><h3>逐年成績{data.groups.length>1?`（${GROUP_ZH[group]}）`:''}</h3>{data.yearly[group].some(split=>split.sport?.abbreviation!=='MLB')&&<span>含小聯盟</span>}</div>
-        <div className="standings-scroll">
-          <table className="standings-table player-years">
-            <thead><tr><th scope="col">年</th><th scope="col">層級</th><th scope="col" className="team-col">球隊</th>{YEAR_COLUMNS[group].map(([label])=><th key={label} scope="col">{label}</th>)}</tr></thead>
-            <tbody>{data.yearly[group].map((split,i)=><tr key={i} className={split.sport?.abbreviation==='MLB'?'mlb':''}>
-              <td>{split.season}</td><td>{LEVEL_ZH[split.sport?.abbreviation]||split.sport?.abbreviation||''}</td>
-              <td className="team-col">{teamNameZh(split.team)}</td>
-              {YEAR_COLUMNS[group].map(([label,key])=><td key={label}>{split.stat?.[key]??'-'}</td>)}
-            </tr>)}</tbody>
-          </table>
-        </div>
+        <div className="subs-section-head"><h3>逐年成績{data.groups.length>1?`（${GROUP_ZH[group]}）`:''}</h3>{data.yearly[group].some(row=>row.level!=='MLB'||row.details.some(split=>split.sport?.abbreviation!=='MLB'))&&<span>含小聯盟</span>}</div>
+        <YearTable key={`${person.id}-${group}`} group={group} seasons={data.yearly[group]}/>
       </section>:null)}
 
       <WikiBio person={person} visible={view==='player'}/>

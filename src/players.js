@@ -22,8 +22,37 @@ export const foldText=text=>String(text||'').normalize('NFD').replace(/\p{M}/gu,
 const COUNTRY_ZH={USA:'美國',Japan:'日本','Dominican Republic':'多明尼加',Venezuela:'委內瑞拉','Puerto Rico':'波多黎各',Cuba:'古巴',Taiwan:'台灣','South Korea':'南韓',Korea:'南韓',Mexico:'墨西哥',Canada:'加拿大',Panama:'巴拿馬',Curacao:'古拉索',Colombia:'哥倫比亞',Australia:'澳洲',Netherlands:'荷蘭',Bahamas:'巴哈馬',Nicaragua:'尼加拉瓜',Aruba:'阿魯巴',Germany:'德國',Ireland:'愛爾蘭',Scotland:'蘇格蘭',England:'英格蘭',Wales:'威爾斯','Virgin Islands':'美屬維京群島'};
 export const countryZh=name=>COUNTRY_ZH[name]||name||'';
 
-// MLB 的層級縮寫 → 中文。
-export const LEVEL_ZH={MLB:'MLB',AAA:'3A',AA:'2A','A+':'高階1A',A:'1A','A-':'短期1A',ROK:'新人',RK:'新人',WIN:'冬季聯盟'};
+// MLB 的層級縮寫 → 中文（Minors 是小聯盟各層級的合計列）。
+export const LEVEL_ZH={MLB:'MLB',AAA:'3A',AA:'2A','A+':'高階1A',A:'1A','A-':'短期1A',ROK:'新人',RK:'新人',WIN:'冬季聯盟',Minors:'小聯盟'};
+
+// 逐年成績分組：每年一列主要成績，同年其他紀錄放在 details（畫面上收合，點一下展開）。
+// API 每年有各隊各層級的列（層級由低到高、同層級依先後），另有沒有球隊的合計列：
+// 大聯盟多隊合計（numTeams）、小聯盟合計（Minors）、同層級多隊合計。
+// 主要成績：有大聯盟就用大聯盟（多隊用合計）；只有小聯盟時用小聯盟合計；只有一隊就是那一列。
+export function groupSeasons(splits){
+  const level=split=>split.sport?.abbreviation;
+  const bySeason=new Map();
+  for(const split of splits||[]){
+    const season=String(split?.season||'');
+    if(!season)continue;
+    if(!bySeason.has(season))bySeason.set(season,[]);
+    bySeason.get(season).push(split);
+  }
+  return [...bySeason.entries()].sort((a,b)=>Number(a[0])-Number(b[0])).flatMap(([season,rows])=>{
+    const teamRows=rows.filter(row=>row.team?.id&&level(row)!=='Minors');
+    if(!teamRows.length)return [];
+    const mlb=teamRows.filter(row=>level(row)==='MLB');
+    const pool=mlb.length?mlb:teamRows;
+    const totals=rows.filter(row=>!row.team?.id);
+    let main=pool.length===1?pool[0]
+      :mlb.length?totals.find(row=>level(row)==='MLB')
+      :totals.find(row=>level(row)==='Minors')||totals.find(row=>level(row)!=='MLB');
+    // 沒有合計列時，用出賽最多的那一列。
+    if(!main)main=[...pool].sort((a,b)=>(Number(b.stat?.gamesPlayed)||0)-(Number(a.stat?.gamesPlayed)||0))[0];
+    const total=!main.team?.id;
+    return [{season,main,level:level(main),total,teams:total?Number(main.numTeams)||pool.length:1,details:teamRows.filter(row=>row!==main)}];
+  });
+}
 
 const HAND_ZH={L:'左',R:'右',S:'左右開弓'};
 export function handsText(person){
