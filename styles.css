@@ -2483,14 +2483,8 @@ body.sidebar-open{overflow:hidden}
 .subs-dialog h3{margin:0 0 8px;font-size:18px}
 .subs-dialog p{margin:0;color:#c5d4e2;font-size:14px;line-height:1.6}
 .subs-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
-.notification-tools{margin-top:12px}
-.notification-tools>summary{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;cursor:pointer;list-style:none;font-weight:700}
-.notification-tools>summary::-webkit-details-marker{display:none}
-.notification-tools>summary::after{content:"⌄";color:var(--muted);margin-left:auto}
-.notification-tools[open]>summary{margin-bottom:12px}
-.notification-tools[open]>summary::after{content:"⌃"}
-.notification-tools-hint{color:var(--muted);font-size:12px;font-weight:500}
-.notification-tools .notification-head{padding:0 0 12px}
+.subs-footnote{margin:0;padding-top:12px;border-top:1px solid #ffffff12;color:var(--muted);font-size:13px;line-height:1.6}
+.subs-footnote .subs-link{margin:0 2px}
 @media(max-width:600px){
   .subs-shell{padding:14px 12px;border-radius:0}
   .subs-game-row{padding:6px 8px 6px 4px;gap:6px}

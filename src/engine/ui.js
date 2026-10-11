@@ -193,7 +193,7 @@ async function installThisApp(){
 }
 
 function switchView(view){
-  if(!['live','bracket','roster','install','notifications','settings'].includes(view))view='live';
+  if(!['live','bracket','roster','install','notifications','notificationTest','settings'].includes(view))view='live';
   state.view=view;
   bridge.publish({view});
   const live=view==='live';
@@ -203,7 +203,8 @@ function switchView(view){
   if(view==='bracket')loadBracket();
   if(view==='roster')loadMatchupRoster();
   if(view==='install')syncInstallPage();
-  if(view==='notifications'){syncNotificationPage();loadSubscriptions();}
+  if(view==='notifications')loadSubscriptions();
+  if(view==='notificationTest')syncNotificationPage();
 }
 
 function setTopControlsExpanded(expanded){

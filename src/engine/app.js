@@ -184,7 +184,7 @@ loadInitialGame().catch(err=>{
 try{
   const requestedView=new URL(location.href).searchParams.get('view');
   const initialView=new URL(location.href).searchParams.has('gamePk')?'live':
-    (['live','bracket','roster','install','notifications','settings'].includes(requestedView)?requestedView:'live');
+    (['live','bracket','roster','install','notifications','notificationTest','settings'].includes(requestedView)?requestedView:'live');
   switchView(initialView);
   initLiveDetailSwipe();
   setLiveDetailTab('status',{animate:false});

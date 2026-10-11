@@ -58,6 +58,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  await page.waitForTimeout(310);
  assert.equal(await page.locator('[data-view=install]').count(),0);
  assert.equal(await page.locator('[data-view=notifications]').count(),0);
+ assert.equal(await page.locator('[data-view=notificationTest]').count(),0);
  await page.locator('[data-menu-settings]').click();
  assert.equal(await page.locator('#sidebarTitle').innerText(),'設定');
  assert(await page.locator('#featureMenu').evaluate(d=>d.open));
@@ -65,20 +66,25 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=live]').count(),0);
  assert(await page.locator('[data-view=install]').isVisible());
  assert(await page.locator('[data-view=notifications]').isVisible());
+ assert.equal(await page.locator('[data-view=notifications]').innerText(),'訂閱管理');
+ assert.equal(await page.locator('[data-view=notificationTest]').innerText(),'訂閱測試');
  await page.locator('[data-view=notifications]').click();
  assert(await page.locator('#featureMenu').evaluate(d=>d.open),'must remain open during exit');
  await page.waitForTimeout(310);assert(await page.locator('#notificationView').isVisible());
+ // 訂閱管理與訂閱測試是兩個獨立頁面。
+ assert.equal(await page.locator('#notificationView #testNotificationBtn').count(),0);assert(!(await page.locator('#testNotificationBtn').isVisible()));
  assert(!(await page.locator('#featureMenu').evaluate(d=>d.open)));
  await page.locator('#featureMenuButton').click();await page.waitForTimeout(310);
  assert.equal(await page.locator('#sidebarTitle').innerText(),'設定');
  await page.locator('[data-menu-back]').click();assert.equal(await page.locator('#sidebarTitle').innerText(),'MLB 戰況');
  await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
- for(const [view,id] of [['bracket','bracketView'],['install','installView'],['notifications','notificationView'],['live','liveView']]){
+ for(const [view,id] of [['bracket','bracketView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
-   if(['install','notifications'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+   if(['install','notifications','notificationTest'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
    if(['live','bracket'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
+   if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
  }
  await page.locator('#heroRosterBtn').click();assert(await page.locator('#rosterView').isVisible());await page.locator('#rosterBackBtn').click();assert(await page.locator('#liveView').isVisible());
  await page.screenshot({path:'/tmp/react-scoreboard.png'});
@@ -186,5 +192,8 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await page.locator('.subs-team').waitFor({state:'detached'});
  assert.equal(await page.locator('.subs-game').count(),0);
  assert((await page.locator('.subs-empty').allInnerTexts()).some(x=>x.includes('目前沒有訂閱')));
+ // 頁尾連結前往獨立的訂閱測試頁。
+ await page.locator('.subs-footnote .subs-link').click();
+ assert(await page.locator('#notificationTestView').isVisible());assert(!(await page.locator('#notificationView').isVisible()));
  assert.deepEqual(errors,[]);await page.close();
 });

@@ -142,6 +142,8 @@ export function SubscriptionManager(){
       <PrefToggles prefs={subs.defaults} disabled={busy('defaults')} label="預設提醒項目" onChange={prefs=>actions.subs.setDefaultPrefs(prefs)}/>
     </section>
 
+    <p className="subs-footnote">收不到通知？到<button type="button" className="subs-link" onClick={()=>actions.navigate('notificationTest')}>訂閱測試</button>確認這台裝置能收到推播。</p>
+
     <ConfirmDialog request={confirm} onClose={()=>setConfirm(null)}/>
   </section>;
 }
