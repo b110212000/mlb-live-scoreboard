@@ -440,7 +440,7 @@ async function importLegacyWatches(registryGames){
 
 async function loadSubscriptions(){
   const seq=++subsLoadSeq;
-  publishSubs({status:subsState.status==='ready'?'ready':'loading',support:pushSupportState(),error:''});
+  publishSubs({status:subsState.status==='ready'?'ready':'loading',support:pushSupportState(),error:'',notice:''});
   try{
     let data=await registryRequest('/state');
     if(await importLegacyWatches(data.games||[]))data=await registryRequest('/state');

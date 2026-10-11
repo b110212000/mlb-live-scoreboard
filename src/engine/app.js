@@ -184,7 +184,7 @@ loadInitialGame().catch(err=>{
 try{
   const requestedView=new URL(location.href).searchParams.get('view');
   const initialView=new URL(location.href).searchParams.has('gamePk')?'live':
-    (['live','bracket','roster','install','notifications','notificationTest','settings'].includes(requestedView)?requestedView:'live');
+    (['live','bracket','teams','roster','install','notifications','notificationTest','settings'].includes(requestedView)?requestedView:'live');
   switchView(initialView);
   initLiveDetailSwipe();
   setLiveDetailTab('status',{animate:false});
@@ -210,7 +210,7 @@ on(document,'visibilitychange',()=>{
   if(document.hidden)return;
   checkForAppUpdate();
   // 回到 App 時更新訂閱清單（追蹤球隊可能已自動加入新場次）。
-  if(state.view==='notifications')loadSubscriptions();
+  if(state.view==='notifications'||state.view==='teams')loadSubscriptions();
 });
 on(window,'focus',checkForAppUpdate);
 setInterval(checkForAppUpdate,15000);

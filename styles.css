@@ -2440,13 +2440,20 @@ body.sidebar-open{overflow:hidden}
 .subs-btn.danger:hover{border-color:#b4565e}
 .subs-btn:disabled,.subs-icon-btn:disabled,.subs-team-remove:disabled{opacity:.5;cursor:default}
 .subs-link{min-height:0;padding:4px 2px;border:0;background:none;color:var(--accent);font-size:13px;text-decoration:underline}
-.subs-team-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
-.subs-team{display:inline-flex;align-items:center;gap:8px;padding:4px 4px 4px 6px;border-radius:999px;background:#10233a;border:1px solid #2b4a68;font-size:14px;font-weight:700}
-.subs-team-remove{width:30px;height:30px;min-height:30px;padding:0;display:grid;place-items:center;border-radius:50%;border:0;background:#ffffff10;color:#c5d4e2;font-size:13px}
-.subs-team-remove:hover{background:#7a3a4066;color:#fff}
-.subs-team-add{display:flex;gap:8px;min-width:0}
-.subs-team-add select{flex:1;min-width:0;min-height:40px;padding:7px 10px;border-radius:10px;border:1px solid var(--line);background:#0b1829;color:var(--text);font:inherit;font-size:14px}
-.subs-team-add select:disabled{opacity:.55}
+.followed-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.followed-team{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #2d6b57;border-radius:13px;background:#0c1f1a}
+.followed-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.followed-text b{font-size:15px}
+.followed-text small{color:var(--muted);font-size:12px;line-height:1.4}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.team-option{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 10px;border-radius:12px;border:1px solid #294966;background:#0b1a2b;color:var(--text);text-align:left}
+.team-option:hover{border-color:#4a6888}
+.team-option[aria-pressed=true]{border-color:#3ddc97;background:#0c211a}
+.team-option:disabled{opacity:.5;cursor:default}
+.team-option-name{flex:1;min-width:0;display:flex;flex-direction:column;font-size:15px;font-weight:700;line-height:1.25}
+.team-option-name small{color:var(--muted);font-size:11px;font-weight:600}
+.team-option-state{flex:none;width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:#ffffff10;color:#c5d4e2;font-size:14px;font-weight:800}
+.team-option[aria-pressed=true] .team-option-state{background:#1f8a63;color:#fff}
 .subs-game-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .subs-game{border:1px solid #294966;border-radius:13px;background:#0b1a2b;overflow:hidden}
 .subs-game-row{display:flex;align-items:center;gap:8px;padding:8px 10px 8px 8px}

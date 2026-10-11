@@ -59,11 +59,14 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=install]').count(),0);
  assert.equal(await page.locator('[data-view=notifications]').count(),0);
  assert.equal(await page.locator('[data-view=notificationTest]').count(),0);
+ // 追蹤球隊在主選單，不在設定子選單。
+ assert.equal(await page.locator('[data-view=teams]').innerText(),'追蹤球隊');
  await page.locator('[data-menu-settings]').click();
  assert.equal(await page.locator('#sidebarTitle').innerText(),'設定');
  assert(await page.locator('#featureMenu').evaluate(d=>d.open));
  assert(await page.locator('#liveView').isVisible(),'settings menu must preserve current game');
  assert.equal(await page.locator('[data-view=live]').count(),0);
+ assert.equal(await page.locator('[data-view=teams]').count(),0);
  assert(await page.locator('[data-view=install]').isVisible());
  assert(await page.locator('[data-view=notifications]').isVisible());
  assert.equal(await page.locator('[data-view=notifications]').innerText(),'訂閱管理');
@@ -79,10 +82,10 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  await page.locator('[data-menu-back]').click();assert.equal(await page.locator('#sidebarTitle').innerText(),'MLB 戰況');
  await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
- for(const [view,id] of [['bracket','bracketView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
+ for(const [view,id] of [['bracket','bracketView'],['teams','teamsView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
    if(['install','notifications','notificationTest'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
-   if(['live','bracket'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+   if(['live','bracket','teams'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
  }
@@ -129,6 +132,11 @@ function mockWorker(){
  };
  return {handler,calls};
 }
+async function openTeams(page){
+ await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
+ if(await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+ await page.locator('[data-view=teams]').click();await page.waitForTimeout(320);
+}
 async function openSubscriptions(page){
  await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
  if(await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
@@ -147,7 +155,7 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  // 預設提醒項目：關閉主隊得分，所有未自訂的場次一起套用。
  const defaults=page.locator('[aria-label="預設提醒項目"]');
  await defaults.locator('[data-pref=homeScore]').click();
- await page.locator('.subs-feedback .success').filter({hasText:'預設'}).waitFor();
+ await page.locator('#notificationView .subs-feedback .success').filter({hasText:'預設'}).waitFor();
  assert.equal(mock.calls.filter(c=>c.path==='/defaults').at(-1).body.prefs.homeScore,false);
  assert.equal(await defaults.locator('[data-pref=homeScore]').isChecked(),false);
 
@@ -158,15 +166,23 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await row.locator('.subs-tag.custom').waitFor();
  const custom=mock.calls.find(c=>/^\/games\/\d+\/prefs$/.test(c.path));assert.equal(custom.body.prefs.final,false);assert.equal(custom.body.prefs.homeScore,false);
 
- // 追蹤道奇：送出推播訂閱，自動加入的場次標示來源，選單不再列出已追蹤球隊。
- await page.locator('#subsTeamSelect').selectOption('119');
- await page.locator('#subsFollowBtn').click();
- await page.locator('.subs-team[data-team-id="119"]').waitFor();
+ // 訂閱管理不再有追蹤球隊區塊；追蹤道奇改到主選單的追蹤球隊頁。
+ assert.equal(await page.locator('#notificationView .team-option').count(),0);
+ await openTeams(page);
+ assert.equal(await page.locator('#appTitle').innerText(),'追蹤球隊');
+ assert.equal(await page.locator('#teamsView .team-option').count(),30);
+ const dodgers=page.locator('#teamsView .team-option[data-team-id="119"]');
+ assert.equal(await dodgers.getAttribute('aria-pressed'),'false');
+ await dodgers.click();
+ await page.locator('#teamsView .followed-team[data-team-id="119"]').waitFor();
+ assert.equal(await dodgers.getAttribute('aria-pressed'),'true');
  assert.equal(mock.calls.find(c=>c.path==='/teams').body.subscription.endpoint,'https://push.example/mock');
+ assert((await page.locator('#teamsView .subs-feedback').innerText()).includes('已追蹤道奇'));
+ assert((await page.locator('#teamsView .followed-team[data-team-id="119"]').innerText()).includes('已自動訂閱 1 場'));
+ await openSubscriptions(page);
+ assert.equal(await page.locator('#notificationView .subs-feedback').innerText(),'','stale notice carried over to another page');
  const auto=page.locator('.subs-game[data-game-pk="'+teamGame.gamePk+'"]');await auto.waitFor();
  assert((await auto.innerText()).includes('追蹤 道奇'));assert((await auto.innerText()).includes('國聯冠軍賽 G1'));
- assert((await page.locator('.subs-feedback').innerText()).includes('已追蹤道奇'));
- assert.equal(await page.locator('#subsTeamSelect option[value="119"]').count(),0);
 
  // 點比賽開啟即時比賽頁，再回到訂閱管理。
  await row.locator('.subs-game-main').click();
@@ -185,11 +201,17 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await row.waitFor({state:'detached'});
  assert(mock.calls.some(c=>c.method==='DELETE'&&c.path==='/games/'+feed.gamePk));
 
- // 取消追蹤也需要確認，並移除因追蹤而加入的場次。
- await page.locator('.subs-team[data-team-id="119"] .subs-team-remove').click();
- assert((await page.locator('#subsConfirm').innerText()).includes('取消追蹤道奇'));
- await page.locator('#subsConfirm [data-confirm=ok]').click();
- await page.locator('.subs-team').waitFor({state:'detached'});
+ // 取消追蹤需要確認（點已追蹤的球隊），並移除因追蹤而加入的場次。
+ await openTeams(page);
+ await dodgers.click();
+ assert((await page.locator('#teamConfirm').innerText()).includes('取消追蹤道奇'));
+ await page.locator('#teamConfirm [data-confirm=cancel]').click();
+ assert(!mock.calls.some(c=>c.method==='DELETE'&&c.path==='/teams/119'),'kept team was unfollowed');
+ await page.locator('#teamsView .followed-team[data-team-id="119"] .subs-btn').click();
+ await page.locator('#teamConfirm [data-confirm=ok]').click();
+ await page.locator('#teamsView .followed-team').waitFor({state:'detached'});
+ assert.equal(await dodgers.getAttribute('aria-pressed'),'false');
+ await openSubscriptions(page);
  assert.equal(await page.locator('.subs-game').count(),0);
  assert((await page.locator('.subs-empty').allInnerTexts()).some(x=>x.includes('目前沒有訂閱')));
  // 頁尾連結前往獨立的訂閱測試頁。
