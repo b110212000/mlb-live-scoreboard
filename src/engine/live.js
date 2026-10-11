@@ -12,7 +12,7 @@ async function loadSchedule(keepSelection=true,requestedGamePk=null){
     // 前後各多抓一天，再依瀏覽器 / iPhone 的當地時區重新歸類。
     const startDate=shiftLocalDateString(date,-1);
     const endDate=shiftLocalDateString(date,1);
-    const data=await getJSON(`${API}/v1/schedule?sportId=1&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&hydrate=team,linescore`);
+    const data=await getJSON(`${API}/v1/schedule?sportId=1&startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&hydrate=team,linescore,seriesStatus`);
     const all=(data.dates||[]).flatMap(d=>d.games||[]);
     const unique=[...new Map(all.map(g=>[g.gamePk,g])).values()];
     state.games=unique
@@ -26,8 +26,12 @@ async function loadSchedule(keepSelection=true,requestedGamePk=null){
       state.selectedGamePk=requestedGamePk;
     }
     if(!keepSelection||!state.games.some(g=>g.gamePk===state.selectedGamePk)){
-      const live=state.games.find(g=>g.status?.abstractGameState==='Live');
-      state.selectedGamePk=(live||state.games[0])?.gamePk??null;
+      // 預設選擇：進行中的追蹤球隊比賽 > 進行中 > 追蹤球隊 > 第一場。
+      const followed=followedTeamSet();
+      const isLive=g=>g.status?.abstractGameState==='Live';
+      const isFollowed=g=>followed.has(Number(g.teams?.away?.team?.id))||followed.has(Number(g.teams?.home?.team?.id));
+      const pick=state.games.find(g=>isLive(g)&&isFollowed(g))||state.games.find(isLive)||state.games.find(isFollowed)||state.games[0];
+      state.selectedGamePk=pick?.gamePk??null;
     }
     renderTabs();
     if(state.selectedGamePk) await loadGame(state.selectedGamePk);
@@ -43,7 +47,7 @@ async function loadSchedule(keepSelection=true,requestedGamePk=null){
 }
 
 function renderTabs(){
-  bridge.publish({games:state.games.map(g=>({gamePk:g.gamePk,label:gameLabel(g),time:gameLocalDateTime(g)})),selectedGamePk:state.selectedGamePk});
+  bridge.publish({games:state.games.map(g=>({gamePk:g.gamePk,label:gameLabel(g),time:gameLocalDateTime(g),awayId:Number(g.teams?.away?.team?.id)||null,homeId:Number(g.teams?.home?.team?.id)||null})),selectedGamePk:state.selectedGamePk});
 }
 
 async function loadGame(gamePk){
@@ -122,6 +126,7 @@ function renderGame(feed){
   else if(recapGamePk!==Number(state.selectedGamePk))resetGameRecap();
   renderGameWatchButton(feed);
   syncGameWatchStatus(gd.game?.pk??state.selectedGamePk);
+  renderGameSummary(feed);
 
   const batter=ls.offense?.batter||cp.matchup?.batter, pitcher=ls.defense?.pitcher||cp.matchup?.pitcher;
   els.batterName.textContent=batter?.fullName||'--';els.pitcherName.textContent=pitcher?.fullName||'--';

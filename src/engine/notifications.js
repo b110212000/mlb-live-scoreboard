@@ -12,7 +12,8 @@ const gameWatchRevision=new Map();
 const gameWatchFinal=new Set();
 const SUBS_PREF_KEYS=['pregame5','start','homeScore','awayScore','final'];
 const SUBS_DEFAULT_PREFS={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
-let subsState={status:'idle',error:'',notice:'',support:'default',defaults:{...SUBS_DEFAULT_PREFS},teams:[],games:[],busy:{}};
+const FOLLOWED_TEAMS_KEY='mlb-followed-teams';
+let subsState={status:'idle',error:'',notice:'',support:'default',defaults:{...SUBS_DEFAULT_PREFS},teams:cachedFollowedTeams(),games:[],busy:{}};
 let subsLoadSeq=0;
 let subsImportTried=false;
 const subsGameInfo=new Map();
@@ -237,6 +238,20 @@ async function toggleGameWatch(){
 
 /* ---------- 訂閱管理：DeviceRegistry 用戶端 ---------- */
 
+// 追蹤的球隊先存在本機，即時比賽頁一開啟就能標示，之後再以伺服器資料更新。
+function cachedFollowedTeams(){
+  try{
+    const list=JSON.parse(localStorage.getItem(FOLLOWED_TEAMS_KEY)||'[]');
+    return Array.isArray(list)?list.map(Number).filter(Boolean):[];
+  }catch(_){
+    return [];
+  }
+}
+
+function followedTeamSet(){
+  return new Set(subsState.teams);
+}
+
 function subsPrefs(value,fallback=SUBS_DEFAULT_PREFS){
   const source=value&&typeof value==='object'?value:{};
   const prefs={};
@@ -407,11 +422,13 @@ async function applyRegistryState(data,seq=subsLoadSeq){
   // 清單上的場次（包含追蹤球隊自動加入的）讓鈴鐺立即顯示為已訂閱。
   for(const game of list)setGameWatchedLocal(game.gamePk,true);
 
+  const teams=(Array.isArray(data?.teams)?data.teams:[]).map(team=>Number(team.teamId)).filter(Boolean);
+  try{localStorage.setItem(FOLLOWED_TEAMS_KEY,JSON.stringify(teams))}catch(_){}
   publishSubs({
     status:'ready',
     support:pushSupportState(),
     defaults,
-    teams:(Array.isArray(data?.teams)?data.teams:[]).map(team=>Number(team.teamId)).filter(Boolean),
+    teams,
     games:list
   });
   if(state.currentFeedGamePk&&state.currentFeed)renderGameWatchButton(state.currentFeed);

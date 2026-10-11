@@ -24,6 +24,7 @@ const els = {
   scoringEvents:$('scoringEvents'), recentEvents:$('recentEvents'),
   liveDetailTabs:$('liveDetailTabs'), liveDetailViewport:$('liveDetailViewport'), liveDetailTrack:$('liveDetailTrack'),
   liveDetailStats:$('liveDetailStats'), liveDetailStatus:$('liveDetailStatus'), liveDetailSeries:$('liveDetailSeries'),
+  liveDetailSummary:$('liveDetailSummary'), gameSummary:$('gameSummary'),
   liveDetailRecap:$('liveDetailRecap'), recapList:$('recapList'), recapSummary:$('recapSummary'), recapRefreshBtn:$('recapRefreshBtn'),
   currentSeriesTitle:$('currentSeriesTitle'), currentSeriesSummary:$('currentSeriesSummary'),
   currentSeriesGames:$('currentSeriesGames'),

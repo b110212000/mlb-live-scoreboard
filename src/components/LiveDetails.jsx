@@ -40,6 +40,7 @@ export const LiveDetails=memo(function LiveDetails(){return <>
 <button type="button" className="live-detail-tab" data-live-tab="stats" role="tab" aria-selected="false">{"統計"}</button>
 <button type="button" className="live-detail-tab active" data-live-tab="status" role="tab" aria-selected="true">{"賽況"}</button>
 <button type="button" className="live-detail-tab" data-live-tab="series" role="tab" aria-selected="false">{"系列賽"}</button>
+<button type="button" className="live-detail-tab" data-live-tab="summary" role="tab" aria-selected="false">{"賽後摘要"}</button>
 <button type="button" className="live-detail-tab" data-live-tab="recap" hidden role="tab" aria-selected="false" aria-controls="liveDetailRecap">{"賽後精華"}</button>
 </div>
 <div id="liveDetailViewport" className="live-detail-viewport" hidden>
@@ -158,6 +159,11 @@ export const LiveDetails=memo(function LiveDetails(){return <>
 <div id="currentSeriesGames" className="current-series-games">
 <div className="series-overview-empty">{"等待系列賽資料…"}</div>
 </div>
+</section>
+</div>
+<div id="liveDetailSummary" className="live-detail-panel" data-live-panel="summary">
+<section className="card game-summary-card" aria-label="賽後摘要">
+<div id="gameSummary" className="game-summary"><div className="game-summary-empty">{"選擇比賽後查看賽後摘要"}</div></div>
 </section>
 </div>
 <div id="liveDetailRecap" className="live-detail-panel" data-live-panel="recap" hidden aria-hidden="true">

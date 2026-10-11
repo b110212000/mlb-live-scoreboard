@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-export const engineFiles=['api','live','postseason','roster','notifications','highlights','ui','app'];
+export const engineFiles=['api','live','postseason','summary','roster','notifications','highlights','ui','app'];
 export async function engineSource(){
   const sources=await Promise.all(engineFiles.map(name=>readFile(`src/engine/${name}.js`,'utf8')));
   return `export function createEngine(callbacks){

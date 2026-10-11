@@ -1,6 +1,7 @@
 import {Fragment,useState} from 'react';
 import {useScoreboard,actions} from '../store.js';
 import {logo,teamName,SubsStatus,ConfirmDialog} from './SubscriptionShared.jsx';
+import {PUSH_API} from '../config.js';
 
 const PREF_ITEMS=[['pregame5','比賽開始前 5 分鐘'],['start','比賽開始'],['homeScore','主隊得分'],['awayScore','客隊得分'],['final','比賽結束']];
 const gameTitle=game=>game.awayName&&game.homeName?`${game.awayName} @ ${game.homeName}`:`比賽 #${game.gamePk}`;
@@ -50,6 +51,10 @@ function GameItem({game,busy,open,prefsOpen,onToggle,onTogglePrefs,onCancel}){
       </div>
       <div className="game-card-actions">
         <button type="button" className="subs-btn game-card-open" onClick={()=>actions.subs.openGame(game.gamePk)}>查看比賽</button>
+        <a className="subs-btn game-card-calendar" href={`${PUSH_API}/api/calendar/${game.gamePk}.ics`} aria-label={`將 ${title} 加入行事曆`}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M12 13v5M9.5 15.5h5"/></svg>
+          <span>加入行事曆</span>
+        </a>
         <button type="button" className="subs-icon-btn game-card-prefs-btn" aria-expanded={prefsOpen} aria-label={`調整 ${title} 的提醒項目`} onClick={onTogglePrefs}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
           <span>提醒項目</span>

@@ -954,7 +954,7 @@
 
     /* 即時比賽下半部：統計 / 賽況 / 系列賽 */
     .live-detail-tabs{
-      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;
+      display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;
       margin-top:12px;padding:0;background:transparent
     }
     .live-detail-tab{
@@ -2373,8 +2373,8 @@
 .no-game-message[hidden]{display:none!important}
 
 /* v1.7.6: 統計／賽況保留可辨識的完整外框與相同左右留白。 */
-#liveDetailStats,#liveDetailStatus{padding-left:10px;padding-right:10px;box-sizing:border-box}
-#liveDetailStats > .card,#liveDetailStatus > .card{border:1px solid #42617f!important;border-radius:18px}
+#liveDetailStats,#liveDetailStatus,#liveDetailSummary{padding-left:10px;padding-right:10px;box-sizing:border-box}
+#liveDetailStats > .card,#liveDetailStatus > .card,#liveDetailSummary > .card{border:1px solid #42617f!important;border-radius:18px}
 /* 影片功能停用期間，隱藏對應的頁尾政策入口。 */
 .legal-links[hidden]{display:none!important}
 
@@ -2540,4 +2540,57 @@ body.sidebar-open{overflow:hidden}
 @media(min-width:720px){
   .subs-prefs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));column-gap:28px}
   .subs-pref:last-child{border-bottom:1px solid #ffffff0d}
+}
+
+/* v2.2.0 賽後摘要分頁 */
+.game-summary-card{padding:16px}
+.game-summary{display:flex;flex-direction:column;gap:14px}
+.game-summary-empty{display:flex;flex-direction:column;gap:6px;padding:22px 8px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+.game-summary-empty b{color:var(--text);font-size:15px}
+.summary-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.summary-eyebrow{color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.06em}
+.summary-series{padding:3px 10px;border-radius:999px;border:1px solid #2d6b57;background:#0c211a;color:#bff4dd;font-size:12px;font-weight:700}
+.summary-score{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px}
+.summary-team{min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;opacity:.72}
+.summary-team.win{opacity:1}
+.summary-team b{max-width:100%;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.summary-team small{color:var(--muted);font-size:11px}
+.summary-logo{width:56px;height:56px;display:inline-flex;align-items:center;justify-content:center;padding:7px;border-radius:50%;background:rgba(248,251,255,.96)}
+.summary-logo img,.summary-mini-logo img{width:100%;height:100%;object-fit:contain;display:block}
+.summary-final{display:flex;flex-direction:column;align-items:center;gap:2px}
+.summary-final strong{font-size:32px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+.summary-final small{color:var(--muted);font-size:12px}
+.summary-block{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid #ffffff10}
+.summary-block h3{margin:0;font-size:14px;color:#c5d4e2}
+.summary-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.summary-list li{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"tag name" "tag line";column-gap:10px;row-gap:1px;align-items:center}
+.summary-list li>:first-child{grid-area:tag}
+.summary-list b{grid-area:name;font-size:14px;min-width:0;overflow-wrap:anywhere}
+.summary-list b em{font-style:normal;color:var(--muted);font-weight:600;font-size:12px}
+.summary-list small{grid-area:line;color:var(--muted);font-size:12px;line-height:1.4}
+.summary-tag{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;font-size:12px;font-weight:800}
+.summary-tag.win{background:#1f8a6333;color:#bff4dd;border:1px solid #2d6b57}
+.summary-tag.loss{background:#7a3a4033;color:#ffc9cd;border:1px solid #7a3a40}
+.summary-tag.save{background:#1f5f8d33;color:#bfe3ff;border:1px solid #3a6d93}
+.summary-mini-logo{width:34px;height:34px;display:inline-flex;padding:5px;border-radius:50%;background:rgba(248,251,255,.96)}
+.summary-key{margin:0;display:flex;flex-direction:column;gap:2px;font-size:14px;font-weight:700;line-height:1.5}
+.summary-key small{color:var(--muted);font-size:12px;font-weight:500}
+.summary-none{margin:0;color:var(--muted);font-size:13px}
+.summary-facts{margin:0;padding-top:12px;border-top:1px solid #ffffff10;color:var(--muted);font-size:12px;line-height:1.6}
+
+/* v2.2.0 即時比賽標示追蹤球隊 */
+.game-tab.followed{border-color:#3d9a72}
+.game-tab-star{margin-right:4px;color:#ffc857}
+.logo-shell{position:relative}
+.logo-fav{position:absolute;top:-2px;right:-2px;z-index:1;width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:#ffc857;color:#3a2a00;font-size:13px;line-height:1;box-shadow:0 2px 6px #0006}
+
+/* v2.2.0 訂閱卡片：加入行事曆 */
+.game-card-calendar{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#0b1829;color:var(--text);text-decoration:none}
+.game-card-calendar:hover{border-color:#4a6888}
+.game-card-calendar:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.game-card-calendar svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:600px){
+  .live-detail-tab{font-size:12.5px}
+  .summary-final strong{font-size:28px}
+  .summary-logo{width:48px;height:48px;padding:6px}
 }

@@ -47,6 +47,11 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  await page.locator('[data-live-tab=stats]').click();await page.locator('#boxScoreBoard table').first().waitFor();
  assert(await page.locator('#teamStatsBoard').innerText());
  await page.locator('[data-live-tab=status]').click();await page.locator('#recentEvents').waitFor();
+ // 第四個分頁「賽後摘要」在系列賽右邊；比賽進行中先顯示提示。
+ assert.deepEqual(await page.locator('#liveDetailTabs .live-detail-tab:not([hidden])').allInnerTexts(),['統計','賽況','系列賽','賽後摘要']);
+ await page.locator('[data-live-tab=summary]').click();
+ await page.locator('#gameSummary .game-summary-empty').filter({hasText:'比賽進行中'}).waitFor();
+ await page.locator('[data-live-tab=status]').click();
  assert(await page.locator('#recentEvents').innerText());
  // Refreshing identical data must retain the ticker node and its animation clock.
  await page.locator('#highlightTicker .highlight-ticker-slide').evaluate(el=>el.dataset.identity='same');
@@ -95,6 +100,11 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  const final=structuredClone(feed);final.gameData.status={abstractGameState:'Final',detailedState:'Final'};final.liveData.linescore.teams.home.runs=9;setFeed(final);
  await page.locator('#refreshBtn').click();await page.waitForFunction(()=>document.querySelector('#statePill').textContent==='Final');
  assert.equal(await page.locator('#bigScore span').last().innerText(),'9');assert(!(await page.locator('#gameWatchBtn').isVisible()));
+ // 終場後賽後摘要：比分、本場之星與比賽資訊。
+ await page.locator('[data-live-tab=summary]').click();
+ await page.locator('#gameSummary .summary-final').waitFor();
+ const summary=await page.locator('#gameSummary').innerText();
+ assert(summary.includes(': 9'),'final score missing');assert(summary.includes('Kyle Schwarber'),'top performer missing');assert(summary.includes('比賽時間'),'game facts missing');
  assert.deepEqual(errors,[]);await page.close();
 });
 test('No game, desktop layout, reduced motion, notification deep link',async()=>{
@@ -161,6 +171,9 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  assert.deepEqual(await row.locator('.game-card-team small').allInnerTexts(),['客隊','主隊']);
  assert.equal(await row.locator('.game-card-team img').count(),2);
  assert.equal(await row.locator('.subs-cancel').innerText(),'取消訂閱');
+ // 個別加入行事曆：連到 Worker 產生的單場 .ics。
+ assert.equal(await row.locator('.game-card-calendar').getAttribute('href'),'https://mlb-score-notify.b110212000.workers.dev/api/calendar/'+feed.gamePk+'.ics');
+ assert.equal(await row.locator('.game-card-calendar').innerText(),'加入行事曆');
  const actionBoxes=await row.locator('.game-card-actions button').evaluateAll(list=>list.map(b=>b.getBoundingClientRect().right));
  assert.equal(Math.max(...actionBoxes),actionBoxes.at(-1),'cancel button should be right-most');
  await head.click();assert.equal(await row.locator('.game-card').count(),0,'row did not collapse');
@@ -241,6 +254,10 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await row.locator('.game-card-open').click();
  await page.locator('#awayName').filter({hasText:feed.gameData.teams.away.name}).waitFor();
  assert(await page.locator('#liveView').isVisible());
+ // 即時比賽頁標示追蹤的球隊：場次加星號，比分區道奇（主隊）隊徽加星號。
+ await page.locator('#gameTabs .game-tab.followed .game-tab-star').waitFor();
+ assert.equal(await page.locator('.hero .logo-fav').count(),1);
+ assert(await page.locator('#homeLogo').evaluate(img=>img.parentElement.querySelector('.logo-fav')!==null),'star should mark the followed home team');
  await openSubscriptions(page);await row.waitFor();
 
  // 取消訂閱需要確認：按「保留」不會取消。

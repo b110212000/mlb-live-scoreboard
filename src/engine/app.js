@@ -186,6 +186,9 @@ try{
   const initialView=new URL(location.href).searchParams.has('gamePk')?'live':
     (['live','bracket','teams','roster','install','notifications','notificationTest','settings'].includes(requestedView)?requestedView:'live');
   switchView(initialView);
+  // 即時比賽頁要標示追蹤的球隊：先發布本機快取，再向伺服器更新（訂閱相關頁面會自行載入）。
+  publishSubs();
+  if(!['notifications','teams'].includes(initialView))loadSubscriptions();
   initLiveDetailSwipe();
   setLiveDetailTab('status',{animate:false});
 }catch(err){
