@@ -1,11 +1,11 @@
 import {useEffect,useRef,useState} from 'react';
 import {Icon} from './Icon.jsx';
-const links=[['live','即時比賽'],['bracket','季後賽戰況'],['teams','追蹤球隊']];
-const settingsLinks=[['notifications','訂閱管理'],['notificationTest','訂閱測試'],['install','安裝 / 分享 App']];
+const links=[['live','即時比賽'],['bracket','季後賽戰況'],['teams','追蹤球隊'],['notifications','訂閱管理']];
+const settingsLinks=[['notificationTest','訂閱測試'],['install','安裝 / 分享 App']];
 export function Sidebar({open,view,onClose,onNavigate}){
   const ref=useRef(null);
   const [section,setSection]=useState('main');
-  useEffect(()=>{if(open)setSection(['install','notifications','notificationTest','settings'].includes(view)?'settings':'main')},[open]);
+  useEffect(()=>{if(open)setSection(['install','notificationTest','settings'].includes(view)?'settings':'main')},[open]);
   useEffect(()=>{if(ref.current?.open)ref.current.querySelector(section==='settings'?'[data-menu-back]':'[data-menu-settings]')?.focus()},[section]);
   useEffect(()=>{
     const dialog=ref.current;

@@ -57,25 +57,25 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert(await page.locator('#featureMenu').evaluate(d=>d.open&&d.getAnimations().length>0));
  await page.waitForTimeout(310);
  assert.equal(await page.locator('[data-view=install]').count(),0);
- assert.equal(await page.locator('[data-view=notifications]').count(),0);
  assert.equal(await page.locator('[data-view=notificationTest]').count(),0);
- // 追蹤球隊在主選單，不在設定子選單。
+ // 追蹤球隊與訂閱管理在主選單，不在設定子選單。
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','bracket','teams','notifications']);
  assert.equal(await page.locator('[data-view=teams]').innerText(),'追蹤球隊');
+ assert.equal(await page.locator('[data-view=notifications]').innerText(),'訂閱管理');
  await page.locator('[data-menu-settings]').click();
  assert.equal(await page.locator('#sidebarTitle').innerText(),'設定');
  assert(await page.locator('#featureMenu').evaluate(d=>d.open));
  assert(await page.locator('#liveView').isVisible(),'settings menu must preserve current game');
  assert.equal(await page.locator('[data-view=live]').count(),0);
  assert.equal(await page.locator('[data-view=teams]').count(),0);
- assert(await page.locator('[data-view=install]').isVisible());
- assert(await page.locator('[data-view=notifications]').isVisible());
- assert.equal(await page.locator('[data-view=notifications]').innerText(),'訂閱管理');
+ assert.equal(await page.locator('[data-view=notifications]').count(),0);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['notificationTest','install']);
  assert.equal(await page.locator('[data-view=notificationTest]').innerText(),'訂閱測試');
- await page.locator('[data-view=notifications]').click();
+ await page.locator('[data-view=notificationTest]').click();
  assert(await page.locator('#featureMenu').evaluate(d=>d.open),'must remain open during exit');
- await page.waitForTimeout(310);assert(await page.locator('#notificationView').isVisible());
+ await page.waitForTimeout(310);assert(await page.locator('#notificationTestView').isVisible());
  // 訂閱管理與訂閱測試是兩個獨立頁面。
- assert.equal(await page.locator('#notificationView #testNotificationBtn').count(),0);assert(!(await page.locator('#testNotificationBtn').isVisible()));
+ assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);assert(!(await page.locator('#notificationView').isVisible()));
  assert(!(await page.locator('#featureMenu').evaluate(d=>d.open)));
  await page.locator('#featureMenuButton').click();await page.waitForTimeout(310);
  assert.equal(await page.locator('#sidebarTitle').innerText(),'設定');
@@ -84,8 +84,8 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
  for(const [view,id] of [['bracket','bracketView'],['teams','teamsView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
-   if(['install','notifications','notificationTest'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
-   if(['live','bracket','teams'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+   if(['install','notificationTest'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+   if(['live','bracket','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
  }
@@ -139,7 +139,7 @@ async function openTeams(page){
 }
 async function openSubscriptions(page){
  await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
- if(await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+ if(await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
  await page.locator('[data-view=notifications]').click();await page.waitForTimeout(320);
 }
 test('Subscription management: list, team follow, default and per-game prefs, confirmed cancel',async()=>{
