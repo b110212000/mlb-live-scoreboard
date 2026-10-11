@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {Icon} from './Icon.jsx';
-const links=[['live','即時比賽'],['bracket','季後賽戰況'],['standings','戰績排行'],['taiwan','台灣旅外'],['teams','追蹤球隊'],['notifications','訂閱管理']];
+const links=[['live','即時比賽'],['bracket','季後賽戰況'],['standings','戰績排行'],['taiwan','台灣旅外'],['hof','名人堂'],['teams','追蹤球隊'],['notifications','訂閱管理']];
 const settingsLinks=[['notificationTest','訂閱測試'],['install','安裝 / 分享 App']];
 export function Sidebar({open,view,onClose,onNavigate}){
   const ref=useRef(null);

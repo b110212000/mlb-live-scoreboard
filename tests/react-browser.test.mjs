@@ -64,7 +64,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=install]').count(),0);
  assert.equal(await page.locator('[data-view=notificationTest]').count(),0);
  // 追蹤球隊與訂閱管理在主選單，不在設定子選單。
- assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','bracket','standings','taiwan','teams','notifications']);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','bracket','standings','taiwan','hof','teams','notifications']);
  assert.equal(await page.locator('[data-view=teams]').innerText(),'追蹤球隊');
  assert.equal(await page.locator('[data-view=notifications]').innerText(),'訂閱管理');
  await page.locator('[data-menu-settings]').click();
@@ -87,10 +87,10 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  await page.locator('[data-menu-back]').click();assert.equal(await page.locator('#sidebarTitle').innerText(),'MLB 戰況');
  await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
- for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['teams','teamsView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
+ for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['hof','hofView'],['teams','teamsView'],['install','installView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
    if(['install','notificationTest'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
-   if(['live','bracket','standings','taiwan','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+   if(['live','bracket','standings','taiwan','hof','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
  }
@@ -381,5 +381,171 @@ test('Regular season, standings and Taiwan players',async()=>{
  const linText=await page.locator('.tw-card[data-player-id="827734"]').innerText();
  for(const text of ['林維恩','投手','運動家體系 · Las Vegas Aviators','90.0 局','防禦率 3.10','5 勝 3 敗','80 三振'])assert(linText.includes(text),'Lin card missing '+text);
  assert((await page.locator('#taiwanView .subs-intro').innerText()).includes('共 2 人（大聯盟 1 人）'));
+ assert.deepEqual(errors,[]);await page.close();
+});
+
+// ---------- v2.4.0 名人堂、球員資料 ----------
+const hofRecipient=(season,id,name,type,abbreviation,team,notes)=>({id:'MLBHOF',season:String(season),...(team?{team:{id:team}}:{}),player:{id,nameFirstLast:name,primaryPosition:{type,abbreviation}},...(notes?{notes}:{})});
+const hofData={awards:[
+  hofRecipient(2026,116999,'Jeff Kent','Infielder','2B',137,'Contemporary Era Ballot Selection'),
+  hofRecipient(2026,136860,'Carlos Beltrán','Outfielder','OF',121),
+  hofRecipient(2025,400085,'Ichiro Suzuki','Outfielder','OF',136),
+  hofRecipient(2025,115223,'Billy Wagner','Pitcher','RP',117),
+  hofRecipient(2017,673180,'Bud Selig','Unknown','X'),
+  hofRecipient(1936,121578,'Babe Ruth','Outfielder','RF',147)]};
+const career=(group,stat)=>({type:{displayName:'career'},group:{displayName:group},splits:[{stat}]});
+const yearRow=(season,sport,team,stat)=>({season:String(season),sport:{abbreviation:sport},...(team?{team}:{}),stat});
+const playerFixtures={
+  400085:{person:{id:400085,fullName:'Ichiro Suzuki',primaryNumber:'51',birthDate:'1973-10-22',birthCity:'Kasugai',birthCountry:'Japan',height:'5\' 11"',weight:175,active:false,
+    mlbDebutDate:'2001-04-02',lastPlayedDate:'2019-03-21',primaryPosition:{type:'Outfielder',abbreviation:'RF'},pitchHand:{code:'R'},batSide:{code:'L'},
+    awards:[{id:'ALMVP',name:'AL MVP',season:'2001'},{id:'ALAS',name:'AL All-Star',season:'2001'},{id:'ALAS',name:'AL All-Star',season:'2002'},{id:'ALGG',name:'Rawlings AL Gold Glove',season:'2001'},
+      {id:'ASMVP',name:'Ted Williams All-Star MVP',season:'2007'},{id:'MLBHOF',name:'Hall Of Fame',season:'2025'},{id:'RETIREDUNI_136',name:'Uniform number retired',season:'2025'},
+      {id:'TLMSAS',name:'TEX Mid-Season All-Star',season:'2000'},{id:'SEAMVP',name:'Mariners MVP',season:'2001'}],
+    stats:[career('hitting',{gamesPlayed:2653,hits:3089,homeRuns:117,rbi:780,stolenBases:509,avg:'.311',obp:'.355',ops:'.757'}),career('pitching',{gamesPlayed:1,wins:0,losses:0,era:'9.00'})]},
+    years:{hitting:{stats:[{splits:[
+      yearRow(2001,'MLB',{id:136,name:'Seattle Mariners'},{gamesPlayed:157,atBats:692,hits:242,homeRuns:8,rbi:69,stolenBases:56,avg:'.350',ops:'.838'}),
+      yearRow(2012,'MLB',{id:136,name:'Seattle Mariners'},{gamesPlayed:95,atBats:402,hits:105,homeRuns:4,rbi:28,stolenBases:15,avg:'.261',ops:'.642'}),
+      yearRow(2012,'MLB',{id:147,name:'New York Yankees'},{gamesPlayed:67,atBats:227,hits:73,homeRuns:5,rbi:27,stolenBases:14,avg:'.322',ops:'.794'}),
+      yearRow(2012,'MLB',null,{gamesPlayed:162,atBats:629,hits:178})]}]}}},
+  121578:{person:{id:121578,fullName:'Babe Ruth',primaryNumber:'3',birthDate:'1895-02-06',deathDate:'1948-08-16',birthCity:'Baltimore',birthStateProvince:'MD',birthCountry:'USA',active:false,
+    mlbDebutDate:'1914-07-11',lastPlayedDate:'1935-05-30',primaryPosition:{type:'Outfielder',abbreviation:'RF'},pitchHand:{code:'L'},batSide:{code:'L'},
+    awards:[{id:'MLBHOF',name:'Hall Of Fame',season:'1936'}],
+    stats:[career('hitting',{gamesPlayed:2504,hits:2873,homeRuns:714,rbi:2213,stolenBases:123,avg:'.342',obp:'.474',ops:'1.164'}),career('pitching',{gamesPlayed:163,wins:94,losses:46,era:'2.28',inningsPitched:'1221.1',strikeOuts:488,saves:4,whip:'1.16'})]},
+    years:{hitting:{stats:[{splits:[yearRow(1927,'MLB',{id:147,name:'New York Yankees'},{gamesPlayed:151,homeRuns:60,avg:'.356'}),yearRow(1935,'MLB',{id:144,name:'Boston Braves'},{gamesPlayed:28,avg:'.181'})]}]},
+      pitching:{stats:[{splits:[yearRow(1916,'MLB',{id:111,name:'Boston Red Sox'},{gamesPlayed:44,wins:23,losses:12,era:'1.75'})]}]}}},
+  827734:{person:{id:827734,fullName:'Wei-En Lin',primaryNumber:'61',birthDate:'2005-11-25',birthCity:'Taitung',birthCountry:'Taiwan',active:true,
+    currentTeam:{id:400,name:'Las Vegas Aviators',parentOrgId:133},primaryPosition:{type:'Pitcher',abbreviation:'P'},pitchHand:{code:'L'},batSide:{code:'L'},
+    awards:[{id:'TLMSAS',name:'TEX Mid-Season All-Star',season:'2025'}],stats:[]},
+    years:{pitching:{stats:[{splits:[
+      yearRow(2025,'AA',{id:499,name:'Midland RockHounds'},{gamesPlayed:12,gamesStarted:12,wins:4,losses:3,inningsPitched:'60.0',strikeOuts:70,era:'3.30'}),
+      yearRow(2026,'AAA',{id:400,name:'Las Vegas Aviators'},{gamesPlayed:20,gamesStarted:20,wins:5,losses:3,inningsPitched:'90.0',strikeOuts:80,era:'3.10'}),
+      yearRow(2026,'Minors',{id:400,name:'Las Vegas Aviators'},{gamesPlayed:20})]}]}}}
+};
+test('Hall of Fame, player page and Taiwan player link',async()=>{
+ const worker=r=>{const u=new URL(r.request().url());
+  if(u.pathname.endsWith('/state'))return r.fulfill({json:{ok:true,teams:[],games:[],defaults:ALL}});
+  if(u.pathname==='/api/taiwan-players')return r.fulfill({json:twData});
+  return r.fulfill({json:{ok:true,subscribed:false}});};
+ const {page,errors}=await setup({worker});
+ const calls=[];
+ await page.route('https://statsapi.mlb.com/**',r=>{const u=new URL(r.request().url());
+  if(u.pathname.endsWith('/awards/MLBHOF/recipients')){calls.push('hof');return r.fulfill({json:hofData});}
+  const m=u.pathname.match(/\/people\/(\d+)(\/stats)?$/);
+  if(m){
+   const fixture=playerFixtures[m[1]];calls.push(m[1]+(m[2]?':'+u.searchParams.get('group'):''));
+   if(!fixture)return r.fulfill({status:404,body:''});
+   return r.fulfill({json:m[2]?fixture.years[u.searchParams.get('group')]||{stats:[]}:{people:[fixture.person]}});
+  }
+  return r.fallback();});
+
+ // 名人堂：依入選年份分組（新到舊），同年依姓名排列；守備位置、銘牌球隊、入選說明。
+ await openMain(page,'hof');
+ assert.equal(await page.locator('#appTitle').innerText(),'名人堂');
+ await page.locator('#hofView .hof-card').first().waitFor();
+ assert.deepEqual(await page.locator('#hofView .hof-year h3').allInnerTexts(),['2026 年','2025 年','2017 年','1936 年']);
+ assert.deepEqual(await page.locator('#hofView .hof-year').first().locator('.hof-name').allInnerTexts(),['Carlos Beltrán','Jeff Kent']);
+ const kent=await page.locator('.hof-card[data-player-id="116999"]').innerText();
+ for(const text of ['二壘手 · 巨人','當代時代委員會選入'])assert(kent.includes(text),'Kent card missing '+text);
+ assert((await page.locator('.hof-card[data-player-id="115223"]').innerText()).includes('救援投手 · 太空人'));
+ assert((await page.locator('.hof-card[data-player-id="673180"]').innerText()).includes('非球員'));
+ assert((await page.locator('#hofView .subs-intro').innerText()).includes('1936–2026 年的入選者，共 6 人'));
+ // 身分篩選（按鈕上是人數）、搜尋（不分大小寫與重音，也可用中文隊名）、年代。
+ assert.equal(await page.locator('[data-category=all] small').innerText(),'6');
+ assert.equal(await page.locator('[data-category=Unknown] small').innerText(),'1');
+ await page.locator('[data-category=Outfielder]').click();
+ assert.deepEqual(await page.locator('#hofView .hof-card').evaluateAll(nodes=>nodes.map(n=>n.dataset.playerId)),['136860','400085','121578']);
+ await page.locator('[data-category=all]').click();
+ await page.locator('.hof-search').fill('BELTRAN');
+ assert.deepEqual(await page.locator('#hofView .hof-name').allInnerTexts(),['Carlos Beltrán']);
+ await page.locator('.hof-search').fill('水手');
+ assert.deepEqual(await page.locator('#hofView .hof-name').allInnerTexts(),['Ichiro Suzuki']);
+ assert.equal(await page.locator('[data-category=Outfielder] small').innerText(),'1');
+ await page.locator('.hof-search').fill('nobody');
+ assert.equal(await page.locator('#hofView .subs-empty').innerText(),'沒有符合條件的名人堂成員。');
+ await page.locator('.hof-result .subs-link').click();
+ assert.equal(await page.locator('#hofView .hof-card').count(),6);
+ await page.locator('.hof-decade').selectOption('1930');
+ assert.deepEqual(await page.locator('#hofView .hof-name').allInnerTexts(),['Babe Ruth']);
+ await page.locator('.hof-decade').selectOption('all');
+ assert.equal(calls.filter(c=>c==='hof').length,1);
+
+ // 點進球員資料：網址帶球員 id、捲到頂端；返回時回到名人堂原本的位置。
+ const scrolled=await page.evaluate(()=>{window.scrollTo(0,120);return window.scrollY});
+ await page.locator('.hof-card[data-player-id="400085"]').click();
+ await page.locator('#playerView .player-head').waitFor();
+ assert(await page.locator('#playerView').isVisible());assert(!(await page.locator('#hofView').isVisible()));
+ assert.equal(await page.locator('#appTitle').innerText(),'球員資料');
+ assert.equal(new URL(page.url()).searchParams.get('playerId'),'400085');
+ await page.waitForFunction(()=>window.scrollY===0);
+ const head=await page.locator('#playerView .player-head').innerText();
+ for(const text of ['Ichiro Suzuki','#51 · 右外野手 · 右投左打','名人堂 2025'])assert(head.includes(text),'head missing '+text);
+ const facts=await page.locator('#playerView .player-facts').innerText();
+ for(const text of ['1973-10-22','日本 · Kasugai','180 公分 · 79 公斤','2001-04-02','2019-03-21'])assert(facts.includes(text),'facts missing '+text);
+ // 大聯盟生涯（投球只有 1 場，只列打擊）。
+ assert.equal(await page.locator('#playerView .player-tiles').count(),1);
+ assert.deepEqual(await page.locator('#playerView .player-tile b').allInnerTexts(),['2653','3089','117','780','509','.311','.355','.757']);
+ // 逐年成績新到舊（同年轉隊也是新到舊），去掉沒有球隊的合計列；只有大聯盟時不標「含小聯盟」。
+ const rows=()=>page.locator('#playerView .player-years tbody tr').evaluateAll(list=>list.map(row=>[...row.cells].slice(0,4).map(cell=>cell.textContent).join('|')));
+ assert.deepEqual(await rows(),['2012|MLB|洋基|67','2012|MLB|水手|95','2001|MLB|水手|157']);
+ assert.equal(await page.locator('#playerView .subs-section-head span').filter({hasText:'含小聯盟'}).count(),0);
+ // 主要獎項依 MLB 獎項 id：小聯盟明星賽與球隊 MVP 不列；退休背號。
+ assert.deepEqual(await page.locator('#playerView .player-awards b').evaluateAll(list=>list.map(b=>b.firstChild.textContent)),['名人堂','明星賽 MVP','美聯 MVP','美聯明星賽','美聯金手套','水手退休背號']);
+ assert((await page.locator('#playerView .player-awards li').filter({hasText:'美聯明星賽'}).innerText()).includes('×2'));
+ await page.locator('#playerView .player-back').filter({hasText:'返回名人堂'}).click();
+ await page.waitForFunction(()=>!document.querySelector('#hofView').hidden);
+ assert.equal(new URL(page.url()).searchParams.get('playerId'),null);
+ await page.waitForFunction(y=>window.scrollY===y,scrolled);
+
+ // 打者也投過不少場（Babe Ruth）：打擊與投球都列；瀏覽器上一頁 / 下一頁。
+ await page.locator('.hof-card[data-player-id="121578"]').click();
+ await page.locator('#playerView .player-head').filter({hasText:'Babe Ruth'}).waitFor();
+ assert.deepEqual(await page.locator('#playerView .player-tiles').evaluateAll(list=>list.map(n=>n.getAttribute('aria-label'))),['打擊','投球']);
+ assert((await page.locator('#playerView .player-facts').innerText()).includes('1895-02-06 – 1948-08-16'));
+ assert.equal(await page.locator('#playerView .player-years').count(),2);
+ assert((await page.locator('#playerView .player-years').first().innerText()).includes('勇士'));
+ await page.goBack();
+ await page.waitForFunction(()=>!document.querySelector('#hofView').hidden);
+ assert.equal(new URL(page.url()).searchParams.get('playerId'),null);
+ await page.goForward();
+ await page.locator('#playerView .player-head').filter({hasText:'Babe Ruth'}).waitFor();
+ await page.waitForFunction(()=>!document.querySelector('#playerView').hidden);
+ await page.goBack();
+ await page.waitForFunction(()=>!document.querySelector('#hofView').hidden);
+ // 同一位球員只抓一次（快取）。
+ assert.equal(calls.filter(c=>c==='121578').length,1);
+
+ // 台灣旅外卡片點進球員資料：中文名、母隊體系、只有小聯盟成績；返回台灣旅外。
+ await openMain(page,'taiwan');
+ await page.locator('.tw-card[data-player-id="827734"]').click();
+ await page.locator('#playerView .player-head').filter({hasText:'林維恩'}).waitFor();
+ const lin=await page.locator('#playerView').innerText();
+ for(const text of ['林維恩','Wei-En Lin','#61 · 投手 · 左投左打','現役','運動家體系 · Las Vegas Aviators','台灣 · Taitung','尚未在大聯盟出賽，以下為小聯盟成績。','含小聯盟'])assert(lin.includes(text),'Lin page missing '+text);
+ assert.deepEqual(await rows(),['2026|3A|Las Vegas Aviators|20','2025|2A|Midland RockHounds|12']);
+ assert.equal(await page.locator('#playerView .player-awards').count(),0);
+ assert.equal(await page.locator('#playerView .player-back').innerText(),'← 返回台灣旅外');
+ await page.locator('#playerView .player-back').click();
+ await page.waitForFunction(()=>!document.querySelector('#taiwanView').hidden);
+ assert(await page.locator('.tw-card[data-player-id="827734"]').isVisible());
+
+ // 卡片內的名字按鈕：鍵盤操作也只開一次（點擊冒泡到卡片）。
+ await page.evaluate(()=>{window.pushCount=0;const push=history.pushState.bind(history);history.pushState=(...args)=>{window.pushCount++;return push(...args)}});
+ await page.locator('.tw-card[data-player-id="827734"] .tw-open').focus();
+ await page.keyboard.press('Enter');
+ await page.locator('#playerView .player-head').filter({hasText:'林維恩'}).waitFor();
+ assert.equal(await page.evaluate(()=>history.state?.mlbPlayer),827734);
+ assert.equal(await page.evaluate(()=>window.pushCount),1);
+ await page.goBack();
+ await page.waitForFunction(()=>!document.querySelector('#taiwanView').hidden);
+
+ // 直接開啟球員網址（分享連結）：返回名人堂，並移除網址參數。
+ await page.goto(origin+'/?view=player&playerId=400085');
+ await page.locator('#playerView .player-head').filter({hasText:'Ichiro Suzuki'}).waitFor();
+ assert.equal(await page.locator('#playerView .player-back').innerText(),'← 返回名人堂');
+ await page.locator('#playerView .player-back').click();
+ await page.locator('#hofView .hof-card').first().waitFor();
+ assert.equal(new URL(page.url()).search,'');
+ // 找不到的球員顯示錯誤，不讓頁面壞掉。
+ await page.goto(origin+'/?view=player&playerId=1');
+ await page.locator('#playerView .subs-banner').filter({hasText:'球員資料讀取失敗'}).waitFor();
  assert.deepEqual(errors,[]);await page.close();
 });

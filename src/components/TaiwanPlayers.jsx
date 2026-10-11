@@ -1,15 +1,14 @@
 import {useEffect,useState} from 'react';
-import {useScoreboard} from '../store.js';
+import {useScoreboard,actions} from '../store.js';
 import {teamById} from '../teams.js';
 import {PUSH_API} from '../config.js';
 import {TAIWAN_PLAYER_NAMES} from '../taiwanPlayers.js';
 import {logo} from './SubscriptionShared.jsx';
+import {headshot,POSITION_ZH} from '../players.js';
 
 const MLB_API='https://statsapi.mlb.com/api/v1';
 const REFRESH_MS=10*60_000;
 const LEVEL_SPORTS='1,11,12,13,14,16';
-const POSITION_ZH={P:'投手',TWP:'二刀流',C:'捕手','1B':'一壘手','2B':'二壘手','3B':'三壘手',SS:'游擊手',LF:'左外野手',CF:'中外野手',RF:'右外野手',OF:'外野手',DH:'指定打擊',IF:'內野手'};
-const headshot=id=>`https://img.mlbstatic.com/mlb-photos/image/upload/d_people:generic:headshot:67:current.png/w_180,q_90/v1/people/${id}/headshot/67/current`;
 
 async function getJSON(url){
   const response=await fetch(url,{cache:'no-store'});
@@ -58,10 +57,11 @@ function PlayerCard({player,game}){
   const zh=TAIWAN_PLAYER_NAMES[player.id];
   const position=POSITION_ZH[player.position]||player.position;
   const parent=player.currentTeam&&(teamById(player.currentTeam.id)?.id||player.currentTeam.parentOrgId);
-  return <article className="tw-card" data-player-id={player.id}>
-    <img className="tw-photo" src={headshot(player.id)} alt="" loading="lazy"/>
+  // 整張卡片可點開球員資料；名字是按鈕，鍵盤也能操作（點擊會冒泡到卡片，只開一次）。
+  return <article className="tw-card" data-player-id={player.id} onClick={()=>actions.openPlayer(player.id)}>
+    <img className="tw-photo" src={headshot(player.id,180)} alt="" loading="lazy"/>
     <div className="tw-body">
-      <div className="tw-name"><b>{zh||player.fullName}</b>{zh&&<small>{player.fullName}</small>}</div>
+      <div className="tw-name"><button type="button" className="tw-open" aria-label={`${zh||player.fullName} 球員資料`}><b>{zh||player.fullName}</b></button>{zh&&<small>{player.fullName}</small>}<span className="tw-more" aria-hidden="true">›</span></div>
       <div className="tw-team">
         {parent&&<span className="subs-logo small" aria-hidden="true"><img src={logo(parent)} alt=""/></span>}
         <span>{[position,teamText(player)].filter(Boolean).join(' · ')}</span>
