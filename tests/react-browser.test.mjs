@@ -175,6 +175,12 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  assert.equal(await sw.locator('[data-league=AL]').getAttribute('aria-checked'),'true');
  assert.deepEqual(await page.locator('#teamsView .division h3').allInnerTexts(),['東區','中區','西區']);
  assert.deepEqual(await page.locator('#teamsView .division').evaluateAll(list=>list.map(s=>s.querySelectorAll('.team-card').length)),[5,5,5]);
+ // 三區並排成三欄，每區球隊由上往下排，三欄同一列對齊。
+ const layout=await page.locator('#teamsView .division').evaluateAll(list=>list.map(s=>({x:s.getBoundingClientRect().x,y:s.getBoundingClientRect().y,cards:[...s.querySelectorAll('.team-card')].map(c=>{const r=c.getBoundingClientRect();return {x:r.x,y:r.y,h:r.height}})})));
+ assert(layout[0].x<layout[1].x&&layout[1].x<layout[2].x,'divisions are not side by side');
+ assert(layout.every(d=>Math.abs(d.y-layout[0].y)<1),'division columns do not start on the same row');
+ for(const d of layout)assert(d.cards.every((c,i)=>Math.abs(c.x-d.cards[0].x)<1&&(i===0||c.y>d.cards[i-1].y)),'teams do not stack vertically');
+ for(let i=0;i<5;i++)assert(layout.every(d=>Math.abs(d.cards[i].y-layout[0].cards[i].y)<1&&Math.abs(d.cards[i].h-layout[0].cards[i].h)<1),'row '+i+' not aligned across divisions');
  const yankees=page.locator('#teamsView .team-card[data-team-id="147"]');
  assert((await yankees.innerText()).includes('洋基'));assert((await yankees.innerText()).includes('New York Yankees'));
  assert(await yankees.evaluate(el=>el.closest('.division').querySelector('h3').textContent==='東區'));

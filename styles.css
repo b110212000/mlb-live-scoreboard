@@ -2447,22 +2447,29 @@ body.sidebar-open{overflow:hidden}
 .league-switch button{position:relative;z-index:1;min-height:44px;padding:6px 10px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:6px}
 .league-switch button[aria-checked=true]{color:#fff}
 .league-count{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#1f8a63;color:#fff;font-size:12px;line-height:1;display:inline-grid;place-items:center}
-.team-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
-.team-card{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 8px 12px;border-radius:14px;border:1px solid #294966;background:#0b1a2b;color:var(--text);text-align:center}
+.divisions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto repeat(5,auto);gap:8px}
+.division{display:grid;grid-row:span 6;grid-template-rows:subgrid;gap:8px;min-width:0}
+.division h3{margin:0;padding:7px 4px;border-radius:10px;background:#10233a;border:1px solid #294966;text-align:center;font-size:15px}
+.team-card{position:relative;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 6px 10px;border-radius:14px;border:1px solid #294966;background:#0b1a2b;color:var(--text);text-align:center}
 .team-card:hover{border-color:#4a6888}
 .team-card[aria-pressed=true]{border-color:#3ddc97;background:linear-gradient(180deg,#0f2a22,#0b1f1a);box-shadow:0 0 0 1px #3ddc9733}
 .team-card:disabled{opacity:.5;cursor:default}
-.team-card-logo{width:54px;height:54px;padding:7px;margin-bottom:5px}
-.team-card-zh{font-size:16px;line-height:1.2}
-.team-card-en{color:var(--muted);font-size:11px;line-height:1.3;min-height:2.6em;overflow-wrap:anywhere}
-.team-card-badge{position:absolute;top:7px;right:7px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#ffffff10;color:#c5d4e2;font-size:13px;font-weight:800}
+.team-card-logo{width:46px;height:46px;padding:6px}
+.team-card-names{min-width:0;display:flex;flex-direction:column;align-items:center;gap:2px}
+.team-card-zh{font-size:15px;line-height:1.2}
+.team-card-en{color:var(--muted);font-size:10.5px;line-height:1.3;overflow-wrap:anywhere}
+.team-card-badge{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#ffffff10;color:#c5d4e2;font-size:12px;font-weight:800}
 .team-card[aria-pressed=true] .team-card-badge{background:#1f8a63;color:#fff}
-.team-card-state{margin-top:2px;padding:1px 8px;border-radius:999px;background:#1f8a6333;color:#bff4dd;font-size:11px;font-weight:700}
-@media(max-width:600px){
-  .team-cards{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .team-card{padding:14px 6px 10px}
-  .team-card-logo{width:46px;height:46px;padding:6px}
-  .team-card-zh{font-size:15px}
+.team-card-state{margin-top:3px;padding:1px 7px;border-radius:999px;background:#1f8a6333;color:#bff4dd;font-size:10.5px;font-weight:700}
+/* 寬螢幕欄位較寬：卡片改成左隊徽、右隊名。 */
+@media(min-width:720px){
+  .divisions{gap:10px}
+  .team-card{flex-direction:row;align-items:center;gap:12px;padding:10px 12px;text-align:left}
+  .team-card-logo{width:48px;height:48px;flex:none}
+  .team-card-names{flex:1;align-items:flex-start}
+  .team-card-zh{font-size:16px}
+  .team-card-en{font-size:12px}
+  .team-card-badge{position:static;order:3;flex:none;width:24px;height:24px;font-size:13px}
 }
 @media(prefers-reduced-motion:reduce){.league-switch-thumb{transition:none}}
 .subs-game-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}

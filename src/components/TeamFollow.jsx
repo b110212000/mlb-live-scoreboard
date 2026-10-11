@@ -40,21 +40,24 @@ export function TeamFollow(){
       })}
     </div>
 
-    {DIVISIONS.map(([division,label])=><section key={division} className="subs-section division" aria-labelledby={'division'+division}>
-      <div className="subs-section-head"><h3 id={'division'+division}>{label}</h3></div>
-      <div className="team-cards">
+    {/* 東區、中區、西區三欄並排，每區的球隊由上往下排（subgrid 讓三欄同一列對齊）。 */}
+    <div className="divisions">
+      {DIVISIONS.map(([division,label])=><section key={division} className="division" aria-labelledby={'division'+division}>
+        <h3 id={'division'+division}>{label}</h3>
         {MLB_TEAMS.filter(team=>team.league===league&&team.division===division).map(team=>{
           const on=followed.has(team.id),count=gameCount(team.id);
           return <button key={team.id} type="button" className="team-card" data-team-id={team.id} aria-pressed={on} aria-label={`追蹤${team.name}（${team.en}）`}
             disabled={busy(team.id)||(!on&&blocked)} onClick={()=>toggle(team)}>
             <span className="team-card-badge" aria-hidden="true">{busy(team.id)?'…':on?'✓':'＋'}</span>
             <span className="subs-logo team-card-logo" aria-hidden="true"><img src={logo(team.id)} alt=""/></span>
-            <b className="team-card-zh">{team.name}</b>
-            <small className="team-card-en">{team.en}</small>
-            {on&&<span className="team-card-state">{count?`自動訂閱 ${count} 場`:'已追蹤'}</span>}
+            <span className="team-card-names">
+              <b className="team-card-zh">{team.name}</b>
+              <small className="team-card-en">{team.en}</small>
+              {on&&<span className="team-card-state">{count?`自動訂閱 ${count} 場`:'已追蹤'}</span>}
+            </span>
           </button>;
         })}
-      </div>
-    </section>)}
+      </section>)}
+    </div>
   </section>;
 }
