@@ -2,7 +2,7 @@ import {useSyncExternalStore} from 'react';
 const defaultPrefs={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
 function cachedTeams(){try{const v=JSON.parse(localStorage.getItem('mlb-followed-teams')||'[]');return Array.isArray(v)?v.map(Number).filter(Boolean):[]}catch(_){return []}}
 const initial={view:'live',games:[],selectedGamePk:null,score:null,highlights:[],highlightGamePk:null,error:'',emptyDate:null,
-  subs:{status:'idle',error:'',notice:'',support:'default',defaults:defaultPrefs,teams:cachedTeams(),games:[],busy:{}}};
+  subs:{status:'idle',error:'',notice:'',noticeAt:0,support:'default',defaults:defaultPrefs,teams:cachedTeams(),games:[],busy:{}}};
 let snapshot=initial;
 const listeners=new Set();
 export const store={

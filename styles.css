@@ -2422,10 +2422,6 @@ body.sidebar-open{overflow:hidden}
 .subs-shell{padding:20px;margin-top:4px;min-width:0;display:flex;flex-direction:column;gap:16px}
 .subs-intro{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
 .subs-banner{padding:10px 12px;border-radius:11px;border:1px solid #80662c;background:#211c0e;color:#ffe19a;font-size:13px;line-height:1.55}
-.subs-feedback:empty{display:none}
-.subs-feedback span{display:block;padding:9px 12px;border-radius:10px;font-size:13px;line-height:1.5}
-.subs-feedback .success{border:1px solid #2d6b57;background:#0c211a;color:#bff4dd}
-.subs-feedback .error{border:1px solid #743838;background:#241113;color:#ffc0c0}
 .subs-section{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid #ffffff12}
 .subs-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .subs-section-head h3{margin:0;font-size:16px}
@@ -2594,3 +2590,13 @@ body.sidebar-open{overflow:hidden}
   .summary-final strong{font-size:28px}
   .summary-logo{width:48px;height:48px;padding:6px}
 }
+
+/* v2.2.1 操作結果 toast：浮在畫面上方，2 秒（錯誤 4 秒）後淡出，不影響版面 */
+.toast-region{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;z-index:1000;width:min(420px,calc(100vw - 32px));transform:translateX(-50%);pointer-events:none;display:flex;justify-content:center}
+.toast{max-width:100%;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;line-height:1.5;text-align:center;box-shadow:0 10px 30px #0008;
+  animation:toast-in .2s ease-out both,toast-out .25s ease-in calc(var(--toast-ms,2000ms) - 250ms) forwards}
+.toast.success{border:1px solid #2d6b57;background:#0c211aee;color:#bff4dd}
+.toast.error{border:1px solid #743838;background:#241113ee;color:#ffc0c0}
+@keyframes toast-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes toast-out{to{opacity:0;transform:translateY(-8px)}}
+@media(prefers-reduced-motion:reduce){.toast{animation:none}}

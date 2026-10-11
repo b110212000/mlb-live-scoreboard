@@ -10,13 +10,9 @@ export const SUPPORT_NOTICE={
 export const logo=id=>id?`https://www.mlbstatic.com/team-logos/${id}.svg`:undefined;
 export const teamName=id=>teamById(id)?.name||'球隊';
 
+// 推播支援狀態是持續性的，留在頁面上；操作結果改用浮動 toast（見 Toast.jsx），不推擠版面。
 export function SubsStatus({subs}){
-  return <>
-    {SUPPORT_NOTICE[subs.support]&&<div className="subs-banner">{SUPPORT_NOTICE[subs.support]}</div>}
-    <div className="subs-feedback" role="status" aria-live="polite">
-      {subs.error?<span className="error">{subs.error}</span>:subs.notice?<span className="success">{subs.notice}</span>:null}
-    </div>
-  </>;
+  return SUPPORT_NOTICE[subs.support]?<div className="subs-banner">{SUPPORT_NOTICE[subs.support]}</div>:null;
 }
 
 export function ConfirmDialog({id,request,onClose}){

@@ -13,7 +13,7 @@ const gameWatchFinal=new Set();
 const SUBS_PREF_KEYS=['pregame5','start','homeScore','awayScore','final'];
 const SUBS_DEFAULT_PREFS={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
 const FOLLOWED_TEAMS_KEY='mlb-followed-teams';
-let subsState={status:'idle',error:'',notice:'',support:'default',defaults:{...SUBS_DEFAULT_PREFS},teams:cachedFollowedTeams(),games:[],busy:{}};
+let subsState={status:'idle',error:'',notice:'',noticeAt:0,support:'default',defaults:{...SUBS_DEFAULT_PREFS},teams:cachedFollowedTeams(),games:[],busy:{}};
 let subsLoadSeq=0;
 let subsImportTried=false;
 const subsGameInfo=new Map();
@@ -470,7 +470,9 @@ async function loadSubscriptions(){
     await applyRegistryState(data,seq);
   }catch(error){
     if(seq!==subsLoadSeq)return;
-    publishSubs({status:'error',error:error?.message||'無法載入訂閱資料'});
+    // 只有在訂閱相關頁面才用 toast 提示；即時比賽頁背景載入失敗不打擾使用者。
+    const visible=['notifications','teams'].includes(state.view);
+    publishSubs({status:'error',error:error?.message||'無法載入訂閱資料',...(visible?{noticeAt:Date.now()}:{})});
   }
 }
 
@@ -482,11 +484,11 @@ async function mutateSubscriptions(key,run,successText){
     const data=await run();
     await applyRegistryState(data,seq);
     const notice=typeof successText==='function'?successText(data):successText;
-    if(notice)publishSubs({notice});
+    if(notice)publishSubs({notice,noticeAt:Date.now()});
     return true;
   }catch(error){
     console.error('Subscription update failed',error);
-    publishSubs({error:error?.message||'操作失敗，請稍後再試'});
+    publishSubs({error:error?.message||'操作失敗，請稍後再試',noticeAt:Date.now()});
     if(Array.isArray(error?.data?.games))await applyRegistryState(error.data,seq).catch(()=>{});
     else loadSubscriptions();
     return false;

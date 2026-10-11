@@ -182,7 +182,11 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  // 預設提醒項目：關閉主隊得分，所有未自訂的場次一起套用。
  const defaults=page.locator('[aria-label="預設提醒項目"]');
  await defaults.locator('[data-pref=homeScore]').click();
- await page.locator('#notificationView .subs-feedback .success').filter({hasText:'預設'}).waitFor();
+ // 操作結果以浮動 toast 顯示，不會插進頁面推擠版面；2 秒後消失。
+ const toast=page.locator('#toast .toast.success').filter({hasText:'預設'});await toast.waitFor();
+ assert.equal(await page.locator('#notificationView .subs-feedback').count(),0,'inline feedback should be gone');
+ assert.equal(await page.locator('#toast').evaluate(el=>getComputedStyle(el).position),'fixed');
+ await toast.waitFor({state:'detached',timeout:3000});
  assert.equal(mock.calls.filter(c=>c.path==='/defaults').at(-1).body.prefs.homeScore,false);
  assert.equal(await defaults.locator('[data-pref=homeScore]').isChecked(),false);
 
@@ -241,11 +245,10 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await dodgers.click();
  await page.waitForFunction(()=>document.querySelector('#teamsView .team-card[data-team-id="119"]').getAttribute('aria-pressed')==='true');
  assert.equal(mock.calls.find(c=>c.path==='/teams').body.subscription.endpoint,'https://push.example/mock');
- assert((await page.locator('#teamsView .subs-feedback').innerText()).includes('已追蹤道奇'));
+ await page.locator('#toast .toast').filter({hasText:'已追蹤道奇'}).waitFor();
  assert((await dodgers.innerText()).includes('自動訂閱 1 場'));
  assert.equal(await sw.locator('[data-league=NL] .league-count').innerText(),'1');
  await openSubscriptions(page);
- assert.equal(await page.locator('#notificationView .subs-feedback').innerText(),'','stale notice carried over to another page');
  const auto=page.locator('.subs-game[data-game-pk="'+teamGame.gamePk+'"]');await auto.waitFor();
  assert((await auto.innerText()).includes('國聯冠軍賽 G1'));
  await auto.locator('.game-row').click();assert((await auto.innerText()).includes('追蹤 道奇'));

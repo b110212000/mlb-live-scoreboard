@@ -9,6 +9,7 @@ import {InstallContent} from './components/InstallContent.jsx';
 import {NotificationContent} from './components/NotificationContent.jsx';
 import {SubscriptionManager} from './components/SubscriptionManager.jsx';
 import {TeamFollow} from './components/TeamFollow.jsx';
+import {Toast} from './components/Toast.jsx';
 import {UpdateControls} from './components/UpdateControls.jsx';
 const titles={live:'MLB 季後賽即時戰況',bracket:'MLB 季後賽戰況',teams:'追蹤球隊',roster:'MLB 對戰名單',install:'安裝 / 分享 MLB 戰況',notifications:'訂閱管理',notificationTest:'訂閱測試',settings:'設定'};
 export function App(){
@@ -19,6 +20,7 @@ export function App(){
     return ()=>{actions.connect(null);engine.dispose()};
   },[]);
   return <>
+    <Toast/>
     <Sidebar open={menuOpen} view={view} onClose={()=>setMenuOpen(false)} onNavigate={actions.navigate}/>
     <div id="pullRefresh" className="pull-refresh" aria-hidden="true"><span className="pull-refresh-icon">↓</span><span id="pullRefreshText">下拉重新整理</span></div>
     <main className="wrap">
@@ -31,7 +33,7 @@ export function App(){
       <div id="notificationView" className="app-view" hidden={view!=='notifications'}><SubscriptionManager/></div>
       <div id="notificationTestView" className="app-view" hidden={view!=='notificationTest'}><NotificationContent/></div>
       <div id="settingsView" className="app-view" hidden={view!=='settings'}><section className="card settings-shell" aria-label="設定"><h2>設定</h2><p>開發中</p></section></div>
-      <footer className="foot" aria-label="網站資訊"><span>資料來源：MLB Stats API · 每 5 秒更新</span><span className="app-version">v2.2.0</span><span className="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span></footer>
+      <footer className="foot" aria-label="網站資訊"><span>資料來源：MLB Stats API · 每 5 秒更新</span><span className="app-version">v2.2.1</span><span className="legal-links" hidden><a href="./privacy.html">隱私政策</a> · <a href="./terms.html">使用條款</a></span></footer>
     </main>
   </>;
 }
