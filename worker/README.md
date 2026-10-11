@@ -35,6 +35,7 @@ Worker (src/index.js) ── 路由與 CORS
 | `src/index.js` | 入口、路由、CORS（只允許 `FRONTEND_ORIGIN`） |
 | `src/device-registry.js` | `DeviceRegistry`：每台裝置的訂閱清單、追蹤球隊同步、提醒項目 |
 | `src/game-monitor.js` | `GameMonitor`：單場訂閱者、輪詢、依提醒項目判斷通知與重試 |
+| `src/calendar.js` | 單場比賽行事曆檔（.ics）：中文標題、UTC 時間、開賽前 15 分鐘提醒、連回 App |
 | `src/prefs.js` | 提醒項目（`pregame5`、`start`、`homeScore`、`awayScore`、`final`）的預設值與正規化 |
 | `src/push-service.js` | `PushService`：VAPID 金鑰、批次發送、測試推播 |
 | `src/mlb.js` | 讀取 MLB live feed 並整理成快照；判斷 Live / Final / 延賽取消 |
@@ -100,6 +101,7 @@ DeviceRegistry 在有追蹤球隊或已訂閱場次時，每小時同步一次�
 | `GET` | `/api/watch/:gamePk/status?deviceId=...` | 查詢裝置是否已訂閱與其 `prefs`，前端用來恢復鈴鐺狀態 |
 | `POST` | `/api/push/test` | 測試推播：立即送一則，30 秒後再送一則 |
 | `GET` | `/api/push/status` | 測試推播的待送狀態 |
+| `GET` | `/api/calendar/:gamePk.ics` | 單場比賽行事曆檔（`text/calendar`），iPhone 開啟後可直接加入行事曆；開賽時間未定時為全天行程 |
 | `GET` | `/api/highlights/:gamePk` | 賽後影片推薦（需 `YOUTUBE_API_KEY`） |
 | `POST` | `/api/monitor/start` | 診斷用：不訂閱，只啟動監控 `{gamePk}` |
 | `GET` | `/api/monitor/:gamePk` | 診斷用：讀取監控狀態 |
@@ -142,6 +144,7 @@ VAPID 金鑰對在第一次使用時由 `PushService` 在伺服器端產生，�
 | --- | --- |
 | `FRONTEND_ORIGIN` | CORS 允許的前端來源 |
 | `VAPID_SUBJECT` | VAPID 聯絡資訊 |
+| `APP_URL` | 前端網址，行事曆檔的連結會回到這裡的該場比賽 |
 
 Secret（在 Cloudflare 後台 Settings → Variables and Secrets 設定，不要放進 vars、前端或版本庫）：
 
@@ -178,6 +181,7 @@ Durable Object 的類別名稱（`GameMonitor`、`PushService`、`DeviceRegistry
 ```sh
 node tests/game-monitor.cjs
 node tests/device-registry.cjs
+node tests/calendar.cjs
 node tests/highlights.cjs
 ```
 

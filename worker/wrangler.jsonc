@@ -8,7 +8,8 @@
   },
   "vars": {
     "FRONTEND_ORIGIN": "https://b110212000.github.io",
-    "VAPID_SUBJECT": "https://b110212000.github.io"
+    "VAPID_SUBJECT": "https://b110212000.github.io",
+    "APP_URL": "https://b110212000.github.io/mlb-live-scoreboard/"
   },
   "durable_objects": {
     "bindings": [

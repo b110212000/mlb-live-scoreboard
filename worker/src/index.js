@@ -1,4 +1,5 @@
 import { getGameHighlights } from "./highlights.js";
+import { gameCalendarResponse } from "./calendar.js";
 export { GameMonitor } from "./game-monitor.js";
 export { PushService } from "./push-service.js";
 export { DeviceRegistry } from "./device-registry.js";
@@ -103,6 +104,21 @@ export default {
       } catch (error) {
         console.warn("Highlights source unavailable", error.message);
         return json({error: "HIGHLIGHTS_UNAVAILABLE"}, env, 502);
+      }
+    }
+
+    // 單場比賽行事曆檔（.ics）：訂閱管理卡片的「加入行事曆」。
+    const calendarMatch = url.pathname.match(/^\/api\/calendar\/(\d+)(?:\.ics)?$/);
+    if (request.method === "GET" && calendarMatch) {
+      try {
+        const calendar = await gameCalendarResponse(Number(calendarMatch[1]), env);
+        if (!calendar) return json({ error: "GAME_NOT_FOUND" }, env, 404);
+        const headers = new Headers(calendar.headers);
+        for (const [key, value] of Object.entries(corsHeaders(env))) headers.set(key, value);
+        return new Response(calendar.body, { status: 200, headers });
+      } catch (error) {
+        console.warn("Calendar source unavailable", error.message);
+        return json({ error: "CALENDAR_UNAVAILABLE" }, env, 502);
       }
     }
 
@@ -241,7 +257,8 @@ export default {
         "PUT /api/devices/:deviceId/games/:gamePk/prefs",
         "POST /api/devices/:deviceId/teams",
         "DELETE /api/devices/:deviceId/teams/:teamId",
-        "POST /api/devices/:deviceId/sync"
+        "POST /api/devices/:deviceId/sync",
+        "GET /api/calendar/:gamePk.ics"
       ]
     }, env, 404);
   }

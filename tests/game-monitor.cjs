@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),cp=require('child_process');
 const root=process.cwd();
-for(const f of fs.readdirSync(root).filter(f=>f.endsWith('.js')).concat(['worker/src/index.js','worker/src/game-monitor.js','worker/src/mlb.js','worker/src/push-service.js','worker/src/prefs.js','worker/src/device-registry.js']))cp.execFileSync('node',['--check',f]);
+for(const f of fs.readdirSync(root).filter(f=>f.endsWith('.js')).concat(['worker/src/index.js','worker/src/game-monitor.js','worker/src/mlb.js','worker/src/push-service.js','worker/src/prefs.js','worker/src/device-registry.js','worker/src/calendar.js']))cp.execFileSync('node',['--check',f]);
 let snapshot;const sends=[];let failed=new Set();
 const ctx={console,Response,Request,URL,Date,DurableObject:class{},fetchGameSnapshot:async()=>structuredClone(snapshot),isFinalGame:s=>/final/i.test(s?.abstractState||''),isLiveGame:s=>/live/i.test(s?.abstractState||''),isCalledOffGame:s=>['D','C','X'].includes(s?.codedState)};
 vm.createContext(ctx);vm.runInContext('function on(t,n,f,o){t.addEventListener(n,f,o)}; var ManagedResizeObserver=typeof ResizeObserver!=="undefined"?ResizeObserver:null;',ctx);vm.runInContext(fs.readFileSync('worker/src/prefs.js','utf8').replace(/^export /gm,''),ctx);let src=fs.readFileSync('worker/src/game-monitor.js','utf8').replace(/^import[\s\S]*?;$/gm,'').replace('export class GameMonitor','globalThis.GameMonitor = class GameMonitor');vm.runInContext(src,ctx);
