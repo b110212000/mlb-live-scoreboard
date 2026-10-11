@@ -39,6 +39,9 @@ export function heightCm(text){
 }
 export const weightKg=lb=>Number(lb)>0?Math.round(Number(lb)*0.4536):null;
 
+// 畫面上的日期用斜線：2001-04-02 → 2001/04/02。
+export const slashDate=value=>String(value||'').replace(/^(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3');
+
 // 生日是 YYYY-MM-DD（不用 new Date 解析，避免依時區差一天）。
 export function ageOn(birthDate,until=new Date()){
   const match=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(birthDate||''));

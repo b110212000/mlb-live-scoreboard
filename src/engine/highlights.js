@@ -99,7 +99,7 @@ function renderGameRecap(data) {
         </a>
         <div class="recap-copy"><h3><a href="${esc(videoLink.href)}" data-youtube-id="${esc(video.id)}" target="${videoLink.target}" rel="noopener noreferrer">${esc(video.title)}</a></h3>
           <div class="recap-meta">YouTube · <a href="https://www.youtube.com/channel/${esc(video.channelId)}" target="_blank" rel="noopener noreferrer">${esc(video.channelTitle)}</a></div>
-          <div class="recap-meta">本網站配對之 MLB 比賽日期：${esc(data.officialDate)}</div>
+          <div class="recap-meta">本網站配對之 MLB 比賽日期：${esc(String(data.officialDate||'').replace(/-/g,'/'))}</div>
           <details class="recap-original"><summary>影片原始介紹</summary><p class="recap-description">${esc(video.description || '此影片未提供介紹。')}</p></details>
           <a class="recap-meta" href="https://www.youtube.com/watch?v=${esc(video.id)}" target="_blank" rel="noopener noreferrer">前往 YouTube 網頁觀看 ↗</a>
         </div>

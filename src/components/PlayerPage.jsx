@@ -3,7 +3,7 @@ import {useScoreboard,actions} from '../store.js';
 import {teamById} from '../teams.js';
 import {TAIWAN_PLAYER_NAMES} from '../taiwanPlayers.js';
 import {logo} from './SubscriptionShared.jsx';
-import {headshot,POSITION_ZH,POSITION_TYPE_ZH,countryZh,LEVEL_ZH,handsText,heightCm,weightKg,ageOn,majorAwards,seasonsText,teamNameZh} from '../players.js';
+import {headshot,POSITION_ZH,POSITION_TYPE_ZH,countryZh,LEVEL_ZH,handsText,heightCm,weightKg,ageOn,majorAwards,seasonsText,teamNameZh,slashDate} from '../players.js';
 import {loadWikiBio,wikiUrl} from '../wiki.js';
 
 const API='https://statsapi.mlb.com/api/v1';
@@ -73,11 +73,11 @@ function Facts({person}){
   const cm=heightCm(person.height),kg=weightKg(person.weight);
   const place=[countryZh(person.birthCountry),[person.birthCity,person.birthStateProvince].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
   const rows=[
-    [deceased?'生卒':'生日',person.birthDate?(deceased?`${person.birthDate} – ${person.deathDate}`:`${person.birthDate}${age!=null?`（${age} 歲）`:''}`):''],
+    [deceased?'生卒':'生日',person.birthDate?(deceased?`${slashDate(person.birthDate)} – ${slashDate(person.deathDate)}`:`${slashDate(person.birthDate)}${age!=null?`（${age} 歲）`:''}`):''],
     ['出生地',place],
     ['身高體重',[cm?`${cm} 公分`:'',kg?`${kg} 公斤`:''].filter(Boolean).join(' · ')],
-    ['大聯盟初登板',person.mlbDebutDate||''],
-    ['最後出賽',!person.active?person.lastPlayedDate||'':''],
+    ['大聯盟初登板',slashDate(person.mlbDebutDate)],
+    ['最後出賽',!person.active?slashDate(person.lastPlayedDate):''],
     ['選秀',person.draftYear?`${person.draftYear} 年`:'']
   ].filter(([,value])=>value);
   return <dl className="player-facts">{rows.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;

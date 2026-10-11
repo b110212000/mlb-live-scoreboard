@@ -309,7 +309,7 @@ async function loadMatchupRoster(force=false){
     const season=Number(gd.game?.season)||Number(String(els.dateInput.value||'').slice(0,4))||new Date().getFullYear();
     const officialDate=gd.datetime?.officialDate||els.dateInput.value||'';
     els.rosterMatchupTitle.textContent=teamAbbr(away)+' vs '+teamAbbr(home);
-    els.rosterMeta.textContent=season+' 例行賽數據 · '+officialDate+' 名單';
+    els.rosterMeta.textContent=season+' 例行賽數據 · '+officialDate.replace(/-/g,'/')+' 名單';
     const [awayRows,homeRows,awayBullpen,homeBullpen]=await Promise.all([
       fetchTeamRoster(away.id,season,officialDate),
       fetchTeamRoster(home.id,season,officialDate),

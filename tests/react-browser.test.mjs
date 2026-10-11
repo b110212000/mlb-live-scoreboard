@@ -111,6 +111,8 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
 test('No game, desktop layout, reduced motion, notification deep link',async()=>{
  const {page,errors}=await setup({width:1280,empty:true});
  assert(await page.locator('#noGameMessage').isVisible());assert(!(await page.locator('#liveDetailTabs').isVisible()));
+ // 沒有比賽的提示：日期用斜線。
+ assert.match(await page.locator('#seriesText').innerText(),/^\d{4}\/\d{2}\/\d{2} 沒有 MLB 賽事$/);
  await page.emulateMedia({reducedMotion:'reduce'});await page.locator('#featureMenuButton').click();await page.waitForTimeout(140);await page.keyboard.press('Escape');await page.waitForTimeout(140);assert(!(await page.locator('#featureMenu').evaluate(d=>d.open)));
  await page.goto(origin+'/?view=live&gamePk='+feed.gamePk);await page.locator('#awayName').filter({hasText:feed.gameData.teams.away.name}).waitFor();
  assert(await page.locator('#liveView').isVisible());assert.deepEqual(errors,[]);await page.close();
@@ -500,7 +502,8 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  const head=await page.locator('#playerView .player-head').innerText();
  for(const text of ['Ichiro Suzuki','#51 · 右外野手 · 右投左打','名人堂 2025'])assert(head.includes(text),'head missing '+text);
  const facts=await page.locator('#playerView .player-facts').innerText();
- for(const text of ['1973-10-22','日本 · Kasugai','180 公分 · 79 公斤','2001-04-02','2019-03-21'])assert(facts.includes(text),'facts missing '+text);
+ for(const text of ['1973/10/22','日本 · Kasugai','180 公分 · 79 公斤','2001/04/02','2019/03/21'])assert(facts.includes(text),'facts missing '+text);
+ assert(!/\d{4}-\d{2}-\d{2}/.test(facts),'dates must use slashes');
  // 大聯盟生涯（投球只有 1 場，只列打擊）。
  assert.equal(await page.locator('#playerView .player-tiles').count(),1);
  assert.deepEqual(await page.locator('#playerView .player-tile b').allInnerTexts(),['2653','3089','117','780','509','.311','.355','.757']);
@@ -531,7 +534,7 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  await page.locator('.hof-card[data-player-id="121578"]').click();
  await page.locator('#playerView .player-head').filter({hasText:'Babe Ruth'}).waitFor();
  assert.deepEqual(await page.locator('#playerView .player-tiles').evaluateAll(list=>list.map(n=>n.getAttribute('aria-label'))),['打擊','投球']);
- assert((await page.locator('#playerView .player-facts').innerText()).includes('1895-02-06 – 1948-08-16'));
+ assert((await page.locator('#playerView .player-facts').innerText()).includes('1895/02/06 – 1948/08/16'));
  assert.equal(await page.locator('#playerView .player-years').count(),2);
  assert((await page.locator('#playerView .player-years').first().innerText()).includes('勇士'));
  // 沒有中文條目：英文維基並註明；姓名搜尋選生日相符的人；長文先收合，可展開 / 收合；清掉發音殘骸。

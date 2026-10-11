@@ -50,6 +50,11 @@ const assert=require('assert/strict');
   assert.equal(p.ageOn('1973-10-12',new Date(2026,9,11)),52);
   assert.equal(p.ageOn('',new Date(2026,9,11)),null);
 
+  // 畫面上的日期用斜線。
+  assert.equal(p.slashDate('2001-04-02'),'2001/04/02');
+  assert.equal(p.slashDate(undefined),'');
+  assert.equal(p.slashDate('Opening Day'),'Opening Day');
+
   assert.equal(p.foldText('Carlos Beltrán'),'carlos beltran');
   assert.equal(p.countryZh('Dominican Republic'),'多明尼加');assert.equal(p.countryZh('Atlantis'),'Atlantis');
   assert.equal(p.hofNoteZh('First unanimous inductee'),'史上首位全票入選');assert.equal(p.hofNoteZh(undefined),'');
