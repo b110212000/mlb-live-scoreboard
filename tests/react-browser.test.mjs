@@ -417,6 +417,8 @@ const playerFixtures={
     currentTeam:{id:400,name:'Las Vegas Aviators',parentOrgId:133},primaryPosition:{type:'Pitcher',abbreviation:'P'},pitchHand:{code:'L'},batSide:{code:'L'},
     awards:[{id:'TLMSAS',name:'TEX Mid-Season All-Star',season:'2025'}],stats:[]},
     years:{pitching:{stats:[{splits:[
+      yearRow(2025,'Minors',null,{gamesPlayed:20}),
+      yearRow(2025,'A+',{id:498,name:'Lansing Lugnuts'},{gamesPlayed:8,gamesStarted:8,wins:2,losses:1,inningsPitched:'35.0',strikeOuts:40,era:'2.60'}),
       yearRow(2025,'AA',{id:499,name:'Midland RockHounds'},{gamesPlayed:12,gamesStarted:12,wins:4,losses:3,inningsPitched:'60.0',strikeOuts:70,era:'3.30'}),
       yearRow(2026,'AAA',{id:400,name:'Las Vegas Aviators'},{gamesPlayed:20,gamesStarted:20,wins:5,losses:3,inningsPitched:'90.0',strikeOuts:80,era:'3.10'}),
       yearRow(2026,'Minors',{id:400,name:'Las Vegas Aviators'},{gamesPlayed:20})]}]}}}
@@ -484,9 +486,11 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  // 大聯盟生涯（投球只有 1 場，只列打擊）。
  assert.equal(await page.locator('#playerView .player-tiles').count(),1);
  assert.deepEqual(await page.locator('#playerView .player-tile b').allInnerTexts(),['2653','3089','117','780','509','.311','.355','.757']);
- // 逐年成績新到舊（同年轉隊也是新到舊），去掉沒有球隊的合計列；只有大聯盟時不標「含小聯盟」。
+ // 主要獎項在逐年成績上方。
+ assert.deepEqual(await page.locator('#playerView .subs-section h3').allInnerTexts(),['大聯盟生涯','主要獎項','逐年成績']);
+ // 逐年成績舊到新（同年轉隊依先後），去掉沒有球隊的合計列；只有大聯盟時不標「含小聯盟」。
  const rows=()=>page.locator('#playerView .player-years tbody tr').evaluateAll(list=>list.map(row=>[...row.cells].slice(0,4).map(cell=>cell.textContent).join('|')));
- assert.deepEqual(await rows(),['2012|MLB|洋基|67','2012|MLB|水手|95','2001|MLB|水手|157']);
+ assert.deepEqual(await rows(),['2001|MLB|水手|157','2012|MLB|水手|95','2012|MLB|洋基|67']);
  assert.equal(await page.locator('#playerView .subs-section-head span').filter({hasText:'含小聯盟'}).count(),0);
  // 主要獎項依 MLB 獎項 id：小聯盟明星賽與球隊 MVP 不列；退休背號。
  assert.deepEqual(await page.locator('#playerView .player-awards b').evaluateAll(list=>list.map(b=>b.firstChild.textContent)),['名人堂','明星賽 MVP','美聯 MVP','美聯明星賽','美聯金手套','水手退休背號']);
@@ -520,7 +524,8 @@ test('Hall of Fame, player page and Taiwan player link',async()=>{
  await page.locator('#playerView .player-head').filter({hasText:'林維恩'}).waitFor();
  const lin=await page.locator('#playerView').innerText();
  for(const text of ['林維恩','Wei-En Lin','#61 · 投手 · 左投左打','現役','運動家體系 · Las Vegas Aviators','台灣 · Taitung','尚未在大聯盟出賽，以下為小聯盟成績。','含小聯盟'])assert(lin.includes(text),'Lin page missing '+text);
- assert.deepEqual(await rows(),['2026|3A|Las Vegas Aviators|20','2025|2A|Midland RockHounds|12']);
+ // 同一年依 API 順序（層級由低到高）。
+ assert.deepEqual(await rows(),['2025|高階1A|Lansing Lugnuts|8','2025|2A|Midland RockHounds|12','2026|3A|Las Vegas Aviators|20']);
  assert.equal(await page.locator('#playerView .player-awards').count(),0);
  assert.equal(await page.locator('#playerView .player-back').innerText(),'← 返回台灣旅外');
  await page.locator('#playerView .player-back').click();

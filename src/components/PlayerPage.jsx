@@ -7,7 +7,6 @@ import {headshot,POSITION_ZH,POSITION_TYPE_ZH,countryZh,LEVEL_ZH,handsText,heigh
 
 const API='https://statsapi.mlb.com/api/v1';
 const BACK_LABEL={hof:'名人堂',taiwan:'台灣旅外',live:'即時比賽',standings:'戰績排行'};
-const LEVEL_ORDER=['MLB','AAA','AA','A+','A','A-','ROK','RK'];
 const cache=new Map();
 
 async function getJSON(url){
@@ -15,8 +14,6 @@ async function getJSON(url){
   if(!response.ok)throw new Error('HTTP '+response.status);
   return response.json();
 }
-
-const levelRank=split=>{const i=LEVEL_ORDER.indexOf(split?.sport?.abbreviation);return i<0?LEVEL_ORDER.length:i};
 
 // 依守備位置決定要看打擊或投球；另一項有足夠出賽時也一起列（例如 Babe Ruth 的投球、Martín Dihigo 的打擊）。
 function statGroups(person,career){
@@ -41,11 +38,11 @@ async function loadPlayer(id){
   const yearly={};
   await Promise.all(groups.map(async group=>{
     const stats=await getJSON(`${API}/people/${id}/stats?stats=yearByYear&group=${group}&leagueListId=mlb_milb`).catch(()=>({stats:[]}));
-    // 只保留有球隊的列（去掉「小聯盟合計」與同層級多隊的合計列）；API 依時間先後排列，反轉後同一年轉隊也是新到舊。
+    // 只保留有球隊的列（去掉「小聯盟合計」與同層級多隊的合計列）；年份由舊到新。
+    // 同一年保留 API 的順序：層級由低到高（新人 → 1A → … → 大聯盟），同層級轉隊依先後。
     yearly[group]=(stats.stats?.[0]?.splits||[])
       .filter(split=>split.team?.id&&split.sport?.abbreviation!=='Minors')
-      .reverse()
-      .sort((a,b)=>Number(b.season)-Number(a.season)||levelRank(a)-levelRank(b));
+      .sort((a,b)=>Number(a.season)-Number(b.season));
   }));
   const result={person,groups,yearly,career};
   cache.set(id,result);
@@ -135,6 +132,14 @@ export function PlayerPage(){
         </div>):<p className="subs-empty">{person.active?'尚未在大聯盟出賽':'沒有大聯盟出賽紀錄'}{data.groups.some(group=>data.yearly[group]?.length)?'，以下為小聯盟成績。':'。'}</p>}
       </section>
 
+      {awards.length>0&&<section className="subs-section" aria-labelledby="playerAwardsTitle">
+        <div className="subs-section-head"><h3 id="playerAwardsTitle">主要獎項</h3></div>
+        <ul className="player-awards">{awards.map(award=><li key={award.label}>
+          <b>{award.label}{award.count>1&&<em>×{award.count}</em>}</b>
+          <small>{seasonsText(award.seasons)}</small>
+        </li>)}</ul>
+      </section>}
+
       {data.groups.map(group=>data.yearly[group]?.length?<section key={group} className="subs-section" aria-label={'逐年成績'+GROUP_ZH[group]}>
         <div className="subs-section-head"><h3>逐年成績{data.groups.length>1?`（${GROUP_ZH[group]}）`:''}</h3>{data.yearly[group].some(split=>split.sport?.abbreviation!=='MLB')&&<span>含小聯盟</span>}</div>
         <div className="standings-scroll">
@@ -148,14 +153,6 @@ export function PlayerPage(){
           </table>
         </div>
       </section>:null)}
-
-      {awards.length>0&&<section className="subs-section" aria-labelledby="playerAwardsTitle">
-        <div className="subs-section-head"><h3 id="playerAwardsTitle">主要獎項</h3></div>
-        <ul className="player-awards">{awards.map(award=><li key={award.label}>
-          <b>{award.label}{award.count>1&&<em>×{award.count}</em>}</b>
-          <small>{seasonsText(award.seasons)}</small>
-        </li>)}</ul>
-      </section>}
     </>}
   </section>;
 }
