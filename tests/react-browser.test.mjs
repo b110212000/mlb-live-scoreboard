@@ -16,14 +16,14 @@ const origin=`http://127.0.0.1:${server.address().port}`;
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 test.after(async()=>{await browser.close();await new Promise(r=>server.close(r))});
 // 介面語言預設「跟隨裝置」：既有測試以繁體中文裝置執行。
-async function setup({width=390,subscribed=false,empty=false,worker=null,push=false,extraGames=[],locale='zh-TW'}={}){
+async function setup({width=390,subscribed=false,empty=false,worker=null,push=false,extraGames=[],locale='zh-TW',failedLogos=[]}={}){
  const page=await browser.newPage({viewport:{width,height:844},timezoneId:'Asia/Taipei',locale}),errors=[];
  // Headless Chromium 沒有推播服務：以假的 PushSubscription 模擬「已允許通知」。
  if(push)await page.addInitScript(()=>{const sub={endpoint:'https://push.example/mock',toJSON(){return {endpoint:this.endpoint,keys:{p256dh:'p',auth:'a'}}},unsubscribe:async()=>true};Object.defineProperty(Notification,'permission',{configurable:true,get:()=>'granted'});PushManager.prototype.getSubscription=async function(){return sub};PushManager.prototype.subscribe=async function(){return sub};});
  page.on('pageerror',e=>errors.push(e.message));
  let current=structuredClone(feed);
  await page.route('**/version.json*',r=>r.fulfill({json:{version}}));
- await page.route('https://www.mlbstatic.com/**',r=>r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="white"/></svg>'}));
+ await page.route('https://www.mlbstatic.com/**',r=>failedLogos.some(id=>new URL(r.request().url()).pathname===`/team-logos/${id}.svg`)?r.abort():r.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><circle cx="20" cy="20" r="18" fill="white"/></svg>'}));
  await page.route('https://img.mlbstatic.com/**',r=>r.abort());
  await page.route(/^https:\/\/(www\.wikidata\.org|[a-z]+\.wikipedia\.org)\//,r=>r.fulfill({json:{query:{search:[],pages:[]},entities:{}}}));
  await page.route('https://statsapi.mlb.com/**',r=>{
@@ -115,11 +115,33 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
 test('No game, desktop layout, reduced motion, notification deep link',async()=>{
  const {page,errors}=await setup({width:1280,empty:true});
  assert(await page.locator('#noGameMessage').isVisible());assert(!(await page.locator('#liveDetailTabs').isVisible()));
+ assert.equal(await page.locator('.hero svg.logo-fallback').count(),2);
+ assert.equal(await page.locator('.hero img.logo').count(),0,'NO GAME must not render empty image elements');
  // 沒有比賽的提示：日期用斜線。
  assert.match(await page.locator('#seriesText').innerText(),/^\d{4}\/\d{2}\/\d{2} 沒有 MLB 賽事$/);
  await page.emulateMedia({reducedMotion:'reduce'});await page.locator('#featureMenuButton').click();await page.waitForTimeout(140);await page.keyboard.press('Escape');await page.waitForTimeout(140);assert(!(await page.locator('#featureMenu').evaluate(d=>d.open)));
  await page.goto(origin+'/?view=live&gamePk='+feed.gamePk);await page.locator('#awayName').filter({hasText:feed.gameData.teams.away.name}).waitFor();
+ await page.waitForFunction(()=>['awayLogo','homeLogo'].every(id=>document.getElementById(id)?.naturalWidth>0));
  assert(await page.locator('#liveView').isVisible());assert.deepEqual(errors,[]);await page.close();
+});
+
+test('Team logos: failed images use a stable fallback and another team can load its logo',async()=>{
+ const {page,errors,setFeed}=await setup({failedLogos:[feed.gameData.teams.away.id]});
+ await page.locator('svg#awayLogo.logo-fallback').waitFor();
+ await page.waitForFunction(()=>document.querySelector('img#homeLogo')?.naturalWidth>0);
+ assert.equal(await page.locator('#awayLogo').getAttribute('aria-label'),feed.gameData.teams.away.name);
+ await page.locator('#awayLogo').evaluate(el=>el.dataset.identity='fallback');
+ await page.locator('#refreshBtn').click();
+ await page.waitForTimeout(250);
+ assert.equal(await page.locator('#awayLogo').getAttribute('data-identity'),'fallback','polling should preserve the fallback');
+ const next=structuredClone(feed);
+ next.gameData.teams.away={...next.gameData.teams.home};
+ setFeed(next);
+ await page.locator('#refreshBtn').click();
+ await page.waitForFunction(()=>document.querySelector('img#awayLogo')?.naturalWidth>0);
+ assert.equal(await page.locator('#awayLogo').getAttribute('data-team-id'),String(next.gameData.teams.away.id));
+ assert.deepEqual(errors,[]);
+ await page.close();
 });
 
 const ALL={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
@@ -237,6 +259,8 @@ test('Subscription management: list, team follow, default and per-game prefs, co
  await page.mouse.move(vp.x+60,vp.y+150);await page.mouse.down();await page.mouse.move(vp.x+280,vp.y+156,{steps:10});await page.mouse.up();await page.waitForTimeout(400);
  assert.equal(await sw.locator('[data-league=AL]').getAttribute('aria-checked'),'true','swipe right did not switch back to AL');
  // 開關可以直接往右拖選國家聯盟，方向鍵也能切換。
+ // 滑動後的捲動位置可能讓開關被固定頂欄遮住，手動取座標前先移到可操作的位置。
+ await sw.evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));
  const sb=await sw.boundingBox();
  await page.mouse.move(sb.x+sb.width*.25,sb.y+sb.height/2);await page.mouse.down();await page.mouse.move(sb.x+sb.width*.75,sb.y+sb.height/2,{steps:8});await page.mouse.up();await page.waitForTimeout(400);
  assert.equal(await sw.locator('[data-league=NL]').getAttribute('aria-checked'),'true','dragging the switch did not select NL');

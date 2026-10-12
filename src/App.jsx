@@ -51,7 +51,7 @@ export function App(){
       <div id="notificationTestView" className="app-view" hidden={view!=='notificationTest'}><NotificationContent lang={lang}/></div>
       <div id="settingsView" className="app-view" hidden={view!=='settings'}><SettingsPage/></div>
       <div id="languageView" className="app-view" hidden={view!=='language'}><LanguagePage/></div>
-      <footer className="foot" aria-label={t('網站資訊')}><span>{t('資料來源：MLB Stats API · 每 5 秒更新')}</span><span className="app-version">v2.7.0</span><span className="legal-links" hidden><a href="./privacy.html">{t('隱私政策')}</a> · <a href="./terms.html">{t('使用條款')}</a></span></footer>
+      <footer className="foot" aria-label={t('網站資訊')}><span>{t('資料來源：MLB Stats API · 每 5 秒更新')}</span><span className="app-version">v2.7.1</span><span className="legal-links" hidden><a href="./privacy.html">{t('隱私政策')}</a> · <a href="./terms.html">{t('使用條款')}</a></span></footer>
     </main>
   </>;
 }
