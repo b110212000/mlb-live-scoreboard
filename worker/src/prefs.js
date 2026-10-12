@@ -1,3 +1,5 @@
+import { text } from "./messages.js";
+
 // 單場通知的提醒項目。舊訂閱沒有 prefs 欄位時視為全部開啟，維持原本行為。
 export const PREF_KEYS = ["pregame5", "start", "homeScore", "awayScore", "final"];
 
@@ -31,7 +33,8 @@ export function samePrefs(a, b) {
   return PREF_KEYS.every(key => Boolean(a?.[key]) === Boolean(b?.[key]));
 }
 
-export function prefsSummary(prefs) {
-  const enabled = PREF_KEYS.filter(key => prefs?.[key]).map(key => PREF_LABELS[key]);
-  return enabled.length ? enabled.join("、") : "目前沒有開啟任何提醒項目";
+export function prefsSummary(prefs, lang = "zh") {
+  const t = text(lang);
+  const enabled = PREF_KEYS.filter(key => prefs?.[key]).map(key => t.prefs[key]);
+  return enabled.length ? enabled.join(t.separator) : t.noPrefs;
 }

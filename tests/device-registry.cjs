@@ -19,6 +19,7 @@ const ctx={console,Response,Request,URL,Date,JSON,Map,Set,Number,String,Object,A
     if(u.searchParams.has('teamId'))return Response.json({dates:[{games:teamGames}]});
     return new Response('',{status:404})}};
 vm.createContext(ctx);
+vm.runInContext(strip(fs.readFileSync('worker/src/messages.js','utf8')),ctx);
 vm.runInContext(strip(fs.readFileSync('worker/src/prefs.js','utf8')),ctx);
 vm.runInContext(strip(fs.readFileSync('worker/src/device-registry.js','utf8')).replace('class DeviceRegistry','globalThis.DeviceRegistry = class DeviceRegistry'),ctx);
 
@@ -134,6 +135,21 @@ const ALL={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
   // 沒有追蹤球隊時 GET /state 不會呼叫 MLB。
   const idle=registry();calls=mlbCalls.length;await idle.call('GET','/state');assert.equal(mlbCalls.length,calls);
 
+  // v2.7.0 推播語言：訂閱時帶的 lang 會採用；PUT /lang 把已訂閱的場次一起改成新語言（不重發訂閱成功）。
+  const lg=registry();schedule.set(60,sched(60));schedule.set(61,sched(61));schedule.set(62,sched(62));
+  res=await lg.call('GET','/state');assert.equal(res.data.lang,'zh');
+  res=await lg.call('POST','/games',{gamePk:60,subscription:sub('lang'),lang:'en'});assert.equal(res.data.lang,'en');assert.equal(lastWatch(60).body.lang,'en');
+  res=await lg.call('POST','/games',{gamePk:61});assert.equal(lastWatch(61).body.lang,'en');assert.equal(lg.data.get('lang'),'en');
+  let watched=monitorCalls.length;
+  res=await lg.call('PUT','/lang',{lang:'ja'});assert.equal(res.status,200);assert.equal(res.data.lang,'ja');assert.equal(lg.data.get('lang'),'ja');
+  assert.deepEqual(monitorCalls.slice(watched).map(c=>[c.pk,c.method,c.body.lang,c.body.confirm]).sort(),[[60,'POST','ja',false],[61,'POST','ja',false]]);
+  watched=monitorCalls.length;res=await lg.call('PUT','/lang',{lang:'ja'});assert.equal(monitorCalls.length,watched,'same language re-propagated');
+  res=await lg.call('PUT','/lang',{lang:'xx'});assert.equal(res.data.lang,'zh','unknown language should fall back to zh');
+  // 新增場次時帶了不同語言：已訂閱的場次也一起更新。
+  watched=monitorCalls.length;res=await lg.call('POST','/games',{gamePk:62,lang:'en'});
+  assert.deepEqual(monitorCalls.slice(watched).map(c=>[c.pk,c.body.lang]).sort(),[[60,'en'],[61,'en'],[62,'en']]);
+  assert.equal(lastWatch(62).body.confirm,true);
+
   // Alarm 會同步並重新排程。
   await d.r.alarm();assert(d.alarm>Date.now());
 
@@ -147,8 +163,10 @@ const ALL={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
   let wr=await w.workerEntry.fetch(new Request('https://worker.test/api/devices/device-abc-123/games/77/prefs',{method:'PUT',body:'{}'}),env);
   assert.equal(wr.status,200);assert.equal(forwarded[0].id,'id:device-abc-123');assert.equal(forwarded[0].url.pathname,'/games/77/prefs');assert.equal(forwarded[0].url.searchParams.get('deviceId'),'device-abc-123');assert.equal(forwarded[0].method,'PUT');
   assert.equal(wr.headers.get('access-control-allow-origin'),'https://site.test');
+  wr=await w.workerEntry.fetch(new Request('https://worker.test/api/devices/device-abc-123/lang',{method:'PUT',body:'{"lang":"en"}'}),env);
+  assert.equal(wr.status,200);assert.equal(forwarded.at(-1).url.pathname,'/lang');assert.equal(forwarded.at(-1).method,'PUT');
   wr=await w.workerEntry.fetch(new Request('https://worker.test/api/devices/bad%20id/state'),env);assert.equal(wr.status,400);
   wr=await w.workerEntry.fetch(new Request('https://worker.test/api/devices/device-abc-123/state',{method:'OPTIONS'}),env);assert(wr.headers.get('access-control-allow-methods').includes('PUT'));
 
-  console.log('PASS device registry: stale GET /state resync (placeholder opponents), 15-min alarm; manual/import add, defaults vs custom prefs, final 409, team follow (postseason only, no confirmation), dismissed games, unfollow cleanup, sync pruning (final/postponed/missing), endpoint migration, alarm, device isolation, router + CORS; mlb called-off detection');
+  console.log('PASS device registry: per-device push language (PUT /lang propagation, lang on subscribe), stale GET /state resync (placeholder opponents), 15-min alarm; manual/import add, defaults vs custom prefs, final 409, team follow (postseason only, no confirmation), dismissed games, unfollow cleanup, sync pruning (final/postponed/missing), endpoint migration, alarm, device isolation, router + CORS; mlb called-off detection');
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -5,7 +5,7 @@ const game={gamePk:849809,gameType:'L',seriesDescription:'NL Championship Series
 let fetched=[];
 const ctx={console,Response,Request,URL,Headers,TextEncoder,Date,JSON,Number,String,Object,Array,Math,
   fetch:async url=>{fetched.push(String(url));const pk=Number(new URL(url).searchParams.get('gamePks'));return Response.json({dates:pk===game.gamePk?[{games:[game]}]:[]})}};
-vm.createContext(ctx);vm.runInContext(strip(fs.readFileSync('worker/src/calendar.js','utf8')),ctx);
+vm.createContext(ctx);vm.runInContext(strip(fs.readFileSync('worker/src/messages.js','utf8')),ctx);vm.runInContext(strip(fs.readFileSync('worker/src/calendar.js','utf8')),ctx);
 const now=Date.parse('2026-10-11T03:00:00Z');
 const ics=ctx.buildGameCalendar(game,{appUrl:'https://b110212000.github.io/mlb-live-scoreboard/',now});
 const lines=ics.split('\r\n');
@@ -38,6 +38,7 @@ assert(ctx.buildGameCalendar({...game,gameType:'W',seriesGameNumber:7},{now}).re
   // Worker 路由：/api/calendar/:gamePk.ics 回傳 text/calendar；找不到比賽回 404。
   const w={console,Response,Request,URL,Headers,TextEncoder,Date,JSON,Number,String,Object,Array,Math,Boolean,caches:{default:{}},getGameHighlights:async()=>({}),fetch:ctx.fetch};
   vm.createContext(w);
+  vm.runInContext(strip(fs.readFileSync('worker/src/messages.js','utf8')),w);
   vm.runInContext(strip(fs.readFileSync('worker/src/calendar.js','utf8')),w);
   vm.runInContext(strip(fs.readFileSync('worker/src/index.js','utf8')),w);
   const env={FRONTEND_ORIGIN:'https://b110212000.github.io',APP_URL:'https://b110212000.github.io/mlb-live-scoreboard/'};
@@ -46,7 +47,21 @@ assert(ctx.buildGameCalendar({...game,gameType:'W',seriesGameNumber:7},{now}).re
   assert.equal(res.headers.get('content-disposition'),'inline; filename="mlb-849809.ics"');
   assert((await res.text()).includes('SUMMARY:國聯冠軍賽 G1｜道奇 @ 釀酒人'));
   assert(fetched.at(-1).includes('gamePks=849809'));
+  // v2.7.0 ?lang=en / ja：標題、隊名與說明依語言；未知語言用中文。
+  res=await w.workerEntry.fetch(new Request('https://worker.test/api/calendar/849809.ics?lang=en'),env);
+  const unfold=text=>text.replace(/\r\n /g,'');
+  let body=unfold(await res.text());
+  assert(body.includes('SUMMARY:NL Championship Series G1 | Dodgers @ Brewers'),'english summary');
+  assert(body.includes('DESCRIPTION:Los Angeles Dodgers @ Milwaukee Brewers\\nNL Championship Series Game 1\\nLive score: '),'english description');
+  res=await w.workerEntry.fetch(new Request('https://worker.test/api/calendar/849809.ics?lang=ja'),env);
+  body=unfold(await res.text());
+  assert(body.includes('SUMMARY:ナ・リーグ優勝決定シリーズ G1｜ドジャース @ ブルワーズ'),'japanese summary');
+  assert(body.includes('ライブスコア：'));
+  res=await w.workerEntry.fetch(new Request('https://worker.test/api/calendar/849809.ics?lang=fr'),env);
+  assert(unfold(await res.text()).includes('SUMMARY:國聯冠軍賽 G1｜道奇 @ 釀酒人'),'unknown language should fall back to zh');
+  assert(unfold(ctx.buildGameCalendar({...game,gameType:'R',seriesGameNumber:2},{now,lang:'en'})).includes('SUMMARY:Regular Season | Dodgers @ Brewers'));
+  assert(unfold(ctx.buildGameCalendar({...game,gameType:'W',seriesGameNumber:7},{now,lang:'ja'})).includes('SUMMARY:ワールドシリーズ G7｜'));
   res=await w.workerEntry.fetch(new Request('https://worker.test/api/calendar/1.ics'),env);assert.equal(res.status,404);
   res=await w.workerEntry.fetch(new Request('https://worker.test/api/calendar/849809'),env);assert.equal(res.status,200,'.ics suffix optional');
-  console.log('PASS calendar: CRLF, 75-octet folding with CJK, UTC start/end, UID, Chinese summary, escaping, URL back to app, 15 min alarm, TBD all-day, World Series title, route + 404');
+  console.log('PASS calendar: CRLF, 75-octet folding with CJK, UTC start/end, UID, Chinese summary, escaping, URL back to app, 15 min alarm, TBD all-day, World Series title, route + 404, ?lang=en/ja');
 })().catch(e=>{console.error(e);process.exit(1)});

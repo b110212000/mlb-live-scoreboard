@@ -1,9 +1,9 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict'),cp=require('child_process');
 const root=process.cwd();
-for(const f of fs.readdirSync(root).filter(f=>f.endsWith('.js')).concat(['worker/src/index.js','worker/src/game-monitor.js','worker/src/mlb.js','worker/src/push-service.js','worker/src/prefs.js','worker/src/device-registry.js','worker/src/calendar.js','worker/src/taiwan.js']))cp.execFileSync('node',['--check',f]);
+for(const f of fs.readdirSync(root).filter(f=>f.endsWith('.js')).concat(['worker/src/index.js','worker/src/game-monitor.js','worker/src/mlb.js','worker/src/push-service.js','worker/src/prefs.js','worker/src/messages.js','worker/src/device-registry.js','worker/src/calendar.js','worker/src/taiwan.js']))cp.execFileSync('node',['--check',f]);
 let snapshot;const sends=[];let failed=new Set();
 const ctx={console,Response,Request,URL,Date,DurableObject:class{},fetchGameSnapshot:async()=>structuredClone(snapshot),isFinalGame:s=>/final/i.test(s?.abstractState||''),isLiveGame:s=>/live/i.test(s?.abstractState||''),isCalledOffGame:s=>['D','C','X'].includes(s?.codedState)};
-vm.createContext(ctx);vm.runInContext('function on(t,n,f,o){t.addEventListener(n,f,o)}; var ManagedResizeObserver=typeof ResizeObserver!=="undefined"?ResizeObserver:null;',ctx);vm.runInContext(fs.readFileSync('worker/src/prefs.js','utf8').replace(/^export /gm,''),ctx);let src=fs.readFileSync('worker/src/game-monitor.js','utf8').replace(/^import[\s\S]*?;$/gm,'').replace('export class GameMonitor','globalThis.GameMonitor = class GameMonitor');vm.runInContext(src,ctx);
+vm.createContext(ctx);vm.runInContext('function on(t,n,f,o){t.addEventListener(n,f,o)}; var ManagedResizeObserver=typeof ResizeObserver!=="undefined"?ResizeObserver:null;',ctx);vm.runInContext(fs.readFileSync('worker/src/messages.js','utf8').replace(/^export /gm,''),ctx);vm.runInContext(fs.readFileSync('worker/src/prefs.js','utf8').replace(/^import[\s\S]*?;$/gm,'').replace(/^export /gm,''),ctx);let src=fs.readFileSync('worker/src/game-monitor.js','utf8').replace(/^import[\s\S]*?;$/gm,'').replace('export class GameMonitor','globalThis.GameMonitor = class GameMonitor');vm.runInContext(src,ctx);
 function monitor(){const data=new Map();let alarm=null;const storage={get:async k=>structuredClone(data.get(k)),put:async(k,v)=>{if(typeof k==='object')for(const [key,val]of Object.entries(k))data.set(key,structuredClone(val));else data.set(k,structuredClone(v));},setAlarm:async a=>alarm=a,deleteAlarm:async()=>alarm=null,getAlarm:async()=>alarm};return {m:new ctx.GameMonitor({storage},{PUSH_SERVICE:{idFromName:n=>{assert.equal(n,'global');return n},get:()=>({fetch:async r=>{assert.equal(new URL(r.url).pathname,'/send');const b=await r.json();sends.push(b);return Response.json({results:b.subscriptions.map(s=>({endpoint:s.endpoint,ok:!failed.has(s.endpoint),expired:s.endpoint.includes('expired')}))});}})}}),data,storage,get alarm(){return alarm}}}
 const base=(state='Preview',a=0,h=0)=>({gamePk:123,abstractState:state,gameDate:new Date(Date.now()+4*60000).toISOString(),awayName:'A',homeName:'H',awayScore:a,homeScore:h});
 const watch=(id)=>new Request('https://internal/watch',{method:'POST',body:JSON.stringify({gamePk:123,deviceId:id,subscription:{endpoint:'https://push/'+id,keys:{p256dh:'x',auth:'y'}}})});
@@ -51,6 +51,42 @@ for(let i=0;i<20;i++)await quietMon.m.checkGame();
 assert.equal(puts,0,'unchanged checks should not write storage, got '+puts);
 snapshot=base('Live',2,0);await quietMon.m.checkGame();assert(puts>0&&puts<=3,'a score change should write a few keys, got '+puts);
 assert.equal(quietMon.data.get('lastSnapshot').awayScore,2);
+// v2.7.0 多國語系：每個裝置依自己的語言收到通知，同一事件依語言分批送出；舊訂閱（沒有 lang）維持中文。
+const multi=monitor();snapshot={...base('Live',0,0),awayName:'Los Angeles Dodgers',homeName:'Milwaukee Brewers',awayTeamId:119,homeTeamId:158};mark=sends.length;
+await multi.m.watch(watchWith('zh1'));await multi.m.watch(watchWith('en1',{lang:'en'}));await multi.m.watch(watchWith('ja1',{lang:'ja'}));
+assert.deepEqual(sends.slice(mark).map(x=>x.payload.title),['Los Angeles Dodgers vs Milwaukee Brewers｜訂閱成功','Los Angeles Dodgers vs Milwaukee Brewers | Subscribed','ドジャース vs ブルワーズ｜通知を登録しました']);
+assert(sends.at(-1).payload.body.includes('ホームチームの得点'));
+const subLang=id=>multi.data.get('subscribers').find(s=>s.deviceId===id).lang;
+assert.deepEqual(['zh1','en1','ja1'].map(subLang),['zh','en','ja']);
+mark=sends.length;snapshot={...snapshot,awayScore:2,currentInning:3,isTopInning:true};await multi.m.checkGame();
+const byEndpoint=Object.fromEntries(sends.slice(mark).map(x=>[x.subscriptions.map(s=>s.endpoint).join(),x.payload]));
+assert.equal(sends.length-mark,3,'one score push per language');
+assert.deepEqual([byEndpoint['https://push/zh1'].title,byEndpoint['https://push/zh1'].body],['Los Angeles Dodgers 得分','Los Angeles Dodgers 2：0 Milwaukee Brewers · 3 局上']);
+assert.deepEqual([byEndpoint['https://push/en1'].title,byEndpoint['https://push/en1'].body],['Los Angeles Dodgers scored','Los Angeles Dodgers 2-0 Milwaukee Brewers · Top 3']);
+assert.deepEqual([byEndpoint['https://push/ja1'].title,byEndpoint['https://push/ja1'].body],['ドジャースが得点','ドジャース 2－0 ブルワーズ · 3回表']);
+// 重新訂閱沒帶 lang 時保留原本的語言，帶了就更新；未知語言當中文。
+await multi.m.watch(watchWith('en1'));assert.equal(subLang('en1'),'en');
+await multi.m.watch(watchWith('en1',{lang:'ja'}));assert.equal(subLang('en1'),'ja');
+await multi.m.watch(watchWith('xx1',{lang:'fr'}));assert.equal(subLang('xx1'),'zh');
+await multi.m.watch(watchWith('en1',{lang:'en'}));assert.equal(subLang('en1'),'en');
+mark=sends.length;snapshot={...snapshot,abstractState:'Final',homeScore:1};await multi.m.checkGame();
+const finals=sends.slice(mark).filter(x=>x.payload.stage==='final');
+assert.deepEqual(finals.map(x=>x.payload.body).sort(),['Final: Los Angeles Dodgers 2-1 Milwaukee Brewers','試合終了：ドジャース 2－1 ブルワーズ','終場：Los Angeles Dodgers 2：1 Milwaukee Brewers'].sort());
+// 推播測試（PushService）：第一則與 30 秒後的背景通知都用前端帶來的語言；舊的待送測試沒有 lang 時用中文。
+const pctx={console,Response,Request,URL,Date,JSON,Math,Number,String,Object,Array,crypto,btoa,DurableObject:class{constructor(c,e){this.ctx=c;this.env=e}}};
+vm.createContext(pctx);vm.runInContext(fs.readFileSync('worker/src/messages.js','utf8').replace(/^export /gm,''),pctx);
+vm.runInContext(fs.readFileSync('worker/src/push-service.js','utf8').replace(/^import[\s\S]*?;$/gm,'').replace('export class PushService','globalThis.PushService = class PushService'),pctx);
+const pdata=new Map();const pstorage={get:async k=>structuredClone(pdata.get(k)),put:async(k,v)=>pdata.set(k,structuredClone(v)),setAlarm:async()=>{},deleteAlarm:async()=>{}};
+const pushService=new pctx.PushService({storage:pstorage},{});const pushed=[];pushService.send=async(subscription,payload)=>{pushed.push(payload)};
+const testSub={endpoint:'https://push/test',keys:{p256dh:'x',auth:'y'}};
+let pres=await pushService.createTest(new Request('https://internal/test',{method:'POST',body:JSON.stringify({subscription:testSub,lang:'en'})}));
+assert.equal(pres.status,200);assert.equal(pushed.at(-1).title,'MLB Scoreboard test notification');assert.equal(pdata.get('pendingTests')[0].lang,'en');
+await pushService.createTest(new Request('https://internal/test',{method:'POST',body:JSON.stringify({subscription:testSub,lang:'ja'})}));assert.equal(pushed.at(-1).title,'MLB スコア 通知テスト');
+pdata.set('pendingTests',[...pdata.get('pendingTests').map(item=>({...item,dueAt:0})),{testId:'old',dueAt:0,subscription:testSub}]);
+await pushService.alarm();
+assert.deepEqual(pushed.slice(-3).map(p=>p.title),['MLB Scoreboard background test','MLB スコア バックグラウンド通知テスト','MLB 戰況背景通知測試']);
+assert.deepEqual(pdata.get('pendingTests'),[]);
+console.log('PASS: per-device language (subscription/score/final payloads, grouped per language, lang kept on rewatch, push test)');
 console.log('PASS: per-device prefs (pregame/start/home/away/final), silent baseline, no retroactive start, mixed prefs routing, confirm:false, called-off cleanup; subscription confirmation, retry, duplicate suppression, resubscribe, legacy compatibility;  JS syntax, pregame, start, both scores, score-before-final, cleanup, late baseline, per-device baseline, failed score retry, status, cancel, alarms, DO forwarding');
 })().catch(e=>{console.error(e);process.exit(1)});
 

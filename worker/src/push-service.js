@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import webpush from "web-push";
+import { normalizeLang, text } from "./messages.js";
 
 const TEST_DELAY_MS = 30_000;
 
@@ -169,11 +170,12 @@ export class PushService extends DurableObject {
 
     const testId = crypto.randomUUID();
     const createdAt = Date.now();
+    const lang = normalizeLang(body.lang);
 
     try {
       await this.send(subscription, {
-        title: "MLB 戰況通知測試",
-        body: "第一則測試通知成功。30 秒後還會再收到一則背景通知。",
+        title: text(lang).testTitle,
+        body: text(lang).testBody,
         tag: `push-test-now-${testId}`,
         url: "./?view=notifications",
         testId,
@@ -196,7 +198,8 @@ export class PushService extends DurableObject {
     pending.push({
       testId,
       dueAt: createdAt + TEST_DELAY_MS,
-      subscription
+      subscription,
+      lang
     });
     await this.ctx.storage.put("pendingTests", pending);
     await this.scheduleNextAlarm(pending);
@@ -229,8 +232,8 @@ export class PushService extends DurableObject {
     for (const item of due) {
       try {
         await this.send(item.subscription, {
-          title: "MLB 戰況背景通知測試",
-          body: "30 秒背景通知成功。關閉網站後也能由 Cloudflare Web Push 喚醒通知。",
+          title: text(item.lang).delayedTitle,
+          body: text(item.lang).delayedBody,
           tag: `push-test-delayed-${item.testId}`,
           url: "./?view=notifications",
           testId: item.testId,

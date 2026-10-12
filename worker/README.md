@@ -13,7 +13,7 @@ MLB 季後賽即時戰況的 Cloudflare Worker 後端，負責單場比賽的 We
 Worker (src/index.js) ── 路由與 CORS
    │
    ├── DeviceRegistry Durable Object（每個 deviceId 一個）
-   │     ├── 保存推播訂閱、預設提醒項目、追蹤球隊、已訂閱場次（含單場自訂）
+   │     ├── 保存推播訂閱、預設提醒項目、推播語言、追蹤球隊、已訂閱場次（含單場自訂）
    │     ├── 每 15 分鐘以 Alarm 同步賽程：自動訂閱追蹤球隊的季後賽、清掉終場 / 延賽場次
    │     └── 以 POST/DELETE /watch 呼叫各場 GameMonitor
    │
@@ -36,7 +36,8 @@ Worker (src/index.js) ── 路由與 CORS
 | `src/device-registry.js` | `DeviceRegistry`：每台裝置的訂閱清單、追蹤球隊同步、提醒項目 |
 | `src/game-monitor.js` | `GameMonitor`：單場訂閱者、輪詢、依提醒項目判斷通知與重試 |
 | `src/taiwan.js` | 台灣旅外球員：依出生地找出 MLB 與小聯盟各層級的台灣球員與本季成績（快取 3 小時） |
-| `src/calendar.js` | 單場比賽行事曆檔（.ics）：中文標題、UTC 時間、開賽前 15 分鐘提醒、連回 App |
+| `src/calendar.js` | 單場比賽行事曆檔（.ics）：依語言的標題（預設中文）、UTC 時間、開賽前 15 分鐘提醒、連回 App |
+| `src/messages.js` | 推播通知與行事曆的文字（繁體中文 / 英文 / 日文）與三種語言的隊名，與前端 `src/teams.js` 一致 |
 | `src/prefs.js` | 提醒項目（`pregame5`、`start`、`homeScore`、`awayScore`、`final`）的預設值與正規化 |
 | `src/push-service.js` | `PushService`：VAPID 金鑰、批次發送、測試推播 |
 | `src/mlb.js` | 讀取 MLB live feed 並整理成快照；判斷 Live / Final / 延賽取消 |
@@ -65,6 +66,7 @@ Worker (src/index.js) ── 路由與 CORS
 - 所有終場通知送達後清空該場訂閱並停止 Alarm。
 - 同一場比賽的訂閱、取消與 Alarm 透過 `exclusive()` 依序處理，避免互相覆蓋。
 - 通知內含 `gamePk` 與 `./?view=live&gamePk=...`，前端點擊後直接開啟該場比賽。
+- 通知文字依裝置的推播語言（`lang`：`zh` 繁體中文、`en` 英文、`ja` 日文；沒有或不認得時用繁體中文，舊訂閱維持中文）。同一事件依語言分批送出；隊名中文與英文沿用 MLB 原名，日文用片假名（ドジャース）。
 
 ## 儲存寫入
 
@@ -98,20 +100,21 @@ DeviceRegistry 在有追蹤球隊或已訂閱場次時，每 15 分鐘同步一�
 | `GET` | `/api/push/public-key` | 取得 VAPID 公鑰，前端訂閱前使用 |
 | `GET` | `/api/devices/:deviceId/state` | 這台裝置的預設提醒項目、追蹤球隊、已訂閱場次 |
 | `PUT` | `/api/devices/:deviceId/defaults` | 修改預設提醒項目 `{prefs}`，同步到所有未自訂的場次 |
+| `PUT` | `/api/devices/:deviceId/lang` | 推播語言 `{lang: "zh" \| "en" \| "ja"}`，同步到所有已訂閱的場次（不重發訂閱成功）；前端切換介面語言時呼叫 |
 | `PUT` | `/api/devices/:deviceId/subscription` | 更新推播訂閱 `{subscription}`；endpoint 改變時所有場次改送新 endpoint |
-| `POST` | `/api/devices/:deviceId/games` | 訂閱單場 `{gamePk, subscription?, import?}`；終場 409 `GAME_FINAL`、延賽取消 409 `GAME_CALLED_OFF` |
+| `POST` | `/api/devices/:deviceId/games` | 訂閱單場 `{gamePk, subscription?, import?, lang?}`；終場 409 `GAME_FINAL`、延賽取消 409 `GAME_CALLED_OFF` |
 | `DELETE` | `/api/devices/:deviceId/games/:gamePk` | 取消單場（也會取消不在清單中的舊訂閱） |
 | `PUT` | `/api/devices/:deviceId/games/:gamePk/prefs` | 單場自訂 `{prefs}`；`{prefs: null}` 或與預設相同時改回預設 |
-| `POST` | `/api/devices/:deviceId/teams` | 追蹤球隊 `{teamId, subscription?}`，立即同步並回傳 `added` |
+| `POST` | `/api/devices/:deviceId/teams` | 追蹤球隊 `{teamId, subscription?, lang?}`，立即同步並回傳 `added` |
 | `DELETE` | `/api/devices/:deviceId/teams/:teamId` | 取消追蹤，移除只因追蹤而加入的場次 |
 | `POST` | `/api/devices/:deviceId/sync` | 立即同步一次 |
-| `POST` | `/api/watch` | 舊版直接訂閱單場：`{gamePk, deviceId, subscription, prefs?, confirm?}`（保留給舊前端） |
+| `POST` | `/api/watch` | 舊版直接訂閱單場：`{gamePk, deviceId, subscription, prefs?, confirm?, lang?}`（保留給舊前端；沒帶 `lang` 時沿用既有語言） |
 | `DELETE` | `/api/watch` | 舊版取消訂閱：`{gamePk, deviceId 或 endpoint}` |
 | `GET` | `/api/watch/:gamePk/status?deviceId=...` | 查詢裝置是否已訂閱與其 `prefs`，前端用來恢復鈴鐺狀態 |
-| `POST` | `/api/push/test` | 測試推播：立即送一則，30 秒後再送一則 |
+| `POST` | `/api/push/test` | 測試推播 `{subscription, lang?}`：立即送一則，30 秒後再送一則 |
 | `GET` | `/api/push/status` | 測試推播的待送狀態 |
 | `GET` | `/api/taiwan-players?season=YYYY` | 台灣旅外球員名單：各層級（MLB、3A、2A、高階1A、1A、新人聯盟）本季成績、目前球隊與母隊 |
-| `GET` | `/api/calendar/:gamePk.ics` | 單場比賽行事曆檔（`text/calendar`），iPhone 開啟後可直接加入行事曆；開賽時間未定時為全天行程 |
+| `GET` | `/api/calendar/:gamePk.ics?lang=en` | 單場比賽行事曆檔（`text/calendar`），iPhone 開啟後可直接加入行事曆；開賽時間未定時為全天行程；`lang`（`en` / `ja`）決定標題語言，預設中文 |
 | `GET` | `/api/highlights/:gamePk` | 賽後影片推薦（需 `YOUTUBE_API_KEY`） |
 | `POST` | `/api/monitor/start` | 診斷用：不訂閱，只啟動監控 `{gamePk}` |
 | `GET` | `/api/monitor/:gamePk` | 診斷用：讀取監控狀態 |

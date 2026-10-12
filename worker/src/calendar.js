@@ -3,27 +3,22 @@ const MLB_API = "https://statsapi.mlb.com/api";
 const GAME_DURATION_MS = 3.5 * 60 * 60_000;
 const REMINDER = "-PT15M";
 
-// 與前端 src/teams.js 相同的中文隊名。
-const TEAM_ZH = {
-  108: "天使", 109: "響尾蛇", 110: "金鶯", 111: "紅襪", 112: "小熊", 113: "紅人", 114: "守護者", 115: "洛磯",
-  116: "老虎", 117: "太空人", 118: "皇家", 119: "道奇", 120: "國民", 121: "大都會", 133: "運動家", 134: "海盜",
-  135: "教士", 136: "水手", 137: "巨人", 138: "紅雀", 139: "光芒", 140: "遊騎兵", 141: "藍鳥", 142: "雙城",
-  143: "費城人", 144: "勇士", 145: "白襪", 146: "馬林魚", 147: "洋基", 158: "釀酒人"
-};
+import { normalizeLang, teamShortName, text } from "./messages.js";
 
-function teamZh(team) {
-  return TEAM_ZH[Number(team?.id)] || team?.teamName || team?.name || "待定";
+// 隊名與 src/teams.js 相同（中文 / 英文暱稱 / 日文）。
+function teamName(team, lang) {
+  return teamShortName(team?.id, lang, team?.teamName || team?.name || text(lang).tbd);
 }
 
-function seriesZh(game) {
+function seriesName(game, lang) {
+  const t = text(lang);
   const type = game?.gameType;
-  if (type === "R") return "例行賽";
-  if (type === "S") return "春訓";
-  if (type === "W") return "世界大賽";
+  if (type === "R") return t.regular;
+  if (type === "S") return t.spring;
+  if (type === "W") return t.worldSeries;
   const desc = String(game?.seriesDescription || "");
-  const league = /^(AL|American)/i.test(desc) ? "美聯" : /^(NL|National)/i.test(desc) ? "國聯" : "";
-  const round = { F: "外卡系列賽", D: "分區賽", L: "冠軍賽" }[type] || "季後賽";
-  return league + round;
+  const league = /^(AL|American)/i.test(desc) ? "AL" : /^(NL|National)/i.test(desc) ? "NL" : "";
+  return t.series(league, type);
 }
 
 function icsDate(ms) {
@@ -60,18 +55,19 @@ function foldLine(line) {
   return parts.join("\r\n ");
 }
 
-export function buildGameCalendar(game, { appUrl = "", now = Date.now() } = {}) {
+export function buildGameCalendar(game, { appUrl = "", now = Date.now(), lang = "zh" } = {}) {
+  lang = normalizeLang(lang);
   const gamePk = Number(game.gamePk);
   const away = game.teams?.away?.team || {};
   const home = game.teams?.home?.team || {};
   // 例行賽的 seriesGameNumber 是 3～4 連戰中的第幾場，不放進標題。
   const number = game.gameType === "R" ? 0 : Number(game.seriesGameNumber);
-  const title = `${seriesZh(game)}${number > 0 ? ` G${number}` : ""}｜${teamZh(away)} @ ${teamZh(home)}`;
+  const title = `${seriesName(game, lang)}${number > 0 ? ` G${number}` : ""}${text(lang).titleSeparator}${teamName(away, lang)} @ ${teamName(home, lang)}`;
   const link = appUrl ? `${appUrl}${appUrl.includes("?") ? "&" : "?"}view=live&gamePk=${gamePk}` : "";
   const description = [
-    `${away.name || teamZh(away)} @ ${home.name || teamZh(home)}`,
+    `${away.name || teamName(away, lang)} @ ${home.name || teamName(home, lang)}`,
     game.seriesDescription ? `${game.seriesDescription}${number > 0 ? ` Game ${number}` : ""}` : "",
-    link ? `即時比分：${link}` : ""
+    link ? text(lang).liveScore(link) : ""
   ].filter(Boolean).join("\n");
 
   const start = Date.parse(game.gameDate || "");
@@ -111,14 +107,14 @@ export function buildGameCalendar(game, { appUrl = "", now = Date.now() } = {}) 
   return lines.map(foldLine).join("\r\n") + "\r\n";
 }
 
-export async function gameCalendarResponse(gamePk, env) {
+export async function gameCalendarResponse(gamePk, env, lang = "zh") {
   const url = `${MLB_API}/v1/schedule?sportId=1&gamePks=${encodeURIComponent(gamePk)}&hydrate=team,venue`;
   const response = await fetch(url, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`MLB schedule HTTP ${response.status}`);
   const data = await response.json();
   const game = (data?.dates || []).flatMap(date => date?.games || []).find(item => Number(item.gamePk) === Number(gamePk));
   if (!game) return null;
-  const body = buildGameCalendar(game, { appUrl: env.APP_URL || "" });
+  const body = buildGameCalendar(game, { appUrl: env.APP_URL || "", lang });
   return new Response(body, {
     headers: {
       "content-type": "text/calendar; charset=utf-8",

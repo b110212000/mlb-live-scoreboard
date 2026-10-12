@@ -6,6 +6,7 @@ import {
   isLiveGame
 } from "./mlb.js";
 import { normalizePrefs, prefsSummary } from "./prefs.js";
+import { inningText, matchupLabel, normalizeLang, scoreLine, snapshotTeams, text } from "./messages.js";
 
 const LIVE_INTERVAL_MS = 5_000;
 const IDLE_INTERVAL_MS = 30_000;
@@ -72,6 +73,8 @@ function normalizeSubscriber(item) {
     lastScore: item.lastScore || null,
     // 舊訂閱沒有 prefs，normalizePrefs 會補成全部開啟。
     prefs: normalizePrefs(item.prefs),
+    // 舊訂閱沒有語言，視為繁體中文。
+    lang: normalizeLang(item.lang),
     createdAt: item.createdAt || new Date().toISOString()
   };
 }
@@ -80,21 +83,6 @@ function wantsPref(item, key) {
   return item?.prefs?.[key] !== false;
 }
 
-function teamLabel(snapshot) {
-  return `${snapshot.awayName || "客隊"} vs ${snapshot.homeName || "主隊"}`;
-}
-
-function inningLabel(snapshot) {
-  const n = Number(snapshot.currentInning);
-  if (!Number.isFinite(n) || n <= 0) return "";
-  const state = String(snapshot.inningState || "").toLowerCase();
-  const half = snapshot.isTopInning === true || state.includes("top")
-    ? "上"
-    : snapshot.isTopInning === false || state.includes("bottom")
-      ? "下"
-      : "";
-  return `${n} 局${half}`;
-}
 
 export class GameMonitor extends DurableObject {
   constructor(ctx, env) {
@@ -263,8 +251,9 @@ export class GameMonitor extends DurableObject {
     const now = Date.now();
     const pregamePassed = live || (Number.isFinite(gameTime) && now >= gameTime);
 
-    // 沒帶 prefs（舊版前端）時沿用既有設定；新訂閱預設全部開啟。
+    // 沒帶 prefs（舊版前端）時沿用既有設定；新訂閱預設全部開啟。語言同理（沒帶就沿用，新訂閱為繁體中文）。
     const prefs = normalizePrefs(body.prefs, existing?.prefs);
+    const lang = body.lang ? normalizeLang(body.lang) : existing?.lang || "zh";
     const sent = existing?.sent ? { ...existing.sent } : {
       // confirm: false（追蹤球隊自動加入的場次）不發「訂閱成功」通知。
       subscription: body.confirm === false,
@@ -283,6 +272,7 @@ export class GameMonitor extends DurableObject {
       sent,
       lastScore: existing?.lastScore || { awayScore: snapshot.awayScore, homeScore: snapshot.homeScore },
       prefs,
+      lang,
       createdAt: existing?.createdAt || new Date().toISOString()
     };
 
@@ -456,8 +446,10 @@ export class GameMonitor extends DurableObject {
 
       if ((away && wantsPref(item, "awayScore")) || (home && wantsPref(item, "homeScore"))) {
         const side = away && home ? "both" : away ? "away" : "home";
-        if (!groups.has(side)) groups.set(side, []);
-        groups.get(side).push(item);
+        // 同一邊得分、同一種語言的裝置合併成一批送出。
+        const key = `${side}|${item.lang}`;
+        if (!groups.has(key)) groups.set(key, { side, lang: item.lang, targets: [] });
+        groups.get(key).targets.push(item);
       } else {
         // 沒開啟提醒的那隊得分：不通知，但更新比分基準，之後的得分與終場判斷才正確。
         item.lastScore = { ...current };
@@ -465,14 +457,16 @@ export class GameMonitor extends DurableObject {
     }
     if (!groups.size) return subscribers;
 
-    const inning = inningLabel(snapshot);
     const byEndpoint = new Map();
-    for (const [side, targets] of groups) {
+    for (const { side, lang, targets } of groups.values()) {
+      const t = text(lang);
+      const names = snapshotTeams(snapshot, lang);
+      const inning = inningText(snapshot, lang);
       const result = await this.push(targets, {
-        title: side === "away" ? `${snapshot.awayName} 得分`
-          : side === "home" ? `${snapshot.homeName} 得分`
-            : "MLB 比分更新",
-        body: `${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}${inning ? " · " + inning : ""}`,
+        title: side === "away" ? t.scored(names.away)
+          : side === "home" ? t.scored(names.home)
+            : t.scoreUpdate,
+        body: `${scoreLine(snapshot, lang)}${inning ? " · " + inning : ""}`,
         tag: `game-score-${snapshot.gamePk}-${snapshot.awayScore}-${snapshot.homeScore}-${Date.now()}`,
         url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
@@ -499,8 +493,8 @@ export class GameMonitor extends DurableObject {
     const gameTime = Date.parse(snapshot.gameDate || "");
 
     next = await this.sendMarkedEvent(next, "subscription", item => ({
-      title: `${teamLabel(snapshot)}｜訂閱成功`,
-      body: `將通知：${prefsSummary(item.prefs)}。`,
+      title: text(item.lang).subscribedTitle(matchupLabel(snapshot, item.lang)),
+      body: text(item.lang).subscribedBody(prefsSummary(item.prefs, item.lang)),
       tag: `game-subscribed-${snapshot.gamePk}`,
       url: `./?view=live&gamePk=${snapshot.gamePk}`,
       gamePk: snapshot.gamePk,
@@ -515,25 +509,25 @@ export class GameMonitor extends DurableObject {
       now >= gameTime - PREGAME_NOTICE_MS &&
       now < gameTime
     ) {
-      next = await this.sendMarkedEvent(next, "pregame5", {
-        title: "MLB 即將開賽",
-        body: `${teamLabel(snapshot)} 將在 5 分鐘內開賽。`,
+      next = await this.sendMarkedEvent(next, "pregame5", item => ({
+        title: text(item.lang).pregameTitle,
+        body: text(item.lang).pregameBody(matchupLabel(snapshot, item.lang)),
         tag: `game-pregame-${snapshot.gamePk}`,
         url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "pregame5"
-      }, item => wantsPref(item, "pregame5"));
+      }), item => wantsPref(item, "pregame5"));
     }
 
     if (live) {
-      next = await this.sendMarkedEvent(next, "start", {
-        title: "MLB 比賽開始",
-        body: `${teamLabel(snapshot)} 已經開賽。`,
+      next = await this.sendMarkedEvent(next, "start", item => ({
+        title: text(item.lang).startTitle,
+        body: text(item.lang).startBody(matchupLabel(snapshot, item.lang)),
         tag: `game-start-${snapshot.gamePk}`,
         url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "start"
-      }, item => wantsPref(item, "start"));
+      }), item => wantsPref(item, "start"));
     }
 
     // 每個裝置保留已送達的比分；失敗後下次仍會重試。
@@ -550,14 +544,14 @@ export class GameMonitor extends DurableObject {
       for (const item of ready) {
         if (!wantsPref(item, "final")) item.sent = { ...(item.sent || {}), final: true };
       }
-      const delivered = await this.sendMarkedEvent(ready, "final", {
-        title: "MLB 比賽結束",
-        body: `終場：${snapshot.awayName} ${snapshot.awayScore}：${snapshot.homeScore} ${snapshot.homeName}`,
+      const delivered = await this.sendMarkedEvent(ready, "final", item => ({
+        title: text(item.lang).finalTitle,
+        body: text(item.lang).finalBody(scoreLine(snapshot, item.lang)),
         tag: `game-final-${snapshot.gamePk}`,
         url: `./?view=live&gamePk=${snapshot.gamePk}`,
         gamePk: snapshot.gamePk,
         stage: "final"
-      }, item => wantsPref(item, "final"));
+      }), item => wantsPref(item, "final"));
       const pendingScore = next.filter(item => !ready.includes(item));
       next = [...pendingScore, ...delivered];
     }

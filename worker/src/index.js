@@ -127,7 +127,7 @@ export default {
     const calendarMatch = url.pathname.match(/^\/api\/calendar\/(\d+)(?:\.ics)?$/);
     if (request.method === "GET" && calendarMatch) {
       try {
-        const calendar = await gameCalendarResponse(Number(calendarMatch[1]), env);
+        const calendar = await gameCalendarResponse(Number(calendarMatch[1]), env, url.searchParams.get("lang") || "zh");
         if (!calendar) return json({ error: "GAME_NOT_FOUND" }, env, 404);
         const headers = new Headers(calendar.headers);
         for (const [key, value] of Object.entries(corsHeaders(env))) headers.set(key, value);
@@ -229,7 +229,7 @@ export default {
       );
     }
 
-    // 訂閱管理：/api/devices/:deviceId/{state|defaults|subscription|games|teams|sync}
+    // 訂閱管理：/api/devices/:deviceId/{state|defaults|lang|subscription|games|teams|sync}
     const deviceMatch = url.pathname.match(/^\/api\/devices\/([^/]+)(\/.*)$/);
     if (deviceMatch) {
       const deviceId = deviceMatch[1];
@@ -267,6 +267,7 @@ export default {
         "GET /api/watch/:gamePk/status",
         "GET /api/devices/:deviceId/state",
         "PUT /api/devices/:deviceId/defaults",
+        "PUT /api/devices/:deviceId/lang",
         "PUT /api/devices/:deviceId/subscription",
         "POST /api/devices/:deviceId/games",
         "DELETE /api/devices/:deviceId/games/:gamePk",

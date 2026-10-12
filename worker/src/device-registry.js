@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { normalizePrefs, samePrefs } from "./prefs.js";
+import { normalizeLang } from "./messages.js";
 
 const MLB_API = "https://statsapi.mlb.com/api";
 // 追蹤球隊自動訂閱的賽事：例行賽（R）與季後賽。
@@ -104,9 +105,15 @@ export class DeviceRegistry extends DurableObject {
     const method = request.method;
     const path = url.pathname;
     const body = method === "GET" ? {} : await request.json().catch(() => ({}));
+    // 新版前端在訂閱、追蹤時帶上介面語言：跟記錄的語言不同時，已訂閱的場次也一起改用新語言（新場次在下面以 state.lang 訂閱）。
+    if (path !== "/lang" && typeof body.lang === "string" && normalizeLang(body.lang) !== state.lang) {
+      state.lang = normalizeLang(body.lang);
+      await this.propagate(state, Object.keys(state.games).map(Number));
+    }
 
     if (method === "GET" && path === "/state") return this.getState(state);
     if (method === "PUT" && path === "/defaults") return this.setDefaults(state, body);
+    if (method === "PUT" && path === "/lang") return this.setLang(state, body);
     if (method === "PUT" && path === "/subscription") return this.setSubscription(state, body);
     if (method === "POST" && path === "/games") return this.addGame(state, body);
     if (method === "POST" && path === "/teams") return this.followTeam(state, body);
@@ -126,13 +133,15 @@ export class DeviceRegistry extends DurableObject {
 
   async load() {
     const values = await this.ctx.storage.get([
-      "deviceId", "subscription", "defaults", "teams", "games", "dismissed", "lastSyncAt", "lastSyncError"
+      "deviceId", "subscription", "defaults", "lang", "teams", "games", "dismissed", "lastSyncAt", "lastSyncError"
     ]);
     const games = values.get("games");
     return {
       deviceId: values.get("deviceId") || null,
       subscription: values.get("subscription") || null,
       defaults: normalizePrefs(values.get("defaults")),
+      // 推播通知的語言（舊裝置沒有設定時為繁體中文）。
+      lang: normalizeLang(values.get("lang")),
       teams: Array.isArray(values.get("teams")) ? values.get("teams") : [],
       games: games && typeof games === "object" ? games : {},
       dismissed: Array.isArray(values.get("dismissed")) ? values.get("dismissed") : [],
@@ -146,6 +155,7 @@ export class DeviceRegistry extends DurableObject {
       deviceId: state.deviceId,
       subscription: state.subscription,
       defaults: state.defaults,
+      lang: state.lang,
       teams: state.teams,
       games: state.games,
       dismissed: state.dismissed,
@@ -176,6 +186,7 @@ export class DeviceRegistry extends DurableObject {
     return {
       ok: true,
       defaults: state.defaults,
+      lang: state.lang,
       teams: state.teams.map(team => ({ teamId: team.teamId, createdAt: team.createdAt })),
       games,
       subscriptionEndpoint: state.subscription?.endpoint || null,
@@ -212,6 +223,7 @@ export class DeviceRegistry extends DurableObject {
         deviceId: state.deviceId,
         subscription: state.subscription,
         prefs: normalizePrefs(entry?.prefs, state.defaults),
+        lang: state.lang,
         confirm
       })
     }));
@@ -261,6 +273,16 @@ export class DeviceRegistry extends DurableObject {
     state.defaults = normalizePrefs(body.prefs, state.defaults);
     const followers = Object.values(state.games).filter(entry => !entry.prefs).map(entry => entry.gamePk);
     const failed = await this.propagate(state, followers);
+    await this.save(state);
+    return json(this.view(state, { failed }));
+  }
+
+  // 切換語言：之後的通知改用新語言，已訂閱的場次一起更新。
+  async setLang(state, body) {
+    const lang = normalizeLang(body.lang);
+    if (lang === state.lang) return json(this.view(state, { failed: [] }));
+    state.lang = lang;
+    const failed = await this.propagate(state, Object.keys(state.games).map(Number));
     await this.save(state);
     return json(this.view(state, { failed }));
   }
