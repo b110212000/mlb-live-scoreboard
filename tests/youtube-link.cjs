@@ -1,4 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+require('./i18n-stub.cjs')(vm);
 function fixture(ua,platform='',touch=0){
  const calls=[],timers=new Map(),listeners=new Map();let next=0;
  const ctx={sessionStorage:{getItem:()=> '1.7.0'},navigator:{userAgent:ua,platform,maxTouchPoints:touch},location:{assign:url=>calls.push(url)},document:{hidden:false,addEventListener:(n,f)=>listeners.set(n,f),removeEventListener:n=>listeners.delete(n)},window:{addEventListener:(n,f)=>listeners.set(n,f),removeEventListener:n=>listeners.delete(n)},setTimeout:f=>{timers.set(++next,f);return next},clearTimeout:n=>timers.delete(n),console,Date,Map};

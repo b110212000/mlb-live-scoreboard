@@ -1,8 +1,11 @@
 import {useSyncExternalStore} from 'react';
+import {applyLang,setLangPref,lang} from './i18n.js';
+// 語言要在第一次畫面之前決定（React 與 engine 都用同一個 t()）。
+applyLang();
 const defaultPrefs={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
 function cachedTeams(){try{const v=JSON.parse(localStorage.getItem('mlb-followed-teams')||'[]');return Array.isArray(v)?v.map(Number).filter(Boolean):[]}catch(_){return []}}
 function urlPlayerId(){try{return Number(new URLSearchParams(location.search).get('playerId'))||null}catch(_){return null}}
-const initial={view:'live',playerId:urlPlayerId(),playerFrom:null,playerFromScroll:0,games:[],selectedGamePk:null,score:null,highlights:[],highlightGamePk:null,error:'',emptyDate:null,
+const initial={view:'live',lang:lang(),playerId:urlPlayerId(),playerFrom:null,playerFromScroll:0,games:[],selectedGamePk:null,score:null,highlights:[],highlightGamePk:null,error:'',emptyDate:null,
   subs:{status:'idle',error:'',notice:'',noticeAt:0,support:'default',defaults:defaultPrefs,teams:cachedTeams(),games:[],busy:{}}};
 let snapshot=initial;
 const listeners=new Set();
@@ -36,6 +39,13 @@ if(typeof window!=='undefined')window.addEventListener('popstate',event=>{
 });
 export const actions={
   connect(value){engine=value},
+  // 切換語言：React 畫面跟著 store 重畫，engine 畫的內容（比賽細節、季後賽、名單…）由 relocalize 重畫。
+  setLang(pref){
+    setLangPref(pref);
+    store.update({lang:lang()});
+    // 等 React 重畫完（固定元件的文字更新後）再讓 engine 重畫自己的內容，engine 設定的屬性才不會被蓋掉。
+    requestAnimationFrame(()=>engine?.relocalize?.());
+  },
   navigate(view){
     if(snapshot.view==='player'&&view!=='player')clearPlayerUrl();
     engine?.navigate(view);

@@ -2753,3 +2753,20 @@ body.sidebar-open{overflow:hidden}
 .theme-options [data-theme-option=dark] .theme-swatch{background:linear-gradient(180deg,#0c1b2d 0 32%,#06111f 32%)}
 .theme-options [data-theme-option=light] .theme-swatch{background:linear-gradient(180deg,#ffffff 0 32%,#e9eff6 32%);border-color:#c7d3e0}
 .theme-options [data-theme-option=system] .theme-swatch{background:linear-gradient(135deg,#e9eff6 0 50%,#06111f 50%)}
+
+/* v2.7.0 語言設定（跟隨裝置 / 繁體中文 / English / 日本語）。 */
+.lang-shell{gap:14px}
+.lang-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lang-options button{min-height:58px;padding:12px 14px;border:1px solid #294966;border-radius:14px;background:#0b1a2b;color:var(--text);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;text-align:left}
+.lang-options button[aria-checked=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.lang-options b{font-size:15px}
+.lang-options small{color:var(--muted);font-size:12px;font-weight:500}
+/* 日文隊名（片假名）較長：手機上的戰績表縮小隊名字級與欄距，375px 寬也不必左右捲動。 */
+@media(max-width:600px){
+  html[lang=ja] .standings-table .team-col{font-size:11px;letter-spacing:-.04em}
+  html[lang=ja] .standings-table th,html[lang=ja] .standings-table td{padding-left:3px;padding-right:3px}
+}
+/* 日文隊名（片假名）不能從中間斷行：追蹤球隊卡片依字數（--len）縮小字級，一行放得下；不支援容器單位的瀏覽器維持原本大小。 */
+html[lang=ja] .team-card-names{align-self:stretch;container-type:inline-size}
+html[lang=ja] .team-card-zh{white-space:nowrap;font-size:min(15px,calc(100cqi / var(--len,6)))}
+@media(min-width:720px){html[lang=ja] .team-card-zh{font-size:min(16px,calc(100cqi / var(--len,6)))}}

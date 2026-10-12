@@ -15,7 +15,7 @@ const wikidata={
     'Jacob Ruppert haswbstatement:P31=Q5':['Q6119204','Q120733904'],
   },
   entities:{
-    Q600:entity({zhwiki:'鈴木一朗',enwiki:'Ichiro Suzuki'}),
+    Q600:entity({zhwiki:'鈴木一朗',enwiki:'Ichiro Suzuki',jawiki:'イチロー'}),
     Q700:entity({zhwiki:'巴克·奥尼尔',enwiki:"Buck O'Neil"}),
     Q6119204:entity({enwiki:'Jacob Ruppert'},'+1867-08-05T00:00:00Z'),
     Q120733904:entity({enwiki:'Jacob Ruppert Sr.'},'+1842-01-01T00:00:00Z'),
@@ -29,6 +29,8 @@ const wikidata={
 const extracts={
   'zh|鈴木一朗':'鈴木一朗（1973年10月22日—）是日本棒球選手。\n\n他在2001年加入西雅圖水手。\n',
   'zh|空條目':'',
+  'ja|イチロー':'イチロー（1973年10月22日 - ）は、日本の野球選手。',
+  'en|Ichiro Suzuki':'Ichiro Suzuki (born October 22, 1973) is a Japanese baseball player.',
   'en|Empty Zh':'English only text.',
   'en|Bud Selig':'Allan Huber "Bud" Selig (; born July 30, 1934) is an American baseball executive.\nHe served as commissioner.',
   'en|Martín Dihigo':'Martín Dihigo () was a Cuban player.',
@@ -109,5 +111,19 @@ globalThis.fetch=async(input,init)=>{
   await assert.rejects(w.loadWikiBio({id:400085+1,fullName:'Retry Guy',birthDate:'1950-01-01'}),/HTTP 503/);
   assert.equal(await w.loadWikiBio({id:400085+1,fullName:'Retry Guy',birthDate:'1950-01-01'}),null);
 
-  console.log('PASS wiki bio: P3541 lookup, zh-tw intro and display title, en fallback, name + birth-date fallback (with and without "baseball"), birth gap tolerance, tidy, cache, retry after failure');
+  // 介面語言：日文先找日文維基、沒有再英文；英文只找英文維基；快取依語言分開。
+  const i18n=await import('../src/i18n.js');
+  i18n.setLangPref('ja');
+  const ichiroJa=await w.loadWikiBio({id:400085,fullName:'Ichiro Suzuki',birthDate:'1973-10-22'});
+  assert.equal(ichiroJa.lang,'ja');assert.equal(ichiroJa.title,'イチロー');assert.deepEqual([...ichiroJa.paragraphs],['イチロー（1973年10月22日 - ）は、日本の野球選手。']);
+  assert.equal(w.wikiUrl(ichiroJa),'https://ja.wikipedia.org/wiki/'+encodeURIComponent('イチロー'));
+  assert.equal((await w.loadWikiBio({id:500,fullName:'X',birthDate:'1990-01-01'})).lang,'en');
+  i18n.setLangPref('en');
+  const ichiroEn=await w.loadWikiBio({id:400085,fullName:'Ichiro Suzuki',birthDate:'1973-10-22'});
+  assert.equal(ichiroEn.lang,'en');assert.equal(w.wikiUrl(ichiroEn),'https://en.wikipedia.org/wiki/Ichiro_Suzuki');
+  assert.equal(await w.loadWikiBio({id:650067,fullName:"Buck O'Neil",birthDate:'1911-11-13'}),null,'english UI must not fall back to the Chinese article');
+  i18n.setLangPref('zh');
+  assert.equal((await w.loadWikiBio({id:400085})).lang,'zh');
+
+  console.log('PASS wiki bio: UI language order (ja → en, en only), P3541 lookup, zh-tw intro and display title, en fallback, name + birth-date fallback (with and without "baseball"), birth gap tolerance, tidy, cache, retry after failure');
 })().catch(err=>{console.error(err);process.exit(1)});

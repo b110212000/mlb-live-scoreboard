@@ -1,18 +1,21 @@
 import {useEffect,useRef} from 'react';
-import {teamById} from '../teams.js';
+import {teamLabel} from '../teams.js';
+import {t} from '../i18n.js';
 
 // 訂閱管理與追蹤球隊共用：推播支援提示、操作結果、確認視窗。
-export const SUPPORT_NOTICE={
-  unsupported:'這個瀏覽器不支援 Web Push 通知，無法訂閱比賽。',
-  'needs-install':'iPhone / iPad 需先用 Safari「加入主畫面」，再從主畫面開啟 MLB 戰況，才能訂閱通知。',
-  denied:'通知權限已被封鎖，請到系統設定允許 MLB 戰況的通知。'
-};
+// 依目前語言回傳提示文字；沒有限制時回傳 ''。
+export const supportNotice=support=>({
+  unsupported:t('這個瀏覽器不支援 Web Push 通知，無法訂閱比賽。'),
+  'needs-install':t('iPhone / iPad 需先用 Safari「加入主畫面」，再從主畫面開啟 MLB 戰況，才能訂閱通知。'),
+  denied:t('通知權限已被封鎖，請到系統設定允許 MLB 戰況的通知。')
+})[support]||'';
 export const logo=id=>id?`https://www.mlbstatic.com/team-logos/${id}.svg`:undefined;
-export const teamName=id=>teamById(id)?.name||'球隊';
+export const teamName=id=>teamLabel(id)||t('球隊');
 
 // 推播支援狀態是持續性的，留在頁面上；操作結果改用浮動 toast（見 Toast.jsx），不推擠版面。
 export function SubsStatus({subs}){
-  return SUPPORT_NOTICE[subs.support]?<div className="subs-banner">{SUPPORT_NOTICE[subs.support]}</div>:null;
+  const notice=supportNotice(subs.support);
+  return notice?<div className="subs-banner">{notice}</div>:null;
 }
 
 export function ConfirmDialog({id,request,onClose}){
@@ -27,7 +30,7 @@ export function ConfirmDialog({id,request,onClose}){
       <h3 id={id+'Title'}>{request.title}</h3>
       <p>{request.message}</p>
       <div className="subs-dialog-actions">
-        <button type="button" className="subs-btn" data-confirm="cancel" autoFocus onClick={onClose}>保留</button>
+        <button type="button" className="subs-btn" data-confirm="cancel" autoFocus onClick={onClose}>{t('保留')}</button>
         <button type="button" className="subs-btn danger" data-confirm="ok" onClick={()=>{const run=request.onConfirm;onClose();run()}}>{request.confirmLabel}</button>
       </div>
     </div>}

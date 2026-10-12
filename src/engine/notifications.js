@@ -26,10 +26,10 @@ function pushBase64ToUint8Array(value){
 }
 
 function notificationPermissionText(){
-  if(!('Notification' in window))return '此瀏覽器不支援通知';
-  if(Notification.permission==='granted')return '✅ 通知權限已允許';
-  if(Notification.permission==='denied')return '❌ 通知權限已封鎖';
-  return '尚未允許通知';
+  if(!('Notification' in window))return t('此瀏覽器不支援通知');
+  if(Notification.permission==='granted')return t('✅ 通知權限已允許');
+  if(Notification.permission==='denied')return t('❌ 通知權限已封鎖');
+  return t('尚未允許通知');
 }
 
 function setNotificationMessage(text,type=''){
@@ -51,10 +51,10 @@ function startNotificationCountdown(targetTime){
     const left=Math.max(0,Math.ceil((targetTime-Date.now())/1000));
     if(left<=0){
       clearNotificationCountdown();
-      setNotificationMessage('第一則已送出；第二則背景通知正在送達…','success');
+      setNotificationMessage(t('第一則已送出；第二則背景通知正在送達…'),'success');
       return;
     }
-    setNotificationMessage(`第一則已送出。可以關閉網站；第二則約 ${left} 秒後送達。`,'success');
+    setNotificationMessage(t('第一則已送出。可以關閉網站；第二則約 {n} 秒後送達。',{n:left}),'success');
   };
   render();
   notificationCountdownTimer=setInterval(render,1000);
@@ -139,8 +139,8 @@ function renderGameWatchButton(feed){
   btn.dataset.gamePk=String(gamePk);
   btn.classList.toggle('subscribed',watched);
   btn.setAttribute('aria-pressed',String(watched));
-  btn.setAttribute('aria-label',watched?'取消這場比賽通知':'訂閱這場比賽通知');
-  btn.title=watched?'取消這場比賽通知':'訂閱這場比賽通知';
+  btn.setAttribute('aria-label',watched?t('取消這場比賽通知'):t('訂閱這場比賽通知'));
+  btn.title=watched?t('取消這場比賽通知'):t('訂閱這場比賽通知');
   btn.disabled=gameWatchBusy;
 }
 
@@ -206,7 +206,7 @@ async function toggleGameWatch(){
     const subscription=await ensurePushSubscription();
     let data;
     try{
-      data=await registryRequest('/games',{method:'POST',body:{gamePk,subscription}});
+      data=await registryRequest('/games',{method:'POST',body:{gamePk,subscription,lang:lang()}});
     }catch(error){
       if(error.code==='GAME_FINAL'||error.code==='GAME_CALLED_OFF'){
         setGameWatchedLocal(gamePk,false);
@@ -223,7 +223,7 @@ async function toggleGameWatch(){
     applyRegistryState(data).catch(()=>{});
   }catch(error){
     console.error('Game watch toggle failed',error);
-    showError(error?.message||'比賽通知設定失敗');
+    showError(error?.message||t('比賽通知設定失敗'));
   }finally{
     gameWatchRevision.set(gamePk,(gameWatchRevision.get(gamePk)||0)+1);
     gameWatchBusy=false;
@@ -268,14 +268,14 @@ function pushSupportState(){
 
 function registryErrorText(code){
   return ({
-    GAME_FINAL:'這場比賽已經結束',
-    GAME_CALLED_OFF:'這場比賽已延賽或取消',
-    PUSH_SUBSCRIPTION_REQUIRED:'請先允許通知後再訂閱',
-    TOO_MANY_GAMES:'訂閱的比賽太多了，請先取消一些',
-    INVALID_TEAM:'找不到這支球隊',
-    GAME_NOT_SUBSCRIBED:'這場比賽已不在訂閱清單',
-    UNWATCH_FAILED:'取消訂閱失敗，請稍後再試',
-    WATCH_FAILED:'訂閱失敗，請稍後再試'
+    GAME_FINAL:t('這場比賽已經結束'),
+    GAME_CALLED_OFF:t('這場比賽已延賽或取消'),
+    PUSH_SUBSCRIPTION_REQUIRED:t('請先允許通知後再訂閱'),
+    TOO_MANY_GAMES:t('訂閱的比賽太多了，請先取消一些'),
+    INVALID_TEAM:t('找不到這支球隊'),
+    GAME_NOT_SUBSCRIBED:t('這場比賽已不在訂閱清單'),
+    UNWATCH_FAILED:t('取消訂閱失敗，請稍後再試'),
+    WATCH_FAILED:t('訂閱失敗，請稍後再試')
   })[code]||'';
 }
 
@@ -289,7 +289,7 @@ async function registryRequest(path,{method='GET',body}={}){
   const response=await fetch(url,options);
   const data=await response.json().catch(()=>({}));
   if(!response.ok||data.ok===false){
-    const error=new Error(registryErrorText(data.error)||'訂閱服務暫時無法使用，請稍後再試');
+    const error=new Error(registryErrorText(data.error)||t('訂閱服務暫時無法使用，請稍後再試'));
     error.code=data.error||'';
     error.data=data;
     throw error;
@@ -299,8 +299,8 @@ async function registryRequest(path,{method='GET',body}={}){
 
 async function ensurePushSubscription(){
   const support=pushSupportState();
-  if(support==='unsupported')throw new Error('這個瀏覽器不支援 Web Push 通知');
-  if(support==='needs-install')throw new Error('iPhone / iPad 需先將網站加入主畫面，才能訂閱比賽通知');
+  if(support==='unsupported')throw new Error(t('這個瀏覽器不支援 Web Push 通知'));
+  if(support==='needs-install')throw new Error(t('iPhone / iPad 需先將網站加入主畫面，才能訂閱比賽通知'));
 
   let permission=Notification.permission;
   if(permission==='default'){
@@ -308,15 +308,15 @@ async function ensurePushSubscription(){
   }
   if(permission!=='granted'){
     throw new Error(permission==='denied'
-      ?'通知權限已被封鎖，請到系統設定允許通知'
-      :'沒有取得通知權限');
+      ?t('通知權限已被封鎖，請到系統設定允許通知')
+      :t('沒有取得通知權限'));
   }
 
   const registration=await getPushServiceWorker();
   const keyResponse=await fetch(PUSH_API+'/api/push/public-key',{cache:'no-store'});
-  if(!keyResponse.ok)throw new Error('無法取得通知公開金鑰');
+  if(!keyResponse.ok)throw new Error(t('無法取得通知公開金鑰'));
   const {publicKey}=await keyResponse.json();
-  if(!publicKey)throw new Error('通知公開金鑰不存在');
+  if(!publicKey)throw new Error(t('通知公開金鑰不存在'));
 
   const subscription=await getOrCreatePushSubscription(registration,publicKey);
   return subscription.toJSON();
@@ -343,32 +343,38 @@ function subscribedGameStatus(game){
   const status=game?.status||{};
   const coded=String(status.codedGameState||'').toUpperCase();
   const detailed=String(status.detailedState||'');
-  if(coded==='D'||/postponed/i.test(detailed))return {text:'延賽',calledOff:true};
-  if(coded==='C'||coded==='X'||/cancel|unknown/i.test(detailed))return {text:'取消',calledOff:true};
-  if(/final|game over|completed/i.test((status.abstractGameState||'')+' '+detailed))return {text:'已結束',final:true};
-  if(status.abstractGameState==='Live')return {text:'進行中',live:true};
-  if(/warmup|pre-game/i.test(detailed))return {text:'即將開賽'};
-  if(/delay/i.test(detailed))return {text:'延遲'};
-  return {text:'未開賽'};
+  if(coded==='D'||/postponed/i.test(detailed))return {text:t('延賽'),calledOff:true};
+  if(coded==='C'||coded==='X'||/cancel|unknown/i.test(detailed))return {text:t('取消'),calledOff:true};
+  if(/final|game over|completed/i.test((status.abstractGameState||'')+' '+detailed))return {text:t('已結束'),final:true};
+  if(status.abstractGameState==='Live')return {text:t('進行中'),live:true};
+  if(/warmup|pre-game/i.test(detailed))return {text:t('即將開賽')};
+  if(/delay/i.test(detailed))return {text:t('延遲')};
+  return {text:t('未開賽')};
 }
 
 function subscribedSeriesName(game){
   if(game?.gameType==='R'){
     const total=Number(game.gamesInSeries),number=Number(game.seriesGameNumber);
-    return '例行賽'+(total>1&&number>0?` · ${total} 連戰第 ${number} 場`:'');
+    return total>1&&number>0?t('例行賽 · {total} 連戰第 {n} 場',{total,n:number}):t('例行賽');
   }
-  const round=({F:'外卡系列賽',D:'分區賽',L:'冠軍賽',W:'世界大賽'})[game?.gameType]||'季後賽';
   const desc=String(game?.seriesDescription||'');
-  const league=game?.gameType==='W'?'':/^(AL|American)/i.test(desc)?'美聯':/^(NL|National)/i.test(desc)?'國聯':'';
+  const league=game?.gameType==='W'?'':/^(AL|American)/i.test(desc)?'AL':/^(NL|National)/i.test(desc)?'NL':'';
+  // 聯盟與輪次組成完整的翻譯字串（英日文不能直接拼接片段）。
+  const round=({
+    F:{AL:t('美聯外卡系列賽'),NL:t('國聯外卡系列賽'),'':t('外卡系列賽')},
+    D:{AL:t('美聯分區賽'),NL:t('國聯分區賽'),'':t('分區賽')},
+    L:{AL:t('美聯冠軍賽'),NL:t('國聯冠軍賽'),'':t('冠軍賽')},
+    W:{'':t('世界大賽')}
+  })[game?.gameType]||{AL:t('美聯季後賽'),NL:t('國聯季後賽'),'':t('季後賽')};
   const number=Number(game?.seriesGameNumber);
-  return league+round+(number>0?' G'+number:'');
+  return round[league]+(number>0?' G'+number:'');
 }
 
 function subscribedGameTime(gameDate){
   const date=new Date(gameDate);
-  if(!gameDate||Number.isNaN(date.getTime()))return '時間未定';
-  const day=new Intl.DateTimeFormat('zh-TW',{month:'numeric',day:'numeric',weekday:'short'}).format(date);
-  const time=new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit',hour12:false}).format(date);
+  if(!gameDate||Number.isNaN(date.getTime()))return t('時間未定');
+  const day=new Intl.DateTimeFormat(locale(),{month:'numeric',day:'numeric',weekday:'short'}).format(date);
+  const time=new Intl.DateTimeFormat(locale(),{hour:'2-digit',minute:'2-digit',hour12:false}).format(date);
   return day+' '+time;
 }
 
@@ -459,6 +465,13 @@ async function importLegacyWatches(registryGames){
   return imported;
 }
 
+// 推播通知用介面語言：Worker 記得的語言不同時更新（只有已有訂閱資料的裝置；舊版 Worker 沒有 lang 欄位就略過）。
+async function syncDeviceLanguage(data){
+  if(!data||typeof data.lang!=='string'||data.lang===lang())return data;
+  if(!data.subscriptionEndpoint&&!(data.teams||[]).length&&!(data.games||[]).length)return data;
+  return registryRequest('/lang',{method:'PUT',body:{lang:lang()}}).catch(()=>data);
+}
+
 async function loadSubscriptions(){
   const seq=++subsLoadSeq;
   publishSubs({status:subsState.status==='ready'?'ready':'loading',support:pushSupportState(),error:'',notice:''});
@@ -470,13 +483,14 @@ async function loadSubscriptions(){
     if(current&&data.subscriptionEndpoint&&current.endpoint!==data.subscriptionEndpoint){
       data=await registryRequest('/subscription',{method:'PUT',body:{subscription:current}});
     }
+    data=await syncDeviceLanguage(data);
     if(seq!==subsLoadSeq)return;
     await applyRegistryState(data,seq);
   }catch(error){
     if(seq!==subsLoadSeq)return;
     // 只有在訂閱相關頁面才用 toast 提示；即時比賽頁背景載入失敗不打擾使用者。
     const visible=['notifications','teams'].includes(state.view);
-    publishSubs({status:'error',error:error?.message||'無法載入訂閱資料',...(visible?{noticeAt:Date.now()}:{})});
+    publishSubs({status:'error',error:error?.message||t('無法載入訂閱資料'),...(visible?{noticeAt:Date.now()}:{})});
   }
 }
 
@@ -492,7 +506,7 @@ async function mutateSubscriptions(key,run,successText){
     return true;
   }catch(error){
     console.error('Subscription update failed',error);
-    publishSubs({error:error?.message||'操作失敗，請稍後再試',noticeAt:Date.now()});
+    publishSubs({error:error?.message||t('操作失敗，請稍後再試'),noticeAt:Date.now()});
     if(Array.isArray(error?.data?.games))await applyRegistryState(error.data,seq).catch(()=>{});
     else loadSubscriptions();
     return false;
@@ -507,14 +521,14 @@ function setDefaultPrefs(prefs){
   const defaults=subsPrefs(prefs);
   // 先更新畫面，失敗時會重新載入伺服器狀態。
   publishSubs({defaults,games:subsState.games.map(game=>game.custom?game:{...game,prefs:{...defaults}})});
-  return mutateSubscriptions('defaults',()=>registryRequest('/defaults',{method:'PUT',body:{prefs:defaults}}),'已更新預設提醒項目');
+  return mutateSubscriptions('defaults',()=>registryRequest('/defaults',{method:'PUT',body:{prefs:defaults}}),t('已更新預設提醒項目'));
 }
 
 function setGamePrefs(gamePk,prefs){
   const pk=Number(gamePk);
   return mutateSubscriptions('game:'+pk,
     ()=>registryRequest('/games/'+pk+'/prefs',{method:'PUT',body:{prefs:prefs?subsPrefs(prefs):null}}),
-    prefs?'已更新這場比賽的提醒項目':'這場比賽改回使用預設提醒項目');
+    prefs?t('已更新這場比賽的提醒項目'):t('這場比賽改回使用預設提醒項目'));
 }
 
 function unsubscribeGame(gamePk){
@@ -524,7 +538,7 @@ function unsubscribeGame(gamePk){
     setGameWatchedLocal(pk,false);
     gameWatchStatusCheckedAt.set(pk,Date.now());
     return data;
-  },'已取消訂閱');
+  },t('已取消訂閱'));
 }
 
 function followTeam(teamId){
@@ -532,18 +546,18 @@ function followTeam(teamId){
   const name=teamZhName({id});
   return mutateSubscriptions('team:'+id,async()=>{
     const subscription=await ensurePushSubscription();
-    return registryRequest('/teams',{method:'POST',body:{teamId:id,subscription}});
+    return registryRequest('/teams',{method:'POST',body:{teamId:id,subscription,lang:lang()}});
   },data=>{
     const added=Array.isArray(data?.added)?data.added.length:0;
     return added
-      ?`已追蹤${name}，自動訂閱 ${added} 場比賽`
-      :`已追蹤${name}；目前沒有即將進行的比賽，有新賽程時會自動訂閱`;
+      ?t('已追蹤{team}，自動訂閱 {n} 場比賽',{team:name,n:added})
+      :t('已追蹤{team}；目前沒有即將進行的比賽，有新賽程時會自動訂閱',{team:name});
   });
 }
 
 function unfollowTeam(teamId){
   const id=Number(teamId);
-  return mutateSubscriptions('team:'+id,()=>registryRequest('/teams/'+id,{method:'DELETE'}),`已取消追蹤${teamZhName({id})}`);
+  return mutateSubscriptions('team:'+id,()=>registryRequest('/teams/'+id,{method:'DELETE'}),t('已取消追蹤{team}',{team:teamZhName({id})}));
 }
 
 async function openSubscribedGame(gamePk){
@@ -569,31 +583,31 @@ async function syncNotificationPage(){
   els.notificationPermission.textContent=notificationPermissionText();
 
   if(!supported){
-    els.notificationStatus.textContent='❌ 此瀏覽器不支援 Web Push';
+    els.notificationStatus.textContent=t('❌ 此瀏覽器不支援 Web Push');
     els.notificationStatus.classList.add('error');
     els.testNotificationBtn.disabled=true;
-    setNotificationMessage('請改用支援 Web Push 的瀏覽器或裝置。','error');
+    setNotificationMessage(t('請改用支援 Web Push 的瀏覽器或裝置。'),'error');
     return;
   }
 
   if(isIOSDevice()&&!isStandaloneApp()){
-    els.notificationStatus.textContent='iPhone / iPad 需先加入主畫面';
+    els.notificationStatus.textContent=t('iPhone / iPad 需先加入主畫面');
     els.notificationStatus.classList.add('warn');
     els.testNotificationBtn.disabled=false;
-    setNotificationMessage('請先從 Safari 將 MLB 戰況加入主畫面，再從主畫面開啟後測試。','warn');
+    setNotificationMessage(t('請先從 Safari 將 MLB 戰況加入主畫面，再從主畫面開啟後測試。'),'warn');
     return;
   }
 
   els.notificationStatus.classList.remove('error','warn');
-  els.notificationStatus.textContent='✅ 裝置支援 Web Push';
+  els.notificationStatus.textContent=t('✅ 裝置支援 Web Push');
   els.testNotificationBtn.disabled=notificationTestBusy;
 
   try{
     const registration=await navigator.serviceWorker.getRegistration('./');
     const subscription=await registration?.pushManager?.getSubscription();
-    els.notificationSubscription.textContent=subscription?'✅ 已建立 Push 訂閱':'尚未建立 Push 訂閱';
+    els.notificationSubscription.textContent=subscription?t('✅ 已建立 Push 訂閱'):t('尚未建立 Push 訂閱');
   }catch(_){
-    els.notificationSubscription.textContent='尚未建立 Push 訂閱';
+    els.notificationSubscription.textContent=t('尚未建立 Push 訂閱');
   }
 }
 
@@ -601,12 +615,12 @@ async function testPushSubscription(){
   if(notificationTestBusy)return;
 
   if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){
-    setNotificationMessage('這台裝置不支援 Web Push。','error');
+    setNotificationMessage(t('這台裝置不支援 Web Push。'),'error');
     return;
   }
 
   if(isIOSDevice()&&!isStandaloneApp()){
-    setNotificationMessage('iPhone / iPad 必須先「加入主畫面」，再從主畫面開啟這個 App 測試通知。','warn');
+    setNotificationMessage(t('iPhone / iPad 必須先「加入主畫面」，再從主畫面開啟這個 App 測試通知。'),'warn');
     return;
   }
 
@@ -616,7 +630,7 @@ async function testPushSubscription(){
   clearNotificationCountdown();
 
   try{
-    setNotificationMessage('正在確認通知權限…');
+    setNotificationMessage(t('正在確認通知權限…'));
 
     let permission=Notification.permission;
     if(permission==='default'){
@@ -627,40 +641,40 @@ async function testPushSubscription(){
 
     if(permission!=='granted'){
       throw new Error(permission==='denied'
-        ?'通知權限已被封鎖，請到系統設定中允許通知。'
-        :'沒有取得通知權限。');
+        ?t('通知權限已被封鎖，請到系統設定中允許通知。')
+        :t('沒有取得通知權限。'));
     }
 
-    setNotificationMessage('正在建立背景 Push 訂閱…');
+    setNotificationMessage(t('正在建立背景 Push 訂閱…'));
     const registration=await getPushServiceWorker();
 
     const keyResponse=await fetch(PUSH_API+'/api/push/public-key',{cache:'no-store'});
-    if(!keyResponse.ok)throw new Error('無法取得通知公開金鑰');
+    if(!keyResponse.ok)throw new Error(t('無法取得通知公開金鑰'));
     const {publicKey}=await keyResponse.json();
-    if(!publicKey)throw new Error('通知公開金鑰不存在');
+    if(!publicKey)throw new Error(t('通知公開金鑰不存在'));
 
     const subscription=await getOrCreatePushSubscription(registration,publicKey);
-    els.notificationSubscription.textContent='✅ 已建立 Push 訂閱';
+    els.notificationSubscription.textContent=t('✅ 已建立 Push 訂閱');
 
-    setNotificationMessage('正在由 Cloudflare 發送第一則測試通知…');
+    setNotificationMessage(t('正在由 Cloudflare 發送第一則測試通知…'));
     const response=await fetch(PUSH_API+'/api/push/test',{
       method:'POST',
       headers:{'content-type':'application/json'},
-      body:JSON.stringify({subscription:subscription.toJSON()})
+      body:JSON.stringify({subscription:subscription.toJSON(),lang:lang()})
     });
     const result=await response.json().catch(()=>({}));
 
     if(!response.ok||!result.ok){
-      throw new Error(result.message||result.error||'測試通知發送失敗');
+      throw new Error(result.message||result.error||t('測試通知發送失敗'));
     }
 
     const dueAt=Number(result.delayedScheduledAt)||Date.now()+30000;
     startNotificationCountdown(dueAt);
-    els.notificationLastTest.textContent='✅ 測試已啟動';
+    els.notificationLastTest.textContent=t('✅ 測試已啟動');
   }catch(error){
     console.error('Push notification test failed',error);
-    setNotificationMessage(error?.message||'測試通知失敗','error');
-    els.notificationLastTest.textContent='❌ 測試失敗';
+    setNotificationMessage(error?.message||t('測試通知失敗'),'error');
+    els.notificationLastTest.textContent=t('❌ 測試失敗');
   }finally{
     notificationTestBusy=false;
     els.testNotificationBtn.classList.remove('loading');

@@ -4,7 +4,7 @@
 
 公開網站：<https://b110212000.github.io/mlb-live-scoreboard/>
 
-目前版本：`v2.6.0`
+目前版本：`v2.7.0`
 
 ## 功能
 
@@ -41,6 +41,7 @@
 - 追蹤球隊（主選單）：左右開關或左右滑動切換美國聯盟 / 國家聯盟，東區、中區、西區三欄並排、各區球隊由上往下排，點一下追蹤、再點一下取消，自動訂閱該隊接下來的季後賽
 - 訂閱管理（主選單）：查看與取消（需確認）已訂閱的比賽、個別加入行事曆、設定預設提醒項目並可針對單場自訂
 - 外觀（設定 → 外觀）：深色 / 淺色 / 跟隨系統，設定存在這台裝置
+- 語言（設定 → 語言 / Language）：繁體中文、English、日本語，預設跟隨裝置；推播通知與行事曆也跟著語言
 - 下拉重新整理、網站版本更新偵測
 
 > 賽後精華影片功能（v1.4.0–v1.7.0）的前後端程式仍保留，但自 v1.7.1 起暫時隱藏。
@@ -103,7 +104,7 @@ Browser / iPhone 主畫面 Web App（React，GitHub Pages）
 ### 前端資料流
 
 ```text
-createEngine({publish})  ──publish(patch)──▶  store.js  ──useSyncExternalStore──▶  React 元件
+createEngine({publish, t, lang, locale, teamName})  ──publish(patch)──▶  store.js  ──useSyncExternalStore──▶  React 元件
         ▲                                                                        │
         └──────── actions.navigate / actions.selectGame / actions.subs.* ◀───────┘
 ```
@@ -111,6 +112,7 @@ createEngine({publish})  ──publish(patch)──▶  store.js  ──useSyncE
 - `src/engine/` 負責抓取 MLB 資料、輪詢排程、Web Push 訂閱，以及統計 / 賽況 / 系列賽等詳細表格渲染。
 - 詳細表格仍由 engine 寫入 React 預留的固定 host；這些 host 刻意 memo 並在切換頁面時保持掛載。engine 不可修改 React 管理的其他 DOM。
 - `scripts/engine-plugin.mjs` 把 engine 模組封裝成私有服務工廠，追蹤事件、請求、排程與 ResizeObserver，React 卸載時一併清理。後續可逐個元件改寫為 JSX。
+- 多國語系：engine 用同一個 `t()`（`src/i18n.js`）。切換語言時 React 先重畫，再呼叫 `engine.relocalize()` 讓 engine 重畫自己寫入的內容（見「語言」）。
 
 ---
 
@@ -122,15 +124,17 @@ createEngine({publish})  ──publish(patch)──▶  store.js  ──useSyncE
 | `src/App.jsx` | 頁面生命週期、導航與頁面容器 |
 | `src/store.js` | 比分與訂閱管理資料模型、actions |
 | `src/components/` | 側邊欄、主比分、場次列表、焦點、各頁面元件；`SubscriptionManager.jsx` 為訂閱管理頁、`HallOfFame.jsx` 名人堂、`PlayerPage.jsx` 球員資料 |
-| `src/teams.js` | 追蹤球隊選單用的 30 隊中文隊名 |
-| `src/players.js` | 球員資料共用：照片網址、中文守備位置 / 國家 / 層級、主要獎項對照（依 MLB 獎項 id）、單位換算、舊隊名 |
+| `src/teams.js` | 30 隊的中文、英文（全名 / 暱稱）、日文隊名與聯盟分區；`teamLabel()` 依目前語言回傳隊名 |
+| `src/players.js` | 球員資料共用：照片網址、守備位置 / 國家 / 層級名稱（依目前語言）、主要獎項對照（依 MLB 獎項 id）、單位換算、日期格式、舊隊名 |
 | `src/wiki.js` | 球員頁的生平：用 Wikidata（MLB 球員編號）找維基百科條目並取得導言 |
 | `src/theme.js` | 外觀偏好（深色 / 淺色 / 跟隨系統）：存在 localStorage，套用在 `<html data-theme>` |
 | `src/theme-light.css` | 淺色主題的手動調整（接在自動產生的淺色規則後面） |
+| `src/i18n.js` | 多國語系：`t()` / `tParts()`、語言偏好（`mlb-lang`）與自動偵測、`Intl` 語系 |
+| `src/locales/` | 英文（`en.js`）與日文（`ja.js`）字典，key 是中文原文 |
 | `src/taiwanPlayers.js` | 台灣旅外球員的中文姓名（只放確定的譯名） |
 | `src/engine/` | `api.js` 共用設定與 HTTP、`live.js` 即時比賽、`postseason.js` 季後賽、`roster.js` 對戰名單與牛棚、`notifications.js` Web Push 與訂閱管理、`highlights.js` 精華影片、`ui.js` 手勢與安裝 / 分享、`app.js` 初始化與排程 |
 | `src/index.html` | HTML 模板（`__VERSION__` 於建置時替換） |
-| `scripts/` | `build.mjs` 建置、`dev.mjs` 開發伺服器、`test.mjs` 測試、`engine-plugin.mjs` esbuild 外掛、`theme-light.mjs` 由 `styles.css` 產生淺色主題 |
+| `scripts/` | `build.mjs` 建置、`dev.mjs` 開發伺服器、`test.mjs` 測試、`engine-plugin.mjs` esbuild 外掛、`theme-light.mjs` 由 `styles.css` 產生淺色主題、`i18n-keys.mjs` 列出翻譯 key 與缺少的翻譯 |
 | `tests/` | 瀏覽器與 Node 測試、固定賽事資料 |
 | `worker/` | Cloudflare Worker 與 Durable Object（見 `worker/README.md`） |
 | `index.html` | **建置產物**：部署用 HTML 入口 |
@@ -208,6 +212,7 @@ v2.0.0（`b774582`）在根目錄新增 `package-lock.json` 後，Cloudflare Wor
 追蹤球隊
 訂閱管理
 設定 → 外觀
+     → 語言 / Language
      → 訂閱測試
      → 安裝 / 分享 App
      → 返回主選單
@@ -296,6 +301,27 @@ v2.0.0（`b774582`）在根目錄新增 `package-lock.json` 後，Cloudflare Wor
 - 換算結果不理想的地方寫在 `src/theme-light.css`，會接在最後面；例如開關圓鈕維持白色、iPhone 主畫面 App 在淺色模式於狀態列墊一條深色底（狀態列文字是白色）。
 
 所以平常只要改 `styles.css`，淺色會在建置時自動同步；`tests/theme.cjs` 會檢查 `theme-light.css` 是否為目前 `styles.css` 產生的版本。
+
+### 語言（繁體中文 / English / 日本語）
+
+「設定 → 語言 / Language」可選跟隨裝置（預設）、繁體中文、English 或日本語，設定存在這台裝置（`localStorage` 的 `mlb-lang`）。跟隨裝置時依瀏覽器的語言清單（`navigator.languages`）中第一個中文 / 日文 / 英文決定；都不是時用英文，取不到語言時用繁體中文。
+
+- 介面文字、日期與時間格式（`Intl` 的 zh-TW / en-US / ja-JP）、隊名（道奇 / Dodgers / ドジャース）、守備位置、獎項、國家與層級都跟著語言。英文介面用 MLB 的英文事件名稱與統計縮寫（HR、RBI、ERA…），身高體重用英制、日期寫成 `Apr 2, 2001`；日文用日本的棒球用語（本塁打、防御率、3回表）。
+- 比賽資料中的球員名字與 MLB 原文說明（打席描述）維持英文，比分區的隊名維持 MLB 英文全名；台灣球員的中文姓名在中文與日文介面顯示。
+- 推播通知、測試推播與「加入行事曆」也用同一個語言：切換語言時前端呼叫 Worker `PUT /api/devices/:deviceId/lang`，已訂閱的場次一起改用新語言；行事曆連結帶 `?lang=en` / `?lang=ja`。舊裝置與舊訂閱維持中文。
+- 球員生平：中文介面先找中文維基、沒有再英文；英文介面只用英文維基；日文介面先找日文維基、沒有再英文。
+- 日文版面較窄的地方（戰績表、追蹤球隊卡片）用慣用的短名「Dバックス」，聯盟寫成「ア・リーグ / ナ・リーグ」；追蹤球隊卡片的隊名依字數縮小字級，不會從片假名中間斷行。
+- `index.html` 在 React 載入前就依語言設定換掉「載入中」的文字。
+
+#### 加翻譯（開發）
+
+- 程式裡的文字一律寫成 `t('中文原文')`（`src/i18n.js`），字典的 key 就是中文原文：`src/locales/en.js`、`src/locales/ja.js`；中文介面直接顯示原文。
+- 參數用 `{名稱}`：`t('{n} 局上',{n:3})` → `Top 3` / `3回表`。各語言語序不同，要整句翻譯，不要把翻譯好的片段接起來（例如「Right」+「打」）。
+- 句子中間要放連結或元件時用 `tParts('…{link}…',{link:<a/>})`。
+- `t()` 的第一個參數必須是字串字面值，`scripts/i18n-keys.mjs` 才找得到所有 key；`node scripts/i18n-keys.mjs --missing` 列出英日文缺少的翻譯。`tests/i18n.cjs` 檢查每個 key 英日文都有、`{參數}` 一致、沒有用不到的 key、英文翻譯沒有漢字；瀏覽器測試確認英文介面每一頁都沒有殘留中文。
+- 標籤表（守備位置、獎項等）寫成函式，在畫面重畫時才呼叫 `t()`，切換語言才會跟著換。
+- engine（`src/engine/`）由 `createEngine` 帶入 `t`、`lang`、`locale`、`teamName`；切換語言時 store 先讓 React 重畫，下一個畫格再呼叫 `engine.relocalize()` 重畫 engine 負責的內容（比賽細節、季後賽、名單、訂閱清單）。
+- Worker 的通知與行事曆文字在 `worker/src/messages.js`（不經過前端字典），新增語言時兩邊都要加；隊名要和 `src/teams.js` 一致（測試會比對）。
 
 ### 安裝 / 分享 App
 
@@ -688,7 +714,7 @@ GET /v1/people/{playerId}/stats?stats=yearByYear&group=pitching&leagueListId=mlb
 
 ```http
 GET https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=haswbstatement:P3541={playerId}
-GET https://www.wikidata.org/w/api.php?action=wbgetentities&ids={Q 編號}&props=sitelinks&sitefilter=zhwiki|enwiki
+GET https://www.wikidata.org/w/api.php?action=wbgetentities&ids={Q 編號}&props=sitelinks&sitefilter=zhwiki|enwiki|jawiki
 ```
 
 找不到（多半是以總教練、裁判、經營者身分入選的名人堂成員或黑人聯盟球員）時，改搜「姓名 + baseball」的人物條目（球團老闆、聯盟主席的說明常不含 baseball，找不到再不加 baseball 搜一次），並比對出生日期確認是同一人（舊時代球員各資料來源的生日常有出入，相差兩年內都算）。名人堂 354 人中有 353 人找得到條目，其中 271 人有中文條目；找不到的 José Méndez 是 MLB 與 Wikidata 記錄的生日相差兩年以上。中文條目名稱若是簡體，另外用 `prop=info&inprop=varianttitles` 取得台灣正體的顯示名稱。
@@ -698,7 +724,10 @@ GET https://www.wikidata.org/w/api.php?action=wbgetentities&ids={Q 編號}&props
 ```http
 GET https://zh.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={條目}&variant=zh-tw
 GET https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={條目}
+GET https://ja.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&titles={條目}
 ```
+
+依介面語言決定順序：中文介面 zh → en，英文介面只查 en，日文介面 ja → en（`src/wiki.js` 的 `WIKI_ORDER`）。
 
 維基百科文字依 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) 授權，畫面上必須標示條目名稱與連結、作者（維基百科貢獻者）與授權。只在開啟球員頁時查詢那一位。
 
@@ -895,9 +924,9 @@ sportId=1
 所有前端資源 URL 都帶有版本參數，例如：
 
 ```text
-styles.css?v=2.6.0
-theme-light.css?v=2.6.0
-assets/app-2.6.0.js?v=2.6.0
+styles.css?v=2.7.0
+theme-light.css?v=2.7.0
+assets/app-2.7.0.js?v=2.7.0
 ```
 
 因此新版部署後可直接避開瀏覽器舊快取，尤其是 iPhone 主畫面 Web App。頁面頂端下拉也可以重新整理整個網站。
@@ -950,6 +979,7 @@ MLB Stats API
 - 球隊 Logo、球員照片與比賽資料來源皆屬 MLB 相關資料來源。
 - 球員資料只在使用者點開時查詢該位球員，不批次下載所有球員的生涯資料（MLB 資料只允許個人、非商業、非大量使用）。
 - 球員頁的生平文字來自維基百科（CC BY-SA 4.0），必須保留條目連結、作者（維基百科貢獻者）與授權標示。
+- 英文、日文翻譯由專案自行撰寫；比賽資料中的球員名字與 MLB 原文說明維持英文。
 
 ## License
 
@@ -958,6 +988,15 @@ MLB Stats API
 ---
 
 ## 更新紀錄
+
+### v2.7.0 多國語系：英文、日文
+
+- 新功能「設定 → 語言 / Language」：跟隨裝置（預設）、繁體中文、English、日本語，設定存在這台裝置。
+- 全站介面、日期時間、隊名、守備位置、獎項、國家與層級依語言顯示；英文用 MLB 英文事件名稱與統計縮寫、英制身高體重，日文用日本的棒球用語。球員名字與 MLB 原文說明維持英文。
+- 推播通知、測試推播與「加入行事曆」也依語言（Worker 新增 `PUT /api/devices/:deviceId/lang`，訂閱時帶 `lang`；舊裝置與舊訂閱維持中文）。
+- 球員生平依介面語言選維基百科（日文 → 英文、英文只用英文）。
+- 修正：即時資料的比賽類型欄位是 `gameData.game.type`，系列賽標題與例行賽「本季對戰」原本讀錯欄位，季後賽標題會顯示成「國家聯盟MLB」、例行賽的系列賽分頁不會改成本季對戰。
+- 打者 / 投手的投打習慣改成整句（右打、左投），不再出現「Right打」；補上「雙殺打」（Grounded Into DP）事件名稱。
 
 ### v2.6.0 外觀：深色 / 淺色模式
 

@@ -3,9 +3,9 @@
 
 function rosterPositionLabel(abbr){
   const map={
-    P:'投手',SP:'先發投手',RP:'後援投手',C:'捕手','1B':'一壘手','2B':'二壘手',
-    '3B':'三壘手',SS:'游擊手',LF:'左外野手',CF:'中外野手',RF:'右外野手',
-    OF:'外野手',IF:'內野手',DH:'指定打擊',PH:'代打',PR:'代跑',TWP:'二刀流'
+    P:t('投手'),SP:t('先發投手'),RP:t('後援投手'),C:t('捕手'),'1B':t('一壘手'),'2B':t('二壘手'),
+    '3B':t('三壘手'),SS:t('游擊手'),LF:t('左外野手'),CF:t('中外野手'),RF:t('右外野手'),
+    OF:t('外野手'),IF:t('內野手'),DH:t('指定打擊'),PH:t('代打'),PR:t('代跑'),TWP:t('二刀流')
   };
   return map[abbr]||abbr||'--';
 }
@@ -83,7 +83,7 @@ function rosterPlayerHTML(entry,options={}){
       '<div class="roster-player-top">'+
         (options.order?'<span class="roster-order">#'+options.order+'</span>':'')+
         '<span class="roster-player-name">'+esc(p.fullName||'--')+'</span>'+
-        (options.starter?'<span class="starter-tag">先發</span>':'')+
+        (options.starter?'<span class="starter-tag">'+t('先發')+'</span>':'')+
         '<span class="roster-pos">'+esc(abbr+' · '+rosterPositionLabel(abbr))+'</span>'+
       '</div>'+
       '<div class="roster-stats">'+metrics.map(x=>metricHTML(x[0],x[1])).join('')+'</div>'+
@@ -145,10 +145,10 @@ function bullpenUsageStatus(u){
   const apps=u.appearances||0;
   const consecutive=u.consecutiveDays||0;
 
-  if(today>0)return {tone:'red',icon:'🔴',label:'本場已登板'};
-  if(yesterday>30||consecutive>=3||total>=60)return {tone:'red',icon:'🔴',label:'高負荷'};
-  if(yesterday>=16||consecutive>=2||total>=35||apps>=2)return {tone:'yellow',icon:'🟡',label:'可能受限'};
-  return {tone:'green',icon:'🟢',label:'休息充足'};
+  if(today>0)return {tone:'red',icon:'🔴',label:t('本場已登板')};
+  if(yesterday>30||consecutive>=3||total>=60)return {tone:'red',icon:'🔴',label:t('高負荷')};
+  if(yesterday>=16||consecutive>=2||total>=35||apps>=2)return {tone:'yellow',icon:'🟡',label:t('可能受限')};
+  return {tone:'green',icon:'🟢',label:t('休息充足')};
 }
 function bullpenUsageHTML(u){
   const s=bullpenUsageStatus(u||{});
@@ -156,8 +156,8 @@ function bullpenUsageHTML(u){
   const total=u?.totalPitches||0;
   const apps=u?.appearances||0;
   const today=u?.todayPitches||0;
-  let detail='前3日 '+total+' 球 / '+apps+' 場 · 昨天 '+y+' 球';
-  if(today>0)detail='本場 '+today+' 球 · '+detail;
+  let detail=t('前3日 {total} 球 / {apps} 場 · 昨天 {yesterday} 球',{total,apps,yesterday:y});
+  if(today>0)detail=t('本場 {today} 球 · {detail}',{today,detail});
   return '<div class="bullpen-usage">'+
     '<span class="bullpen-badge '+s.tone+'">'+s.icon+' '+esc(s.label)+'</span>'+
     '<span class="bullpen-detail">'+esc(detail)+'</span>'+
@@ -260,7 +260,7 @@ function renderTeamRoster(team,rows,lineup,bullpenUsage=new Map()){
   const pitchers=rest.filter(isPitcherEntry);
 
   const section=(title,items,emptyText)=>
-    '<div class="roster-section"><div class="roster-section-title"><span>'+esc(title)+'</span><small>'+items.length+' 人</small></div>'+
+    '<div class="roster-section"><div class="roster-section-title"><span>'+esc(title)+'</span><small>'+t('{n} 人',{n:items.length})+'</small></div>'+
     '<div class="roster-list">'+(items.length?items.join(''):'<div class="roster-meta">'+esc(emptyText)+'</div>')+'</div></div>';
 
   const starterPitcherHTML=starterPitcher
@@ -270,34 +270,34 @@ function renderTeamRoster(team,rows,lineup,bullpenUsage=new Map()){
   return '<section class="roster-team">'+
     '<div class="roster-team-head">'+
       '<img class="roster-team-logo" src="'+esc(teamLogo(team.id))+'" alt="">'+
-      '<div><div class="roster-team-name">'+esc(team.name||team.teamName||'球隊')+'</div>'+
-      '<div class="roster-team-sub">'+esc(teamAbbr(team))+' · Active roster '+rows.length+' 人</div></div>'+
+      '<div><div class="roster-team-name">'+esc(team.name||team.teamName||t('球隊'))+'</div>'+
+      '<div class="roster-team-sub">'+t('{team} · Active roster {n} 人',{team:esc(teamAbbr(team)),n:rows.length})+'</div></div>'+
     '</div>'+
-    section('先發投手',starterPitcherHTML,'先發投手尚未公布')+
-    section('先發打線',starters,'先發打線尚未公布')+
-    section('替補野手',hitters.map(r=>rosterPlayerHTML(r)),'目前沒有其他野手')+
-    '<div class="roster-section"><div class="roster-section-title"><span>牛棚負荷狀態</span><small>依近期用球推估</small></div>'+
-    '<div class="bullpen-legend">🟢 休息充足　🟡 可能受限　🔴 高負荷 / 本場已登板。僅依前 3 日登板與用球數推估，非球隊官方可用狀態。</div>'+
+    section(t('先發投手'),starterPitcherHTML,t('先發投手尚未公布'))+
+    section(t('先發打線'),starters,t('先發打線尚未公布'))+
+    section(t('替補野手'),hitters.map(r=>rosterPlayerHTML(r)),t('目前沒有其他野手'))+
+    '<div class="roster-section"><div class="roster-section-title"><span>'+t('牛棚負荷狀態')+'</span><small>'+t('依近期用球推估')+'</small></div>'+
+    '<div class="bullpen-legend">'+t('🟢 休息充足　🟡 可能受限　🔴 高負荷 / 本場已登板。僅依前 3 日登板與用球數推估，非球隊官方可用狀態。')+'</div>'+
     '<div class="roster-list">'+(pitchers.length?pitchers.map(r=>{
       const id=Number(r.person?.id);
       return rosterPlayerHTML(r,{usage:bullpenUsage.get(id)||{}});
-    }).join(''):'<div class="roster-meta">目前沒有其他投手</div>')+'</div></div>'+
-    '<div class="roster-note">打者：AVG / OBP / SLG / OPS / HR / RBI。投手：ERA / WHIP / FIP* / K/9 / BB/9 / W-L。FIP* 以例行賽數據及 3.10 常數估算。</div>'+
+    }).join(''):'<div class="roster-meta">'+t('目前沒有其他投手')+'</div>')+'</div></div>'+
+    '<div class="roster-note">'+t('打者：AVG / OBP / SLG / OPS / HR / RBI。投手：ERA / WHIP / FIP* / K/9 / BB/9 / W-L。FIP* 以例行賽數據及 3.10 常數估算。')+'</div>'+
   '</section>';
 }
 async function loadMatchupRoster(force=false){
   if(state.rosterLoading)return;
   const gamePk=state.selectedGamePk;
   if(!gamePk){
-    els.rosterMatchupTitle.textContent='對戰名單';
-    els.rosterMeta.textContent='目前沒有選取比賽';
+    els.rosterMatchupTitle.textContent=t('對戰名單');
+    els.rosterMeta.textContent=t('目前沒有選取比賽');
     els.rosterBoard.className='roster-empty';
-    els.rosterBoard.textContent='請先回到即時比賽選擇一場賽事';
+    els.rosterBoard.textContent=t('請先回到即時比賽選擇一場賽事');
     return;
   }
   state.rosterLoading=true;
   els.rosterBoard.className='roster-empty';
-  els.rosterBoard.textContent='載入兩隊 26 人名單與例行賽數據中…';
+  els.rosterBoard.textContent=t('載入兩隊 26 人名單與例行賽數據中…');
   try{
     let feed=state.currentFeedGamePk===gamePk?state.currentFeed:null;
     if(!feed||force){
@@ -309,7 +309,7 @@ async function loadMatchupRoster(force=false){
     const season=Number(gd.game?.season)||Number(String(els.dateInput.value||'').slice(0,4))||new Date().getFullYear();
     const officialDate=gd.datetime?.officialDate||els.dateInput.value||'';
     els.rosterMatchupTitle.textContent=teamAbbr(away)+' vs '+teamAbbr(home);
-    els.rosterMeta.textContent=season+' 例行賽數據 · '+officialDate.replace(/-/g,'/')+' 名單';
+    els.rosterMeta.textContent=t('{season} 例行賽數據 · {date} 名單',{season,date:officialDate.replace(/-/g,'/')});
     const [awayRows,homeRows,awayBullpen,homeBullpen]=await Promise.all([
       fetchTeamRoster(away.id,season,officialDate),
       fetchTeamRoster(home.id,season,officialDate),
@@ -324,7 +324,7 @@ async function loadMatchupRoster(force=false){
       renderTeamRoster(home,homeRows,homeLineup,homeBullpen);
   }catch(err){
     els.rosterBoard.className='roster-empty';
-    els.rosterBoard.textContent='對戰名單載入失敗：'+err.message;
+    els.rosterBoard.textContent=t('對戰名單載入失敗：{error}',{error:err.message});
   }finally{
     state.rosterLoading=false;
   }

@@ -1,4 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+require('./i18n-stub.cjs')(vm);
 (async()=>{
 const feed={gamePk:123,gameData:{game:{pk:123},datetime:{dateTime:'2026-10-07T23:30:00Z'},status:{abstractGameState:'Final'}}};
 let loaded,rendered,err='',replaced;const ctx={URL,Number,location:{href:'https://site.test/app/?view=live&gamePk=123'},history:{replaceState:(a,b,u)=>replaced=u},state:{loading:false},els:{dateInput:{}},API:'https://mlb.test/api',getJSON:async()=>feed,gameLocalDateKey:({gameDate})=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(gameDate)),renderGame:f=>rendered=f,markUpdated(){},showError:m=>err=m,loadSchedule:async(...args)=>{loaded=args;return true}};

@@ -1,4 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+require('./i18n-stub.cjs')(vm);
 (async()=>{
  const saved=new Map(),events={},requests=[];let html='',writes=0;
  const list={get innerHTML(){return html},set innerHTML(v){html=v;writes++},insertAdjacentHTML:(pos,v)=>{html+=v},addEventListener:(n,f)=>events[n]=f};

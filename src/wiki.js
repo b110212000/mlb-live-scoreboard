@@ -1,7 +1,9 @@
 // 球員頁的「生平」：維基百科條目導言（官方 API；內容依 CC BY-SA 4.0 授權，頁面上必須標示出處與授權）。
 // 用 Wikidata 的「MLB.com 球員編號」（P3541）找條目；找不到（多半是總教練、裁判、經營者或黑人聯盟球員）
-// 再用「姓名 + baseball」搜尋，並比對生日確認是同一人。優先中文維基（台灣正體），沒有再用英文。
+// 再用「姓名 + baseball」搜尋，並比對生日確認是同一人。依介面語言：中文維基（台灣正體）、英文維基、日文維基，沒有就用英文。
 // 只在使用者開啟球員頁時查詢那一位，同一次開啟快取。
+import {lang as uiLang} from './i18n.js';
+
 const WIKIDATA='https://www.wikidata.org/w/api.php';
 const HEADERS={'Api-User-Agent':'MLB-Live-Scoreboard (https://b110212000.github.io/mlb-live-scoreboard/)'};
 // 舊時代球員各資料來源的生日常有出入（差一天、一個月甚至一兩年），兩年內都視為同一人。
@@ -17,7 +19,7 @@ async function api(base,params){
 }
 
 const search=async query=>((await api(WIKIDATA,{action:'query',list:'search',srsearch:query,srlimit:'5'})).query?.search||[]).map(hit=>hit.title);
-const entities=async(ids,props)=>(await api(WIKIDATA,{action:'wbgetentities',ids:ids.join('|'),props,sitefilter:'zhwiki|enwiki'})).entities||{};
+const entities=async(ids,props)=>(await api(WIKIDATA,{action:'wbgetentities',ids:ids.join('|'),props,sitefilter:'zhwiki|enwiki|jawiki'})).entities||{};
 
 // Wikidata 生日（+1934-07-30T00:00:00Z）與 MLB 生日（1934-07-30）相差幾天；無法比較時回傳 Infinity。
 export function birthGap(wikidataTime,birthDate){
@@ -67,14 +69,22 @@ async function intro(lang,title){
   return {lang,title:page.title,displayTitle:page.varianttitles?.['zh-tw']||page.title,paragraphs};
 }
 
-// 回傳 {lang:'zh'|'en', title（原條目名稱）, displayTitle, paragraphs} 或 null（維基百科沒有這個人）。
+// 介面語言 → 依序嘗試的維基百科語言。
+const WIKI_ORDER={zh:['zh','en'],en:['en'],ja:['ja','en']};
+
+// 回傳 {lang:'zh'|'en'|'ja', title（原條目名稱）, displayTitle, paragraphs} 或 null（維基百科沒有這個人）。
 export function loadWikiBio(person){
-  const key=Number(person?.id);
+  const order=WIKI_ORDER[uiLang()]||WIKI_ORDER.zh;
+  const key=order[0]+':'+Number(person?.id);
   if(!cache.has(key)){
     cache.set(key,(async()=>{
       const entity=await findEntity(person);
-      const zh=entity?.sitelinks?.zhwiki?.title,en=entity?.sitelinks?.enwiki?.title;
-      return (zh&&await intro('zh',zh))||(en&&await intro('en',en))||null;
+      for(const wiki of order){
+        const title=entity?.sitelinks?.[wiki+'wiki']?.title;
+        const bio=title&&await intro(wiki,title);
+        if(bio)return bio;
+      }
+      return null;
     })().catch(err=>{cache.delete(key);throw err}));
   }
   return cache.get(key);
@@ -82,5 +92,5 @@ export function loadWikiBio(person){
 
 export function wikiUrl(bio){
   const path=encodeURIComponent(bio.title.replace(/ /g,'_'));
-  return bio.lang==='zh'?`https://zh.wikipedia.org/zh-tw/${path}`:`https://en.wikipedia.org/wiki/${path}`;
+  return bio.lang==='zh'?`https://zh.wikipedia.org/zh-tw/${path}`:`https://${bio.lang}.wikipedia.org/wiki/${path}`;
 }

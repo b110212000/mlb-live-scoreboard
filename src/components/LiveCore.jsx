@@ -1,19 +1,21 @@
 import {memo,useEffect,useState,useRef} from 'react';
 import {useScoreboard,actions} from '../store.js';
+import {t} from '../i18n.js';
 const logo=id=>id?`https://www.mlbstatic.com/team-logos/${id}.svg`:undefined;
 // Stable host: Push integration owns only this button's subscription state.
-const WatchButton=memo(function WatchButton(){return <button id="gameWatchBtn" className="game-watch-button" type="button" aria-pressed="false" aria-label="訂閱這場比賽通知" title="訂閱這場比賽通知" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>});
+// aria-label / title 由 notifications.js 依訂閱狀態更新；只在 lang 改變時重畫（relocalize 會再依狀態更新）。
+const WatchButton=memo(function WatchButton(){return <button id="gameWatchBtn" className="game-watch-button" type="button" aria-pressed="false" aria-label={t('訂閱這場比賽通知')} title={t('訂閱這場比賽通知')} hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>});
 export function Scoreboard(){
-  const {score,emptyDate,subs}=useScoreboard();
+  const {score,emptyDate,subs,lang}=useScoreboard();
   const followed=new Set(subs.teams);
-  const favStar=side=>followed.has(Number(team(side).id))?<span className="logo-fav" title="追蹤的球隊" aria-label="追蹤的球隊">★</span>:null;
+  const favStar=side=>followed.has(Number(team(side).id))?<span className="logo-fav" title={t('追蹤的球隊')} aria-label={t('追蹤的球隊')}>★</span>:null;
   const team=side=>score?.[side]||{};
   const rhe=side=>{const t=team(side);return `R ${t.runs??0} · H ${t.hits??0} · E ${t.errors??0}`};
   return <section className="card hero">
-    <div className="statusline"><div><span id="seriesText">{score?.series||(emptyDate?`${emptyDate.replace(/-/g,'/')} 沒有 MLB 賽事`:'等待載入賽事')}</span><span id="statePill" className="pill">{score?.status||(emptyDate?'NO GAME':'--')}</span></div><div className="hero-status-right"><div id="inningText" className="inning">{score?.inning||'--'}</div><button id="heroRosterBtn" className="matchup-roster-btn" type="button" onClick={()=>actions.navigate('roster')}>對戰名單</button></div></div>
-    <div className="teams"><div className="team"><span className="logo-shell">{favStar('away')}<img id="awayLogo" className="logo" src={logo(team('away').id)} data-team-id={team('away').id||''} alt={team('away').name||'客隊'}/></span><div><div id="awayName" className="team-name">{team('away').name||'客隊'}</div><div id="awayRhe" className="team-sub">{rhe('away')}</div></div></div>
-      <div className="score-center"><WatchButton/><div id="bigScore" className="bigscore"><span>{team('away').runs??0}</span><span>{team('home').runs??0}</span></div></div>
-      <div className="team home"><div><div id="homeName" className="team-name">{team('home').name||'主隊'}</div><div id="homeRhe" className="team-sub">{rhe('home')}</div></div><span className="logo-shell">{favStar('home')}<img id="homeLogo" className="logo" src={logo(team('home').id)} data-team-id={team('home').id||''} alt={team('home').name||'主隊'}/></span></div>
+    <div className="statusline"><div><span id="seriesText">{score?.series||(emptyDate?t('{date} 沒有 MLB 賽事',{date:emptyDate.replace(/-/g,'/')}):t('等待載入賽事'))}</span><span id="statePill" className="pill">{score?.status||(emptyDate?'NO GAME':'--')}</span></div><div className="hero-status-right"><div id="inningText" className="inning">{score?.inning||'--'}</div><button id="heroRosterBtn" className="matchup-roster-btn" type="button" onClick={()=>actions.navigate('roster')}>{t('對戰名單')}</button></div></div>
+    <div className="teams"><div className="team"><span className="logo-shell">{favStar('away')}<img id="awayLogo" className="logo" src={logo(team('away').id)} data-team-id={team('away').id||''} alt={team('away').name||t('客隊')}/></span><div><div id="awayName" className="team-name">{team('away').name||t('客隊')}</div><div id="awayRhe" className="team-sub">{rhe('away')}</div></div></div>
+      <div className="score-center"><WatchButton lang={lang}/><div id="bigScore" className="bigscore"><span>{team('away').runs??0}</span><span>{team('home').runs??0}</span></div></div>
+      <div className="team home"><div><div id="homeName" className="team-name">{team('home').name||t('主隊')}</div><div id="homeRhe" className="team-sub">{rhe('home')}</div></div><span className="logo-shell">{favStar('home')}<img id="homeLogo" className="logo" src={logo(team('home').id)} data-team-id={team('home').id||''} alt={team('home').name||t('主隊')}/></span></div>
     </div>
   </section>;
 }
@@ -35,10 +37,10 @@ export function GameTabs(){
   // 切換按鈕放在可橫向捲動的列表外面，捲動到後面的場次時也看得到。
   return <><div id="gameTabs" className={canGrid&&grid?'grid':undefined}>{ordered.map(g=>{
     const fav=isFollowed(g);
-    return <button type="button" key={g.gamePk} className={'game-tab '+(g.gamePk===selectedGamePk?'active':'')+(fav?' followed':'')} title={fav?'追蹤的球隊':undefined} onClick={()=>actions.selectGame(g.gamePk)}>
-      <span className="game-tab-main">{fav&&<span className="game-tab-star" aria-label="追蹤的球隊">★</span>}{g.label}</span><span className="game-tab-time">{g.time}</span>
+    return <button type="button" key={g.gamePk} className={'game-tab '+(g.gamePk===selectedGamePk?'active':'')+(fav?' followed':'')} title={fav?t('追蹤的球隊'):undefined} onClick={()=>actions.selectGame(g.gamePk)}>
+      <span className="game-tab-main">{fav&&<span className="game-tab-star" aria-label={t('追蹤的球隊')}>★</span>}{g.label}</span><span className="game-tab-time">{g.time}</span>
     </button>;
-  })}</div>{canGrid&&<button type="button" className="game-tabs-toggle" aria-expanded={grid} aria-controls="gameTabs" onClick={toggleGrid}>{grid?'收合列表':`全部 ${games.length} 場`}</button>}</>;
+  })}</div>{canGrid&&<button type="button" className="game-tabs-toggle" aria-expanded={grid} aria-controls="gameTabs" onClick={toggleGrid}>{grid?t('收合列表'):t('全部 {n} 場',{n:games.length})}</button>}</>;
 }
 export function ErrorMessage(){const {error}=useScoreboard();return <div id="errorBox" className="error" style={{display:error?'block':'none'}} role="alert">{error}</div>}
 function HighlightIcon({item,className}){return item.teamId?<span className={className+' highlight-team-logo-shell'} aria-hidden="true"><img className="highlight-team-logo" src={logo(item.teamId)} alt=""/></span>:<span className={className}>{item.icon}</span>}
@@ -56,9 +58,9 @@ export function Highlights(){
   useEffect(()=>{const handler=()=>setVisible(!document.hidden);document.addEventListener('visibilitychange',handler);return ()=>document.removeEventListener('visibilitychange',handler)},[]);
   // Keep this clock independent of polling. Identical feed refreshes do not restart animation.
   useEffect(()=>{if(!rotating)return;const timer=setTimeout(()=>{const {list,index,gamePk}=latest.current;const next=(index+1)%list.length;setSelection({gamePk,id:list[next]?.id,index:next})},5000);return ()=>clearTimeout(timer)},[itemKey]);
-  return <section className="card highlights-card" aria-label="本場焦點">
-    <div className="highlights-topline"><span className="highlights-label">🔥 本場焦點</span><button id="highlightsToggle" className="highlights-toggle" type="button" aria-controls="gameHighlights" aria-expanded={expanded} aria-label={expanded?'收合全部本場焦點':'展開全部本場焦點'} onClick={()=>setExpanded(x=>!x)}><span className="highlight-chevron" aria-hidden="true">⌄</span></button></div>
-    <div className="highlight-ticker-row"><div id="highlightTicker" className="highlight-ticker" aria-live="off"><div key={itemKey} className={'highlight-ticker-slide'+(rotating?' is-rotating':'')}><div className="highlight-ticker-title">{item&&<HighlightIcon item={item} className="highlight-ticker-icon"/>}<span>{item?.title||'等待焦點事件'}</span></div><div className="highlight-ticker-desc">{item?.desc||'目前還沒有符合條件的焦點事件'}</div></div></div><span id="highlightCounter" className="highlight-counter">{list.length?index+1:0} / {list.length}</span></div>
-    <div id="gameHighlights" className="highlights-grid" hidden={!expanded}>{list.length?list.map(x=><article key={x.id} className={'highlight-item '+(x.tone||'')+((x.meta+' '+x.desc).includes('局上')?' top-half':(x.meta+' '+x.desc).includes('局下')?' bottom-half':'')}><div className="highlight-top"><HighlightIcon item={x} className="highlight-icon"/><div className="highlight-title">{x.title}</div></div><div className="highlight-desc">{x.desc}</div>{x.meta&&<div className="highlight-meta">{x.meta}</div>}</article>):<div className="empty">目前還沒有符合條件的焦點事件</div>}</div>
+  return <section className="card highlights-card" aria-label={t('本場焦點')}>
+    <div className="highlights-topline"><span className="highlights-label">{t('🔥 本場焦點')}</span><button id="highlightsToggle" className="highlights-toggle" type="button" aria-controls="gameHighlights" aria-expanded={expanded} aria-label={expanded?t('收合全部本場焦點'):t('展開全部本場焦點')} onClick={()=>setExpanded(x=>!x)}><span className="highlight-chevron" aria-hidden="true">⌄</span></button></div>
+    <div className="highlight-ticker-row"><div id="highlightTicker" className="highlight-ticker" aria-live="off"><div key={itemKey} className={'highlight-ticker-slide'+(rotating?' is-rotating':'')}><div className="highlight-ticker-title">{item&&<HighlightIcon item={item} className="highlight-ticker-icon"/>}<span>{item?.title||t('等待焦點事件')}</span></div><div className="highlight-ticker-desc">{item?.desc||t('目前還沒有符合條件的焦點事件')}</div></div></div><span id="highlightCounter" className="highlight-counter">{list.length?index+1:0} / {list.length}</span></div>
+    <div id="gameHighlights" className="highlights-grid" hidden={!expanded}>{list.length?list.map(x=><article key={x.id} className={'highlight-item '+(x.tone||'')+(x.half==='top'?' top-half':x.half==='bottom'?' bottom-half':'')}><div className="highlight-top"><HighlightIcon item={x} className="highlight-icon"/><div className="highlight-title">{x.title}</div></div><div className="highlight-desc">{x.desc}</div>{x.meta&&<div className="highlight-meta">{x.meta}</div>}</article>):<div className="empty">{t('目前還沒有符合條件的焦點事件')}</div>}</div>
   </section>;
 }

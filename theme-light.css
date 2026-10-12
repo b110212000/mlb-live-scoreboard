@@ -457,6 +457,9 @@ html[data-theme=light] .player-years tr.sub td{color:var(--muted);background:rgb
 html[data-theme=light] .theme-options button{border:1px solid #b5cce1;background:#f3f5f8;color:var(--text)}
 html[data-theme=light] .theme-options button[aria-checked=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 html[data-theme=light] .theme-swatch{border:1px solid #a7bbd1}
+html[data-theme=light] .lang-options button{border:1px solid #b5cce1;background:#f3f5f8;color:var(--text)}
+html[data-theme=light] .lang-options button[aria-checked=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+html[data-theme=light] .lang-options small{color:var(--muted)}
 
 /* ---- 手動調整（src/theme-light.css） ---- */
 /* 淺色主題的手動調整：接在自動產生的規則後面（同權重時以這裡為準）。

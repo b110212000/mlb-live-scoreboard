@@ -5,6 +5,11 @@ export async function engineSource(){
   return `export function createEngine(callbacks){
     let disposed=false;
     const bridge={publish:patch=>{if(!disposed)callbacks.publish(patch)}};
+    // 多國語系（src/i18n.js）：t('中文原文',{參數})、目前語言 lang()、Intl 用的 locale()、在地化的球隊簡稱 teamName(team)。
+    const t=callbacks.t||((text,params)=>params?String(text).replace(/\\{(\\w+)\\}/g,(match,name)=>params[name]!=null?String(params[name]):match):text);
+    const lang=callbacks.lang||(()=>'zh');
+    const locale=callbacks.locale||(()=>'zh-TW');
+    const teamName=callbacks.teamName||(team=>team?.name||'');
     const timeouts=new Set(),intervals=new Set(),frames=new Set(),observers=new Set();
     const lifetime=new AbortController();
     function on(target,type,fn,options){
@@ -20,6 +25,7 @@ export async function engineSource(){
     ${sources.join('\n\n')}
     return {
       navigate:switchView,
+      relocalize(){if(!disposed)relocalizeEngine()},
       async selectGame(gamePk){if(disposed)return;clearNotificationRoute();state.selectedGamePk=Number(gamePk);renderTabs();await loadGame(state.selectedGamePk)},
       subscriptions:{refresh:()=>disposed?null:loadSubscriptions(),setDefaultPrefs,setGamePrefs,unsubscribeGame,followTeam,unfollowTeam,openGame:openSubscribedGame},
       dispose(){disposed=true;lifetime.abort();timeouts.forEach(window.clearTimeout);intervals.forEach(window.clearInterval);frames.forEach(window.cancelAnimationFrame);observers.forEach(o=>o.disconnect())}

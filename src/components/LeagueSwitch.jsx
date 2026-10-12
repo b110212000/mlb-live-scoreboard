@@ -1,7 +1,9 @@
 import {useRef} from 'react';
+import {t} from '../i18n.js';
 
 // 美國聯盟 / 國家聯盟左右開關與可左右滑動的內容區（追蹤球隊、戰績排行共用）。
-export const LEAGUES=[['AL','美國聯盟'],['NL','國家聯盟']];
+export const LEAGUES=['AL','NL'];
+export const leagueName=id=>id==='NL'?t('國家聯盟'):t('美國聯盟');
 
 // 記住上次選的聯盟（只是瀏覽便利；讀不到時預設美國聯盟）。
 export function savedLeague(key){
@@ -21,7 +23,7 @@ function useBlockClickAfterSwipe(){
 }
 
 // 開關本身可以往左右拖：往右拖選國家聯盟、往左拖選美國聯盟；方向鍵也能切換。
-export function LeagueSwitch({league,onPick,counts={},label='選擇聯盟'}){
+export function LeagueSwitch({league,onPick,counts={},label}){
   const drag=useRef(null);
   const block=useBlockClickAfterSwipe();
   const down=e=>{
@@ -44,14 +46,14 @@ export function LeagueSwitch({league,onPick,counts={},label='選擇聯盟'}){
     onPick(next);
     e.currentTarget.querySelector(`[data-league=${next}]`)?.focus();
   };
-  return <div className="league-switch" role="radiogroup" aria-label={label} data-active={league}
+  return <div className="league-switch" role="radiogroup" aria-label={label||t('選擇聯盟')} data-active={league}
     onPointerDown={down} onPointerUp={up} onPointerCancel={()=>{drag.current=null}} onClickCapture={block.onClickCapture} onKeyDown={key}>
     <span className="league-switch-thumb" aria-hidden="true"/>
-    {LEAGUES.map(([id,text])=>{
+    {LEAGUES.map(id=>{
       const count=counts[id]||0;
       return <button key={id} type="button" role="radio" aria-checked={league===id} tabIndex={league===id?0:-1} data-league={id} onClick={()=>onPick(id)}>
-        <span>{text}</span>
-        {count>0&&<span className="league-count" aria-label={`已追蹤 ${count} 隊`}>{count}</span>}
+        <span>{leagueName(id)}</span>
+        {count>0&&<span className="league-count" aria-label={t('已追蹤 {n} 隊',{n:count})}>{count}</span>}
       </button>;
     })}
   </div>;
@@ -108,7 +110,7 @@ export function LeaguePager({league,onPick,renderPanel}){
   };
   return <div className="league-viewport" ref={viewportRef} onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={cancel} onClickCapture={block.onClickCapture}>
     <div className="league-track" ref={trackRef} style={{'--league-index':index}}>
-      {LEAGUES.map(([id,text])=><div key={id} className={'league-panel'+(id===league?' active':'')} data-league={id} aria-label={text} inert={id!==league}>
+      {LEAGUES.map(id=><div key={id} className={'league-panel'+(id===league?' active':'')} data-league={id} aria-label={leagueName(id)} inert={id!==league}>
         {renderPanel(id)}
       </div>)}
     </div>

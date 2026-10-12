@@ -15,8 +15,9 @@ await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const origin=`http://127.0.0.1:${server.address().port}`;
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 test.after(async()=>{await browser.close();await new Promise(r=>server.close(r))});
-async function setup({width=390,subscribed=false,empty=false,worker=null,push=false,extraGames=[]}={}){
- const page=await browser.newPage({viewport:{width,height:844},timezoneId:'Asia/Taipei'}),errors=[];
+// 介面語言預設「跟隨裝置」：既有測試以繁體中文裝置執行。
+async function setup({width=390,subscribed=false,empty=false,worker=null,push=false,extraGames=[],locale='zh-TW'}={}){
+ const page=await browser.newPage({viewport:{width,height:844},timezoneId:'Asia/Taipei',locale}),errors=[];
  // Headless Chromium 沒有推播服務：以假的 PushSubscription 模擬「已允許通知」。
  if(push)await page.addInitScript(()=>{const sub={endpoint:'https://push.example/mock',toJSON(){return {endpoint:this.endpoint,keys:{p256dh:'p',auth:'a'}}},unsubscribe:async()=>true};Object.defineProperty(Notification,'permission',{configurable:true,get:()=>'granted'});PushManager.prototype.getSubscription=async function(){return sub};PushManager.prototype.subscribe=async function(){return sub};});
  page.on('pageerror',e=>errors.push(e.message));
@@ -52,6 +53,9 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.deepEqual(await page.locator('#liveDetailTabs .live-detail-tab:not([hidden])').allInnerTexts(),['統計','賽況','系列賽','賽後摘要']);
  await page.locator('[data-live-tab=summary]').click();
  await page.locator('#gameSummary .game-summary-empty').filter({hasText:'比賽進行中'}).waitFor();
+ // 系列賽標題依即時資料的比賽類型（gameData.game.type）。
+ await page.locator('[data-live-tab=series]').click();
+ await page.locator('#currentSeriesTitle').filter({hasText:'國家聯盟分區賽'}).waitFor();
  await page.locator('[data-live-tab=status]').click();
  assert(await page.locator('#recentEvents').innerText());
  // Refreshing identical data must retain the ticker node and its animation clock.
@@ -75,7 +79,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=live]').count(),0);
  assert.equal(await page.locator('[data-view=teams]').count(),0);
  assert.equal(await page.locator('[data-view=notifications]').count(),0);
- assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['settings','notificationTest','install']);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['settings','language','notificationTest','install']);
  assert.equal(await page.locator('[data-view=notificationTest]').innerText(),'訂閱測試');
  await page.locator('[data-view=notificationTest]').click();
  assert(await page.locator('#featureMenu').evaluate(d=>d.open),'must remain open during exit');
@@ -88,9 +92,9 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  await page.locator('[data-menu-back]').click();assert.equal(await page.locator('#sidebarTitle').innerText(),'MLB 戰況');
  await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
- for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['hof','hofView'],['teams','teamsView'],['install','installView'],['settings','settingsView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
+ for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['hof','hofView'],['teams','teamsView'],['install','installView'],['settings','settingsView'],['language','languageView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
-   if(['install','notificationTest','settings'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+   if(['install','notificationTest','settings','language'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
    if(['live','bracket','standings','taiwan','hof','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
@@ -121,8 +125,8 @@ test('No game, desktop layout, reduced motion, notification deep link',async()=>
 const ALL={pregame5:true,start:true,homeScore:true,awayScore:true,final:true};
 const teamGame={...structuredClone(game),gamePk:777001,gameType:'L',seriesDescription:'NL Championship Series',seriesGameNumber:1,gameDate:new Date(Date.now()+86400000).toISOString(),status:{abstractGameState:'Preview',detailedState:'Scheduled',codedGameState:'S'},teams:{away:{team:{id:119,name:'Los Angeles Dodgers'}},home:{team:{id:158,name:'Milwaukee Brewers'}}}};
 // 模擬 Worker 的 DeviceRegistry：記錄每次呼叫並回傳完整清單。
-function mockWorker(){
- const reg={defaults:{...ALL},teams:[],games:[{gamePk:feed.gamePk,source:'manual',teamIds:[],custom:false,prefs:{...ALL},gameDate:game.gameDate}],subscriptionEndpoint:'https://push.example/mock'};
+function mockWorker({lang}={}){
+ const reg={defaults:{...ALL},teams:[],games:[{gamePk:feed.gamePk,source:'manual',teamIds:[],custom:false,prefs:{...ALL},gameDate:game.gameDate}],subscriptionEndpoint:'https://push.example/mock',...(lang?{lang}:{})};
  const calls=[];const view=(extra={})=>({ok:true,...structuredClone(reg),...extra});
  const handler=route=>{
   const req=route.request(),u=new URL(req.url()),method=req.method(),body=req.postData()?JSON.parse(req.postData()):{};
@@ -133,6 +137,7 @@ function mockWorker(){
   }
   const path=m[1];calls.push({method,path,body});
   if(path==='/state')return route.fulfill({json:view()});
+  if(path==='/lang'&&method==='PUT'){reg.lang=body.lang;return route.fulfill({json:view()})}
   if(path==='/defaults'){reg.defaults={...reg.defaults,...body.prefs};for(const g of reg.games)if(!g.custom)g.prefs={...reg.defaults};return route.fulfill({json:view()})}
   const prefs=path.match(/^\/games\/(\d+)\/prefs$/);
   if(prefs){const g=reg.games.find(x=>x.gamePk===Number(prefs[1]));g.custom=Boolean(body.prefs);g.prefs=body.prefs?{...reg.defaults,...body.prefs}:{...reg.defaults};return route.fulfill({json:view()})}
@@ -321,7 +326,7 @@ test('Regular season, standings and Taiwan players',async()=>{
   return r.fulfill({json:{ok:true,subscribed:false}});};
  const {page,errors}=await setup({worker});
  const rGames=[0,1,2,3,4].map(i=>({...structuredClone(game),gamePk:900000+i,gameType:'R',seriesDescription:'Regular Season',seriesGameNumber:1,gamesInSeries:3,status:{abstractGameState:'Preview',detailedState:'Scheduled',codedGameState:'S'},gameDate:today+'T0'+(3+i)+':00:00Z'}));
- const rFeed=structuredClone(feed);rFeed.gamePk=900000;rFeed.gameData.game={...rFeed.gameData.game,pk:900000,type:'R',gameType:'R'};rFeed.gameData.status={abstractGameState:'Preview',detailedState:'Scheduled',codedGameState:'S'};
+ const rFeed=structuredClone(feed);rFeed.gamePk=900000;rFeed.gameData.game={...rFeed.gameData.game,pk:900000,type:'R'};rFeed.gameData.status={abstractGameState:'Preview',detailedState:'Scheduled',codedGameState:'S'};
  const h2h=[{...structuredClone(game),gamePk:880001,gameType:'R',gameDate:'2026-05-01T02:00:00Z',seriesGameNumber:1,gamesInSeries:3,status:{abstractGameState:'Final',detailedState:'Final'},teams:{away:{team:feed.gameData.teams.away,score:5},home:{team:feed.gameData.teams.home,score:2}}},
   {...structuredClone(game),gamePk:880002,gameType:'R',gameDate:'2026-05-02T02:00:00Z',seriesGameNumber:2,gamesInSeries:3,status:{abstractGameState:'Final',detailedState:'Final'},teams:{away:{team:feed.gameData.teams.away,score:1},home:{team:feed.gameData.teams.home,score:4}}},
   {...rGames[0]}];
@@ -659,5 +664,83 @@ test('Appearance setting: dark, light and follow system',async()=>{
  await option('dark').click();
  assert.equal(await theme(),'dark');assert.equal(await panel(),'#0c1b2d');
  assert.equal(await page.evaluate(()=>localStorage.getItem('mlb-theme')),'dark');
+ assert.deepEqual(errors,[]);await page.close();
+});
+
+test('Language setting: follow device, English, Japanese and push language',async()=>{
+ // 英文裝置：預設「跟隨裝置」就是英文。Worker 記得的推播語言是中文，載入後改成英文。
+ const mock=mockWorker({lang:'zh'});
+ const {page,errors}=await setup({locale:'en-US',worker:mock.handler,push:true,extraGames:[teamGame]});
+ const han=/\p{Script=Han}/u,traditional=/[這們嗎說與發對會來點數壘擊戰讀單擇關裡錄壞觸聯]/u;
+ const leftover=async pattern=>{const text=(await page.locator('body').innerText()).replace(/繁體中文|日本語/g,'');return text.match(new RegExp('.{0,30}'+pattern.source+'.{0,30}','u'))?.[0]||null};
+ const tabs=()=>page.locator('#liveDetailTabs .live-detail-tab:not([hidden])').allInnerTexts();
+ const langCalls=()=>mock.calls.filter(c=>c.path==='/lang').map(c=>c.body.lang);
+ const go=async view=>{
+  await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
+  const inSettings=['install','notificationTest','settings','language'].includes(view);
+  if(inSettings&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+  if(!inSettings&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+  await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(320);
+ };
+ assert.equal(await page.evaluate(()=>document.documentElement.lang),'en');
+ assert.equal(await page.title(),'MLB Live Scores Pro');
+ assert.equal(await page.locator('#appTitle').innerText(),'MLB Live Scores');
+ assert.deepEqual(await tabs(),['Stats','Play-by-play','Series','Recap']);
+ await page.waitForFunction(()=>document.querySelector('#seriesText')?.textContent.includes('Division Series'));
+ await page.locator('#gameWatchBtn.subscribed').waitFor();
+ await page.waitForTimeout(300);
+ assert.deepEqual(langCalls(),['en'],'push language not synced to the Worker');
+ // 每一頁都不應留下中文（球員名字、MLB 原文說明本來就是英文）。
+ for(const tab of ['stats','status','summary']){await page.locator(`[data-live-tab=${tab}]`).click();await page.waitForTimeout(150);assert.equal(await leftover(han),null,'Chinese left on live tab '+tab)}
+ for(const view of ['bracket','standings','taiwan','hof','teams','notifications','notificationTest','install','settings','language']){
+  await go(view);assert(await page.locator(`#${{notifications:'notificationView'}[view]||view+'View'}`).isVisible(),view);
+  assert.equal(await leftover(han),null,'Chinese left on '+view);
+ }
+ // 訂閱管理：行事曆連結帶語言。
+ await go('notifications');
+ const row=page.locator('.subs-game[data-game-pk="'+feed.gamePk+'"]');await row.locator('.game-row').click();
+ assert.equal(await row.locator('.game-card-calendar').getAttribute('href'),'https://mlb-score-notify.b110212000.workers.dev/api/calendar/'+feed.gamePk+'.ics?lang=en');
+ assert.equal(await row.locator('.subs-cancel').innerText(),'Unsubscribe');
+
+ // 語言頁：選項用各語言自己的名字，「跟隨裝置」顯示目前偵測到的語言。
+ await go('language');
+ assert.equal(await page.locator('#appTitle').innerText(),'Language');
+ assert.deepEqual(await page.locator('#languageView [data-lang-option] b').allInnerTexts(),['Device language','繁體中文','English','日本語']);
+ assert.equal(await page.locator('#languageView [data-lang-option=auto] small').innerText(),'Currently English');
+ assert.equal(await page.locator('#languageView [data-lang-option=auto]').getAttribute('aria-checked'),'true');
+ // 切換到日文：React 與 engine 畫的內容都換成日文、記住設定，推播語言也一起更新。
+ await page.locator('#languageView [data-lang-option=ja]').click();
+ await page.waitForFunction(()=>document.documentElement.lang==='ja');
+ assert.equal(await page.locator('#appTitle').innerText(),'言語 / Language');
+ assert.equal(await page.locator('#languageView [data-lang-option=ja]').getAttribute('aria-checked'),'true');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('mlb-lang')),'ja');
+ await page.waitForFunction(()=>document.title==='MLB ライブスコア Pro');
+ await go('live');
+ assert.deepEqual(await tabs(),['成績','試合経過','シリーズ','試合結果']);
+ await page.locator('[data-live-tab=summary]').click();
+ await page.locator('#gameSummary .game-summary-empty').filter({hasText:'試合中'}).waitFor();
+ assert.match(await page.locator('#seriesText').innerText(),/ナ・リーグ地区シリーズ/);
+ assert.equal(await leftover(traditional),null,'Traditional Chinese left on the Japanese live page');
+ await page.waitForTimeout(300);
+ assert.deepEqual(langCalls(),['en','ja']);
+ // 重新整理後仍是日文。
+ await page.reload();
+ await page.waitForFunction(()=>document.querySelector('#liveDot')&&!document.querySelector('#liveDot').classList.contains('off'));
+ assert.equal(await page.evaluate(()=>document.documentElement.lang),'ja');
+ assert.deepEqual(await tabs(),['成績','試合経過','シリーズ','試合結果']);
+ // 改回繁體中文，再改回跟隨裝置（英文）。
+ await go('language');
+ await page.locator('#languageView [data-lang-option=zh]').click();
+ await page.waitForFunction(()=>document.documentElement.lang==='zh-Hant-TW');
+ await go('live');
+ assert.deepEqual(await tabs(),['統計','賽況','系列賽','賽後摘要']);
+ await page.locator('[data-live-tab=summary]').click();
+ await page.locator('#gameSummary .game-summary-empty').filter({hasText:'比賽進行中'}).waitFor();
+ await go('language');
+ await page.locator('#languageView [data-lang-option=auto]').click();
+ await page.waitForFunction(()=>document.documentElement.lang==='en');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('mlb-lang')),'auto');
+ await page.waitForTimeout(300);
+ assert.deepEqual(langCalls(),['en','ja','zh','en']);
  assert.deepEqual(errors,[]);await page.close();
 });

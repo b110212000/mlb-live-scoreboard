@@ -1,7 +1,8 @@
 // 外觀：深色 / 淺色 / 跟隨系統。偏好存在 localStorage，套用在 <html data-theme>。
 // index.html 的 <head> 已先用同樣規則套用一次，避免載入時先閃一下深色。
 const KEY='mlb-theme';
-export const THEMES=[['dark','深色'],['light','淺色'],['system','跟隨系統']];
+// 標籤在設定頁依目前語言顯示（SettingsPage.jsx）。
+export const THEMES=[['dark'],['light'],['system']];
 // 瀏覽器網址列 / 狀態列的顏色（與頁面底色一致）。
 const META_COLOR={dark:'#06111f',light:'#eef2f7'};
 const media=typeof matchMedia==='function'?matchMedia('(prefers-color-scheme: light)'):null;

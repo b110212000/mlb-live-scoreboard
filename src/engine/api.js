@@ -77,9 +77,9 @@ function gameLocalDateTime(g){
   if(!g?.gameDate)return '';
   const d=new Date(g.gameDate);
   if(Number.isNaN(d.getTime()))return '';
-  const date=new Intl.DateTimeFormat(undefined,{month:'numeric',day:'numeric'}).format(d);
-  const time=new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit',hour12:false}).format(d);
-  return date+' '+time+' · 當地時間';
+  const date=new Intl.DateTimeFormat(locale(),{month:'numeric',day:'numeric'}).format(d);
+  const time=new Intl.DateTimeFormat(locale(),{hour:'2-digit',minute:'2-digit',hour12:false}).format(d);
+  return t('{date} {time} · 當地時間',{date,time});
 }
 
 function shiftLocalDateString(dateText,days){

@@ -102,8 +102,8 @@ document.querySelectorAll('[data-collapse-section]').forEach(section=>{
   const setExpanded=expanded=>{
     body.hidden=!expanded;
     btn.setAttribute('aria-expanded',String(expanded));
-    const title=head.querySelector('h2')?.textContent?.trim()||'區塊';
-    btn.setAttribute('aria-label',(expanded?'收合':'展開')+title);
+    const title=head.querySelector('h2')?.textContent?.trim()||t('區塊');
+    btn.setAttribute('aria-label',expanded?t('收合{title}',{title}):t('展開{title}',{title}));
   };
   const toggle=()=>setExpanded(btn.getAttribute('aria-expanded')!=='true');
   on(btn,'click',e=>{e.stopPropagation();toggle();});
@@ -119,7 +119,7 @@ document.querySelectorAll('[data-collapse-section]').forEach(section=>{
     startY=startX=null;distance=0;tracking=false;
     els.pullRefresh.classList.remove('visible','refreshing');
     els.pullRefresh.style.transform='translate(-50%,-58px)';
-    els.pullRefreshText.textContent='下拉重新整理';
+    els.pullRefreshText.textContent=t('下拉重新整理');
     els.pullRefresh.querySelector('.pull-refresh-icon').textContent='↓';
   };
 
@@ -132,7 +132,7 @@ document.querySelectorAll('[data-collapse-section]').forEach(section=>{
 
   on(document,'touchmove',e=>{
     if(!tracking||startY==null||e.touches.length!==1)return;
-    const t=e.touches[0],dy=t.clientY-startY,dx=t.clientX-startX;
+    const touch=e.touches[0],dy=touch.clientY-startY,dx=touch.clientX-startX;
     if(dy<=0){reset();return;}
     if(Math.abs(dx)>Math.abs(dy)*.8){reset();return;}
     if(window.scrollY>1){reset();return;}
@@ -144,7 +144,7 @@ document.querySelectorAll('[data-collapse-section]').forEach(section=>{
     els.pullRefresh.style.transform='translate(-50%,'+y+'px)';
     els.pullRefresh.classList.add('visible');
     const ready=distance>=THRESHOLD;
-    els.pullRefreshText.textContent=ready?'放開重新整理':'下拉重新整理';
+    els.pullRefreshText.textContent=ready?t('放開重新整理'):t('下拉重新整理');
     els.pullRefresh.querySelector('.pull-refresh-icon').textContent=ready?'↻':'↓';
   },{passive:false});
 
@@ -156,7 +156,7 @@ document.querySelectorAll('[data-collapse-section]').forEach(section=>{
 
     els.pullRefresh.classList.add('visible','refreshing');
     els.pullRefresh.style.transform='translate(-50%,10px)';
-    els.pullRefreshText.textContent='重新整理中…';
+    els.pullRefreshText.textContent=t('重新整理中…');
     els.pullRefresh.querySelector('.pull-refresh-icon').textContent='↻';
 
     setTimeout(()=>{
@@ -178,13 +178,13 @@ els.dateInput.value=localDateString();
 // 這樣即使某個附加 UI 發生錯誤，也不會讓整個即時比分停在「尚未更新」。
 loadInitialGame().catch(err=>{
   console.error('Initial schedule load failed',err);
-  showError('初始賽事資料載入失敗：'+(err?.message||String(err)));
+  showError(t('初始賽事資料載入失敗：{error}',{error:err?.message||String(err)}));
 });
 
 try{
   const requestedView=new URL(location.href).searchParams.get('view');
   const initialView=new URL(location.href).searchParams.has('gamePk')?'live':
-    (['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings'].includes(requestedView)?requestedView:'live');
+    (['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language'].includes(requestedView)?requestedView:'live');
   switchView(initialView);
   // 即時比賽頁要標示追蹤的球隊：先發布本機快取，再向伺服器更新（訂閱相關頁面會自行載入）。
   publishSubs();
@@ -193,7 +193,7 @@ try{
   setLiveDetailTab('status',{animate:false});
 }catch(err){
   console.error('Optional UI initialization failed',err);
-  showError('部分介面初始化失敗，但賽事資料仍會繼續載入：'+(err?.message||String(err)));
+  showError(t('部分介面初始化失敗，但賽事資料仍會繼續載入：{error}',{error:err?.message||String(err)}));
 }
 
 setInterval(()=>{if(state.view==='live'){
@@ -226,3 +226,24 @@ if('serviceWorker' in navigator){
     .catch(error=>console.warn('Push worker update failed',error));
 }
 
+// 切換語言後重畫 engine 負責的內容（由 store 的 setLang 在 React 重畫完之後呼叫）。
+function relocalizeEngine(){
+  renderTabs();
+  if(state.currentFeed&&state.currentFeedGamePk===state.selectedGamePk){
+    renderGame(state.currentFeed);
+    markUpdated(true,state.currentFeed.gameData?.status?.abstractGameState==='Live');
+  }else if(!state.selectedGamePk&&!state.loading&&els.dateInput.value)renderNoGame(els.dateInput.value);
+  if(state.view==='bracket')loadBracket(true);
+  if(state.view==='roster')loadMatchupRoster(true);
+  syncInstallPage();
+  if(state.view==='notificationTest')syncNotificationPage();
+  els.topControlsToggle.setAttribute('aria-label',state.topControlsExpanded?t('收合日期與更新'):t('展開日期與更新'));
+  document.querySelectorAll('[data-collapse-section]').forEach(section=>{
+    const btn=section.querySelector('.collapse-toggle');
+    if(!btn)return;
+    const title=section.querySelector('[data-collapse-head] h2')?.textContent?.trim()||t('區塊');
+    btn.setAttribute('aria-label',btn.getAttribute('aria-expanded')==='true'?t('收合{title}',{title}):t('展開{title}',{title}));
+  });
+  // 訂閱清單的時間、狀態、隊名重新產生；推播通知的語言也一起更新到 Worker。
+  loadSubscriptions();
+}

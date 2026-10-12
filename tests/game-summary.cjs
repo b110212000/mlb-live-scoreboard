@@ -1,4 +1,5 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+require('./i18n-stub.cjs')(vm);
 const zh={119:'道奇',143:'費城人'};
 let writes=0;const host={set innerHTML(v){writes++;this._html=v},get innerHTML(){return this._html||''}};
 const ctx={console,Number,String,Array,Object,JSON,Math,

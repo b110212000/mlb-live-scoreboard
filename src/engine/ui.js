@@ -137,26 +137,26 @@ function isIOSDevice(){
 }
 function syncInstallPage(){
   if(isStandaloneApp()){
-    els.installStatus.textContent='✅ 已從主畫面以 App 模式開啟';
+    els.installStatus.textContent=t('✅ 已從主畫面以 App 模式開啟');
     els.installAppBtn.disabled=true;
-    els.installAppHint.textContent='這台裝置已安裝';
+    els.installAppHint.textContent=t('這台裝置已安裝');
     return;
   }
   els.installAppBtn.disabled=false;
   if(deferredInstallPrompt){
-    els.installStatus.textContent='✅ 此瀏覽器支援直接安裝';
-    els.installAppHint.textContent='點一下開啟安裝視窗';
+    els.installStatus.textContent=t('✅ 此瀏覽器支援直接安裝');
+    els.installAppHint.textContent=t('點一下開啟安裝視窗');
   }else if(isIOSDevice()){
-    els.installStatus.textContent='iPhone / iPad：使用 Safari 加入主畫面';
-    els.installAppHint.textContent='查看 iPhone 安裝步驟';
+    els.installStatus.textContent=t('iPhone / iPad：使用 Safari 加入主畫面');
+    els.installAppHint.textContent=t('查看 iPhone 安裝步驟');
   }else{
-    els.installStatus.textContent='可分享連結；安裝方式依瀏覽器而定';
-    els.installAppHint.textContent='查看安裝方式';
+    els.installStatus.textContent=t('可分享連結；安裝方式依瀏覽器而定');
+    els.installAppHint.textContent=t('查看安裝方式');
   }
 }
 async function shareThisApp(){
   const url=new URL('./',location.href).href;
-  const data={title:'MLB 戰況 App',text:'MLB 季後賽即時比分、對戰名單與球員數據',url};
+  const data={title:t('MLB 戰況 App'),text:t('MLB 季後賽即時比分、對戰名單與球員數據'),url};
   if(navigator.share){
     try{await navigator.share(data);return}catch(err){
       if(err?.name==='AbortError')return;
@@ -164,18 +164,18 @@ async function shareThisApp(){
   }
   try{
     await navigator.clipboard.writeText(url);
-    els.copyAppHint.textContent='已複製，可貼給朋友';
-    setTimeout(()=>els.copyAppHint.textContent='複製網站連結',1800);
+    els.copyAppHint.textContent=t('已複製，可貼給朋友');
+    setTimeout(()=>els.copyAppHint.textContent=t('複製網站連結'),1800);
   }catch(_){}
 }
 async function copyThisApp(){
   const url=new URL('./',location.href).href;
   try{
     await navigator.clipboard.writeText(url);
-    els.copyAppHint.textContent='✓ 已複製';
-    setTimeout(()=>els.copyAppHint.textContent='複製網站連結',1800);
+    els.copyAppHint.textContent=t('✓ 已複製');
+    setTimeout(()=>els.copyAppHint.textContent=t('複製網站連結'),1800);
   }catch(_){
-    els.copyAppHint.textContent='請長按網址複製';
+    els.copyAppHint.textContent=t('請長按網址複製');
   }
 }
 function flashInstallGuide(){
@@ -197,7 +197,7 @@ async function installThisApp(){
 }
 
 function switchView(view){
-  if(!['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings'].includes(view))view='live';
+  if(!['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language'].includes(view))view='live';
   state.view=view;
   bridge.publish({view});
   const live=view==='live';
@@ -215,6 +215,6 @@ function setTopControlsExpanded(expanded){
   state.topControlsExpanded=expanded;
   els.topControls.hidden=!expanded;
   els.topControlsToggle.setAttribute('aria-expanded',String(expanded));
-  els.topControlsToggle.setAttribute('aria-label',expanded?'收合日期與更新':'展開日期與更新');
+  els.topControlsToggle.setAttribute('aria-label',expanded?t('收合日期與更新'):t('展開日期與更新'));
 }
 

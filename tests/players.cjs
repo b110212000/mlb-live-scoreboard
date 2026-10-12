@@ -2,6 +2,8 @@ const assert=require('assert/strict');
 
 (async()=>{
   const p=await import('../src/players.js');
+  const i18n=await import('../src/i18n.js');
+  i18n.setLangPref('zh');
 
   // 舊隊名保留英文，暱稱相同才用中文隊名；非大聯盟球隊用原名。
   for(const [team,expected] of [
@@ -16,7 +18,7 @@ const assert=require('assert/strict');
     [{id:144,name:'Boston Braves'},'勇士'],
     [{id:136},'水手'],
     [{id:400,name:'Las Vegas Aviators'},'Las Vegas Aviators'],
-  ])assert.equal(p.teamNameZh(team),expected,team.name);
+  ])assert.equal(p.teamDisplayName(team),expected,team.name);
 
   // 主要獎項依 MLB 獎項 id 對照：排除小聯盟、聯盟外與球隊獎項；退休背號依球隊。
   const awards=p.majorAwards([
@@ -74,7 +76,7 @@ const assert=require('assert/strict');
   assert.equal(s2023.level,'Minors');assert.equal(s2023.total,true);assert.equal(s2023.teams,3);assert.equal(s2023.main.stat.gamesPlayed,75);assert.deepEqual(s2023.details.map(d=>d.team.id),[3,4,5]);
   assert.equal(s2021.level,'ROK');assert.equal(s2021.total,false);assert.deepEqual(s2021.details,[]);
   assert.equal(s2019.main.team.id,111);assert.deepEqual(s2019.details.map(d=>d.team.id),[110]);
-  assert.equal(p.LEVEL_ZH.Minors,'小聯盟');
+  assert.equal(p.levelName('Minors'),'小聯盟');assert.equal(p.levelName('XYZ'),'XYZ');
   assert.deepEqual(p.groupSeasons(undefined),[]);
 
   // 畫面上的日期用斜線。
@@ -83,8 +85,35 @@ const assert=require('assert/strict');
   assert.equal(p.slashDate('Opening Day'),'Opening Day');
 
   assert.equal(p.foldText('Carlos Beltrán'),'carlos beltran');
-  assert.equal(p.countryZh('Dominican Republic'),'多明尼加');assert.equal(p.countryZh('Atlantis'),'Atlantis');
-  assert.equal(p.hofNoteZh('First unanimous inductee'),'史上首位全票入選');assert.equal(p.hofNoteZh(undefined),'');
+  assert.equal(p.countryName('Dominican Republic'),'多明尼加');assert.equal(p.countryName('Atlantis'),'Atlantis');
+  assert.equal(p.hofNoteText('First unanimous inductee'),'史上首位全票入選');assert.equal(p.hofNoteText(undefined),'');
+  assert.equal(p.bodyText({height:`6' 4"`,weight:220}),'193 公分 · 100 公斤');
+  assert.equal(p.dateText('2001-04-02'),'2001/04/02');
   assert(p.headshot(400085,120).includes('/w_120,q_90/v1/people/400085/headshot/67/current'));
+  // 英文：隊名用暱稱、MLB 原文（國家、名人堂說明）、英制身高體重、英文日期。
+  i18n.setLangPref('en');
+  assert.equal(p.teamDisplayName({id:142,name:'Minnesota Twins'}),'Twins');
+  assert.equal(p.teamDisplayName({id:142,name:'Washington Senators'}),'Washington Senators');
+  assert.equal(p.teamDisplayName({id:119,name:'Brooklyn Dodgers'}),'Dodgers');
+  assert.equal(p.handsText({pitchHand:{code:'R'},batSide:{code:'L'}}),'Bats L / Throws R');
+  assert.equal(p.handsText({pitchHand:{code:'R'},batSide:{code:'S'}}),'Bats Switch / Throws R');
+  assert.equal(p.bodyText({height:`6' 4"`,weight:220}),`6' 4" · 220 lb`);
+  assert.equal(p.dateText('2001-04-02'),'Apr 2, 2001');
+  assert.equal(p.countryName('Dominican Republic'),'Dominican Republic');
+  assert.equal(p.hofNoteText('First unanimous inductee'),'First unanimous inductee');
+  assert.equal(p.levelName('AAA'),'AAA');assert.equal(p.positionName('SS'),'Shortstop');
+  assert.equal(p.seasonsText([2001,2007]),'2001, 2007');
+  assert.deepEqual(p.majorAwards([{id:'MLBHOF',season:'2025'},{id:'ALMVP',season:'2001'},{id:'RETIREDUNI_136',season:'2025'}]).map(a=>a.label),['Hall of Fame','AL MVP','Mariners retired number']);
+
+  // 日文：隊名片假名、右投両打、公制、日期用斜線。
+  i18n.setLangPref('ja');
+  assert.equal(p.teamDisplayName({id:142,name:'Minnesota Twins'}),'ツインズ');
+  assert.equal(p.handsText({pitchHand:{code:'R'},batSide:{code:'S'}}),'右投両打');
+  assert.equal(p.bodyText({height:`6' 4"`,weight:220}),'193 cm · 100 kg');
+  assert.equal(p.dateText('2001-04-02'),'2001/04/02');
+  assert.equal(p.countryName('Dominican Republic'),'ドミニカ共和国');
+  assert.equal(p.positionName('SS'),'遊撃手');
+  assert.deepEqual(p.majorAwards([{id:'MLBHOF',season:'2025'},{id:'RETIREDUNI_136',season:'2025'}]).map(a=>a.label),['野球殿堂','マリナーズの永久欠番']);
+  i18n.setLangPref('zh');
   console.log('players helpers ok');
 })().catch(err=>{console.error(err);process.exit(1)});
