@@ -24,6 +24,10 @@
       {
         "name": "DEVICE_REGISTRY",
         "class_name": "DeviceRegistry"
+      },
+      {
+        "name": "FEEDBACK_SERVICE",
+        "class_name": "FeedbackService"
       }
     ]
   },
@@ -37,6 +41,10 @@
       "storage": "sqlite"
     },
     "DeviceRegistry": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "FeedbackService": {
       "type": "durable-object",
       "storage": "sqlite"
     }

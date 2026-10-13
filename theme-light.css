@@ -1,5 +1,17 @@
 /* 自動產生：npm run build 依 styles.css 產生淺色主題（scripts/theme-light.mjs），請勿手動修改。
    手動調整請寫在 src/theme-light.css。 */
+html[data-theme=light] .card.feedback-shell{border:1px solid var(--line)}
+html[data-theme=light] .feedback-intro p,html[data-theme=light] .feedback-field small,html[data-theme=light] .feedback-note{color:var(--muted)}
+html[data-theme=light] .feedback-fields,html[data-theme=light] .feedback-kind{border:0}
+html[data-theme=light] .feedback-type{border:1px solid var(--line);color:var(--muted)}
+html[data-theme=light] .feedback-type.selected{border-color:var(--accent);background:var(--panel2);color:var(--text)}
+html[data-theme=light] .feedback-type:focus-within{outline:2px solid var(--accent)}
+html[data-theme=light] .feedback-field textarea,html[data-theme=light] .feedback-field input{border:1px solid var(--line);background:var(--panel3);color:var(--text);outline:none}
+html[data-theme=light] .feedback-field textarea:focus,html[data-theme=light] .feedback-field input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,141,184,0.12)}
+html[data-theme=light] .feedback-field textarea::placeholder,html[data-theme=light] .feedback-field input::placeholder{color:var(--muted)}
+html[data-theme=light] .feedback-submit{background:var(--accent);color:var(--bg);border:0}
+html[data-theme=light] .feedback-result{color:var(--green)}
+html[data-theme=light] .feedback-result-error{color:var(--red)}
 :root[data-theme=light]{--bg:#eef2f7;--panel:#ffffff;--panel2:#f3f6fa;--panel3:#edf2f8;--line:#d3dde8;--text:#13202e;--muted:#5a6b7d;--accent:#0a7fb0;--green:#11905c;--yellow:#a86a00;--red:#cc2f42;--blue:#2f6fd0}
 html[data-theme=light] body{background:radial-gradient(circle at 50% -20%,rgba(0,141,184,0.1),transparent 34rem),
         linear-gradient(180deg,#f4f7fb,#e9eff6);color:var(--text)}

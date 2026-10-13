@@ -46,6 +46,8 @@ async function deployedIndexHasVersion(version){
 let versionCheckInFlight=false;
 async function checkForAppUpdate(){
   if(versionCheckInFlight)return;
+  // 回饋草稿或寄送中暫緩版本重載，避免使用者輸入到一半被清空。
+  if(document.querySelector('#feedbackMessage')?.value.trim()||document.querySelector('#feedbackEmail')?.value.trim()||document.querySelector('.feedback-form')?.getAttribute('aria-busy')==='true')return;
   versionCheckInFlight=true;
   try{
     const current=currentAppVersion();
@@ -184,7 +186,7 @@ loadInitialGame().catch(err=>{
 try{
   const requestedView=new URL(location.href).searchParams.get('view');
   const initialView=new URL(location.href).searchParams.has('gamePk')?'live':
-    (['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language'].includes(requestedView)?requestedView:'live');
+    (['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language','feedback'].includes(requestedView)?requestedView:'live');
   switchView(initialView);
   // 即時比賽頁要標示追蹤的球隊：先發布本機快取，再向伺服器更新（訂閱相關頁面會自行載入）。
   publishSubs();

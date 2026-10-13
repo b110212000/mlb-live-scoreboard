@@ -1,3 +1,5 @@
+import { feedbackRequest, feedbackConfigured } from "./feedback.js";
+export { FeedbackService } from "./feedback.js";
 import { getGameHighlights } from "./highlights.js";
 import { gameCalendarResponse } from "./calendar.js";
 import { taiwanPlayersResponse } from "./taiwan.js";
@@ -70,7 +72,7 @@ function withCors(response, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
@@ -84,16 +86,27 @@ export default {
       return json({
         ok: true,
         service: "mlb-score-notify",
-        phase: "subscription-management",
-        version: "2.1.0",
+        phase: "feedback",
+        version: "2.8.0",
         durableObject: "GameMonitor",
         liveIntervalMs: 5000,
         idleIntervalMs: 30000,
         pushEnabled: true,
         pushTestEnabled: true,
         subscriptionManagement: true,
+        feedbackEnabled: feedbackConfigured(env),
         highlightsEnabled: Boolean(env.YOUTUBE_API_KEY)
       }, env);
+    }
+
+    if (url.pathname === "/api/feedback") {
+      const task = feedbackRequest(request, env).catch(() => Response.json({ error: "FEEDBACK_SEND_FAILED" }, { status: 502 }));
+      ctx.waitUntil(task);
+      const response = await task;
+      const headers = new Headers(response.headers);
+      for (const [key, value] of Object.entries(corsHeaders(env))) headers.set(key, value);
+      headers.set("cache-control", "no-store");
+      return new Response(response.body, { status: response.status, headers });
     }
 
     const highlightsMatch = url.pathname.match(/^\/api\/highlights\/(\d+)$/);
@@ -255,6 +268,7 @@ export default {
       error: "NOT_FOUND",
       routes: [
         "GET /health",
+        "POST /api/feedback",
         "GET /api/push/public-key",
         "POST /api/push/test",
         "GET /api/push/status",

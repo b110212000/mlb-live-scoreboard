@@ -3,13 +3,13 @@ import {Icon} from './Icon.jsx';
 import {t} from '../i18n.js';
 // 標籤用函式，畫面重畫時才翻譯（跟著目前語言）。
 const links=[['live',()=>t('即時比賽')],['bracket',()=>t('季後賽戰況')],['standings',()=>t('戰績排行')],['taiwan',()=>t('台灣旅外')],['hof',()=>t('名人堂')],['teams',()=>t('追蹤球隊')],['notifications',()=>t('訂閱管理')]];
-const settingsLinks=[['settings',()=>t('外觀')],['language',()=>t('語言 / Language')],['notificationTest',()=>t('訂閱測試')],['install',()=>t('安裝 / 分享 App')]];
+const settingsLinks=[['settings',()=>t('外觀')],['language',()=>t('語言 / Language')],['notificationTest',()=>t('訂閱測試')],['install',()=>t('安裝 / 分享 App')],['feedback',()=>t('意見回饋')]];
 // 選單項目的圖示（預設與頁面同名）；「外觀」用太陽 / 月亮，與「設定」的齒輪區分。
 const ICONS={settings:'theme',language:'language'};
 export function Sidebar({open,view,onClose,onNavigate}){
   const ref=useRef(null);
   const [section,setSection]=useState('main');
-  useEffect(()=>{if(open)setSection(['install','notificationTest','settings','language'].includes(view)?'settings':'main')},[open]);
+  useEffect(()=>{if(open)setSection(['install','notificationTest','settings','language','feedback'].includes(view)?'settings':'main')},[open]);
   useEffect(()=>{if(ref.current?.open)ref.current.querySelector(section==='settings'?'[data-menu-back]':'[data-menu-settings]')?.focus()},[section]);
   useEffect(()=>{
     const dialog=ref.current;

@@ -38,6 +38,7 @@ if(typeof window!=='undefined')window.addEventListener('popstate',event=>{
   if(snapshot.view==='player')leavePlayer();
 });
 export const actions={
+  notify(text,error=false){store.update({toast:{id:Date.now(),text,type:error?'error':'success'}})},
   connect(value){engine=value},
   // 切換語言：React 畫面跟著 store 重畫，engine 畫的內容（比賽細節、季後賽、名單…）由 relocalize 重畫。
   setLang(pref){

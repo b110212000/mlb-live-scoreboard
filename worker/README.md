@@ -199,3 +199,28 @@ node tests/highlights.cjs
 ```
 
 或執行 `npm test` 跑全部測試。測試使用模擬的 MLB 與推播回應，不會發送真實通知；真實裝置收件，尤其是 iPhone 主畫面 App，仍需實機確認。
+
+
+## 意見回饋與 Gmail SMTP
+
+`POST /api/feedback` 交由全域 `FeedbackService` Durable Object 限流、去重，再經 `smtp.gmail.com:465`（TLS）寄送。這個物件與 GameMonitor / DeviceRegistry / PushService 分開，不改動原有通知資料或 VAPID 金鑰。
+
+Cloudflare → Workers & Pages → `mlb-score-notify` → Settings → Variables and Secrets，以下三項都選 **Secret**，設定在 Production，按 Deploy：
+
+| 名稱 | 內容 |
+| --- | --- |
+| `SMTP_USER` | 完整 Gmail 寄件地址 |
+| `SMTP_PASSWORD` | Google 開啟兩步驟驗證後產生的 16 碼應用程式密碼；不是帳號登入密碼 |
+| `FEEDBACK_TO_EMAIL` | 固定收件地址；寄給自己可與 SMTP_USER 相同 |
+
+這些 Secret 不寫入 repo、前端或 log，也不需要傳給開發者。寄件 / 收件均由後端固定；訪客選填的信箱只作為 Reply-To。
+
+API 需要 `Content-Type: application/json`、與 FRONTEND_ORIGIN 一致的 Origin，及由 Cloudflare 提供的連線 IP。Body：`id`（UUID v4；重試同一內容必須沿用）、`type`（bug / idea / other）、`message`（10–2000 字）、`email`（選填）、`version`、`gamePk`（選填）、`website`（蜜罐必須空白）。最大請求 12 KiB。
+
+每 IP 30 秒最多一次、每個 UTC 小時最多 5 次，全站每 UTC 日最多 100 次 SMTP 嘗試。這是網站自設保護上限，不是 Gmail 保證額度；Gmail 另有寄信與反濫用限制。限流使用 IP 的加密 HMAC，不保存或寄送原始 IP。
+
+同一 ID / 相同內容已送達時直接回覆成功；處理中回 `FEEDBACK_PENDING`。如果 Gmail 可能已接受信件但回應丟失，回 `FEEDBACK_UNCERTAIN`，同一 ID 不再重送。明確失敗可在限流冷卻後重試。介面失敗會保留原文；成功只代表 SMTP 接受，不保證進入收件匣（也請檢查垃圾郵件）。
+
+儲存內容只有限流時間、次數、雜湊、隨機回饋 ID 與寄送狀態，不保存回饋正文或聯絡信箱；鬧鐘清理 24 小時前的記錄，閒置時停止。Email 本身保留在維護者 Gmail。
+
+`/health` 的 `feedbackEnabled` 只代表三個 Secrets 與 binding 已設定，不保證認證成功。部署後還要以表單送一則測試回饋，並確認收到信。`npm test` 的 SMTP 與 API 測試使用 mock，不會寄信。

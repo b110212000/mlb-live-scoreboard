@@ -14,13 +14,15 @@ import {TaiwanPlayers} from './components/TaiwanPlayers.jsx';
 import {HallOfFame} from './components/HallOfFame.jsx';
 import {PlayerPage} from './components/PlayerPage.jsx';
 import {SettingsPage,LanguagePage} from './components/SettingsPage.jsx';
+import {FeedbackPage} from './components/FeedbackPage.jsx';
+import {APP_VERSION} from './config.js';
 import {Toast} from './components/Toast.jsx';
 import {UpdateControls} from './components/UpdateControls.jsx';
 import {t,lang as currentLang,locale} from './i18n.js';
 import {teamLabel} from './teams.js';
 
 // 頁面標題在畫面重畫時才翻譯（跟著目前語言）。
-const pageTitle=view=>({live:t('MLB 即時戰況'),bracket:t('MLB 季後賽戰況'),standings:t('戰績排行'),taiwan:t('台灣旅外球員'),hof:t('名人堂'),player:t('球員資料'),teams:t('追蹤球隊'),roster:t('MLB 對戰名單'),install:t('安裝 / 分享 MLB 戰況'),notifications:t('訂閱管理'),notificationTest:t('訂閱測試'),settings:t('外觀'),language:t('語言 / Language')})[view];
+const pageTitle=view=>({live:t('MLB 即時戰況'),bracket:t('MLB 季後賽戰況'),standings:t('戰績排行'),taiwan:t('台灣旅外球員'),hof:t('名人堂'),player:t('球員資料'),teams:t('追蹤球隊'),roster:t('MLB 對戰名單'),install:t('安裝 / 分享 MLB 戰況'),notifications:t('訂閱管理'),notificationTest:t('訂閱測試'),settings:t('外觀'),language:t('語言 / Language'),feedback:t('意見回饋')})[view];
 
 export function App(){
   const {view,lang}=useScoreboard(),[menuOpen,setMenuOpen]=useState(false);
@@ -51,7 +53,8 @@ export function App(){
       <div id="notificationTestView" className="app-view" hidden={view!=='notificationTest'}><NotificationContent lang={lang}/></div>
       <div id="settingsView" className="app-view" hidden={view!=='settings'}><SettingsPage/></div>
       <div id="languageView" className="app-view" hidden={view!=='language'}><LanguagePage/></div>
-      <footer className="foot" aria-label={t('網站資訊')}><span>{t('資料來源：MLB Stats API · 每 5 秒更新')}</span><span className="app-version">v2.7.1</span><span className="legal-links" hidden><a href="./privacy.html">{t('隱私政策')}</a> · <a href="./terms.html">{t('使用條款')}</a></span></footer>
+      <div id="feedbackView" className="app-view" hidden={view!=='feedback'}><FeedbackPage/></div>
+      <footer className="foot" aria-label={t('網站資訊')}><span>{t('資料來源：MLB Stats API · 每 5 秒更新')}</span><span className="app-version">v{APP_VERSION}</span><span className="legal-links" hidden><a href="./privacy.html">{t('隱私政策')}</a> · <a href="./terms.html">{t('使用條款')}</a></span></footer>
     </main>
   </>;
 }

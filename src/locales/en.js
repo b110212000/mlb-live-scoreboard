@@ -1,5 +1,32 @@
 // English translations, keyed by the original Traditional Chinese text (see src/i18n.js).
 export default {
+  // Feedback
+  "意見回饋":"Feedback",
+  "分享你的想法":"Share your thoughts",
+  "遇到問題或有新點子，都可以在這裡告訴我。":"Found a problem or have an idea? Let me know.",
+  "回饋類型":"Feedback type",
+  "問題回報":"Report a problem",
+  "功能建議":"Suggest a feature",
+  "其他":"Other",
+  "回饋內容":"Your feedback",
+  "請描述遇到的問題，或你希望新增的功能…":"Describe the problem or the feature you would like…",
+  "{n} / 2000 字，至少 10 字":"{n} / 2000 characters; at least 10",
+  "聯絡信箱（選填）":"Email address (optional)",
+  "如果希望收到回覆，可以留下信箱。":"Leave your email if you would like a reply.",
+  "請留空":"Leave blank",
+  "內容會寄給網站維護者，並附上網站版本與目前比賽編號，方便確認問題。":"Your feedback will be emailed to the site maintainer, along with the app version and current game ID to help investigate.",
+  "送出中…":"Sending…",
+  "送出回饋":"Send feedback",
+  "回饋已送出，謝謝你的建議！":"Feedback sent. Thank you!",
+  "請至少輸入 10 字的回饋內容。":"Please enter at least 10 characters.",
+  "送出太頻繁，請稍後再試。":"Too many submissions. Please try again later.",
+  "今日回饋已達上限，請明天再試。":"The daily feedback limit has been reached. Please try again tomorrow.",
+  "回饋功能暫時無法使用，請稍後再試。":"Feedback is temporarily unavailable. Please try again later.",
+  "寄送結果尚未確認，請勿重複送出。內容已保留。":"Delivery could not be confirmed. Please do not submit again. Your text has been kept.",
+  "這則回饋仍在寄送中，請稍後再確認。":"This feedback is still being sent. Please check again shortly.",
+  "請確認回饋內容與聯絡信箱是否正確。":"Please check your feedback and email address.",
+  "送出未完成，內容已保留，請稍後再試。":"Submission did not complete. Your text has been kept. Please try again later.",
+
   // ---- App shell, menu, settings ----
   'MLB 即時戰況':'MLB Live Scores',
   'MLB 季後賽戰況':'MLB Postseason',

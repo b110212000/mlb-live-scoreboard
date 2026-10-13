@@ -1,3 +1,32 @@
+/* v2.8.0：設定 → 意見回饋 */
+.card.feedback-shell{max-width:720px;margin:0 auto;padding:22px;border:1px solid var(--line);border-radius:18px}
+.feedback-intro h3{margin:0 0 8px;font-size:20px}
+.feedback-intro p,.feedback-field small,.feedback-note{color:var(--muted);font-size:13px;line-height:1.7}
+.feedback-intro p{margin:0 0 22px}
+.feedback-fields,.feedback-kind{border:0;margin:0;padding:0;min-width:0}
+.feedback-kind legend,.feedback-field>label{display:block;margin-bottom:10px;font-size:14px;font-weight:650}
+.feedback-types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:22px}
+.feedback-type{position:relative;border:1px solid var(--line);border-radius:12px;min-height:44px;display:flex;align-items:center;justify-content:center;padding:10px 4px;color:var(--muted);font-size:14px;cursor:pointer}
+.feedback-type.selected{border-color:var(--accent);background:var(--panel2);color:var(--text)}
+.feedback-type input{position:absolute;opacity:0;width:1px;height:1px}
+.feedback-type:focus-within{outline:2px solid var(--accent);outline-offset:3px}
+.feedback-field{margin-bottom:20px;min-width:0}
+.feedback-field textarea,.feedback-field input{display:block;width:100%;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--panel3);color:var(--text);padding:12px;font:inherit;font-size:16px;line-height:1.6;outline:none}
+.feedback-field textarea{resize:vertical;min-height:150px;max-height:420px}
+.feedback-field textarea:focus,.feedback-field input:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(85,216,255,.12)}
+.feedback-field textarea::placeholder,.feedback-field input::placeholder{color:var(--muted);opacity:.8}
+.feedback-field small{display:block;margin-top:6px}
+.feedback-count{text-align:right;font-variant-numeric:tabular-nums}
+.feedback-trap{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.feedback-note{margin:0 0 16px}
+.feedback-submit{width:100%;min-height:46px;background:var(--accent);color:var(--bg);font-weight:750;border:0}
+.feedback-fields:disabled{opacity:.65}
+.feedback-fields:disabled .feedback-type,.feedback-submit:disabled{cursor:wait}
+.feedback-result{margin-top:12px;font-size:13px;line-height:1.7;color:var(--green);overflow-wrap:anywhere}
+.feedback-result-error{color:var(--red)}
+.feedback-result:empty{display:none}
+@media(max-width:480px){.card.feedback-shell{padding:18px 15px}.feedback-type{font-size:13px}}
+
 /* MLB Live Scoreboard - styles.css
    畫面樣式集中於此檔案。 */
 
@@ -2596,7 +2625,7 @@ body.sidebar-open{overflow:hidden}
 .toast{max-width:100%;padding:10px 16px;border-radius:12px;font-size:14px;font-weight:700;line-height:1.5;text-align:center;box-shadow:0 10px 30px #0008;
   animation:toast-in .2s ease-out both,toast-out .25s ease-in calc(var(--toast-ms,2000ms) - 250ms) forwards}
 .toast.success{border:1px solid #2d6b57;background:#0c211aee;color:#bff4dd}
-.toast.error{border:1px solid #743838;background:#241113ee;color:#ffc0c0}
+.toast.error{display:block;border:1px solid #743838;background:#241113ee;color:#ffc0c0}
 @keyframes toast-in{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @keyframes toast-out{to{opacity:0;transform:translateY(-8px)}}
 @media(prefers-reduced-motion:reduce){.toast{animation:none}}

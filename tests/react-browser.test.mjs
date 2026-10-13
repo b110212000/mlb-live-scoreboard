@@ -79,7 +79,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=live]').count(),0);
  assert.equal(await page.locator('[data-view=teams]').count(),0);
  assert.equal(await page.locator('[data-view=notifications]').count(),0);
- assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['settings','language','notificationTest','install']);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['settings','language','notificationTest','install','feedback']);
  assert.equal(await page.locator('[data-view=notificationTest]').innerText(),'訂閱測試');
  await page.locator('[data-view=notificationTest]').click();
  assert(await page.locator('#featureMenu').evaluate(d=>d.open),'must remain open during exit');
@@ -94,7 +94,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert(await page.locator('#liveView').isVisible());assert(await page.locator('#gameWatchBtn').isVisible());
  for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['hof','hofView'],['teams','teamsView'],['install','installView'],['settings','settingsView'],['language','languageView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
-   if(['install','notificationTest','settings','language'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+   if(['install','notificationTest','settings','language','feedback'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
    if(['live','bracket','standings','taiwan','hof','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
@@ -701,7 +701,7 @@ test('Language setting: follow device, English, Japanese and push language',asyn
  const langCalls=()=>mock.calls.filter(c=>c.path==='/lang').map(c=>c.body.lang);
  const go=async view=>{
   await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
-  const inSettings=['install','notificationTest','settings','language'].includes(view);
+  const inSettings=['install','notificationTest','settings','language','feedback'].includes(view);
   if(inSettings&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
   if(!inSettings&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
   await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(320);
@@ -716,7 +716,7 @@ test('Language setting: follow device, English, Japanese and push language',asyn
  assert.deepEqual(langCalls(),['en'],'push language not synced to the Worker');
  // 每一頁都不應留下中文（球員名字、MLB 原文說明本來就是英文）。
  for(const tab of ['stats','status','summary']){await page.locator(`[data-live-tab=${tab}]`).click();await page.waitForTimeout(150);assert.equal(await leftover(han),null,'Chinese left on live tab '+tab)}
- for(const view of ['bracket','standings','taiwan','hof','teams','notifications','notificationTest','install','settings','language']){
+ for(const view of ['bracket','standings','taiwan','hof','teams','notifications','notificationTest','install','settings','language','feedback']){
   await go(view);assert(await page.locator(`#${{notifications:'notificationView'}[view]||view+'View'}`).isVisible(),view);
   assert.equal(await leftover(han),null,'Chinese left on '+view);
  }
@@ -767,4 +767,37 @@ test('Language setting: follow device, English, Japanese and push language',asyn
  await page.waitForTimeout(300);
  assert.deepEqual(langCalls(),['en','ja','zh','en']);
  assert.deepEqual(errors,[]);await page.close();
+});
+
+
+test('Feedback: settings navigation, failure retains draft, retry ID, double submit, success, themes',async()=>{
+ const requests=[];let fail=true,release;
+ const {page,errors}=await setup({worker:async route=>{
+  if(new URL(route.request().url()).pathname!=='/api/feedback')return route.fulfill({json:{ok:true}});
+  requests.push(route.request().postDataJSON());
+  if(fail)return route.fulfill({status:502,json:{error:'FEEDBACK_SEND_FAILED'}});
+  await new Promise(r=>release=r);return route.fulfill({json:{ok:true,id:requests.at(-1).id}});
+ }});
+ async function go(view){
+  await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
+  if(await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+  await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(310);
+ }
+ await go('feedback');assert.equal(await page.locator('#appTitle').innerText(),'意見回饋');
+ const message='希望增加球員比賽的逐球資料，謝謝。';
+ await page.locator('#feedbackMessage').fill('太短');await page.locator('.feedback-submit').click();assert.equal(requests.length,0);
+ await page.locator('#feedbackMessage').fill(message);await page.locator('#feedbackEmail').fill('visitor@example.com');
+ await go('settings');await go('feedback');assert.equal(await page.locator('#feedbackMessage').inputValue(),message);
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'feedback overflow on mobile');
+ await page.screenshot({path:'/tmp/mlb-feedback-dark.png',fullPage:true});
+ await go('settings');await page.locator('[data-theme-option=light]').click();await go('feedback');
+ await page.screenshot({path:'/tmp/mlb-feedback-light.png',fullPage:true});
+ await page.locator('.feedback-submit').click();await page.locator('.feedback-result-error').waitFor();await page.locator('#toast .toast.error').waitFor();
+ assert.equal(requests.length,1);assert.equal(await page.locator('#feedbackMessage').inputValue(),message);assert.equal(await page.locator('#feedbackEmail').inputValue(),'visitor@example.com');
+ fail=false;await page.locator('.feedback-submit').click();await page.waitForFunction(()=>document.querySelector('.feedback-form').getAttribute('aria-busy')==='true');
+ await page.locator('.feedback-form').evaluate(f=>f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+ await page.waitForTimeout(100);assert.equal(requests.length,2);assert.equal(requests[0].id,requests[1].id);assert.equal(requests[1].version,version);assert.equal(requests[1].gamePk,feed.gamePk);assert.equal(requests[1].website,'');
+ release();await page.locator('.feedback-result').filter({hasText:'回饋已送出'}).waitFor();
+ assert.equal(await page.locator('#feedbackMessage').inputValue(),'');assert.equal(await page.locator('#feedbackEmail').inputValue(),'');
+ await page.locator('#toast .toast.success').waitFor();assert.deepEqual(errors,[]);await page.close();
 });
