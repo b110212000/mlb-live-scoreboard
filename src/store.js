@@ -15,7 +15,7 @@ export const store={
   update(patch){snapshot={...snapshot,...patch};listeners.forEach(fn=>fn())},
 };
 export function useScoreboard(){return useSyncExternalStore(store.subscribe,store.getSnapshot,store.getSnapshot)}
-let engine=null;
+let engine=null,returnPoint=null;
 // 球員頁的網址參數（view=player&playerId=…）只在球員頁有效，離開時移除，重新整理才不會又回到球員頁。
 function clearPlayerUrl(){
   try{
@@ -47,7 +47,9 @@ export const actions={
     // 等 React 重畫完（固定元件的文字更新後）再讓 engine 重畫自己的內容，engine 設定的屬性才不會被蓋掉。
     requestAnimationFrame(()=>engine?.relocalize?.());
   },
+  updateReturnPoint(){return returnPoint||engine?.captureView?.()||{}},
   navigate(view){
+    if(view==='updates'&&snapshot.view!=='updates')returnPoint={...engine?.captureView?.(),playerId:snapshot.playerId};
     if(snapshot.view==='player'&&view!=='player')clearPlayerUrl();
     engine?.navigate(view);
   },

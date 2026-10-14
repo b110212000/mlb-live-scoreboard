@@ -9,19 +9,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="MLB 戰況" />
   <meta name="application-name" content="MLB 戰況" />
-  <link rel="manifest" href="./manifest.json?v=2.8.0" />
-  <link rel="icon" href="./app-icon.svg?v=2.8.0" type="image/svg+xml" />
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/app-icon-180.png?v=2.8.0" />
+  <link rel="manifest" href="./manifest.json?v=2.9.0" />
+  <link rel="icon" href="./app-icon.svg?v=2.9.0" type="image/svg+xml" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/app-icon-180.png?v=2.9.0" />
   <title>MLB 即時戰況 Pro</title>
   <script>try{var t=localStorage.getItem('mlb-theme');if(t==='system')t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}</script>
-  <link rel="stylesheet" href="./styles.css?v=2.8.0">
-  <link rel="stylesheet" href="./theme-light.css?v=2.8.0">
-  <meta name="app-version" content="2.8.0" />
+  <link rel="stylesheet" href="./styles.css?v=2.9.0">
+  <link rel="stylesheet" href="./theme-light.css?v=2.9.0">
+  <meta name="app-version" content="2.9.0" />
 </head>
 <body>
-  <div id="root"><main class="wrap"><p role="status">正在載入 MLB 戰況…</p><span class="app-version">v2.8.0</span></main></div>
+  <div id="root"><main class="wrap"><p role="status">正在載入 MLB 戰況…</p><span class="app-version">v2.9.0</span></main></div>
   <script>/* 載入中的文字跟著語言設定（規則與 src/i18n.js 的 detectLang 相同）。 */try{var p=localStorage.getItem('mlb-lang'),l=p==='zh'||p==='en'||p==='ja'?p:'',n=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];for(var i=0;!l&&i<n.length;i++){var v=String(n[i]||'').toLowerCase();l=v.indexOf('zh')===0?'zh':v.indexOf('ja')===0?'ja':v.indexOf('en')===0?'en':''}if(!l)l=n.some(Boolean)?'en':'zh';var s={en:'Loading MLB scores…',ja:'MLB スコアを読み込み中…'}[l];if(s)document.querySelector('#root [role=status]').textContent=s}catch(e){}</script>
   <noscript>請啟用 JavaScript 以查看即時比賽。</noscript>
-  <script type="module" src="./assets/app-2.8.0.js?v=2.8.0"></script>
+  <script type="module" src="./assets/app-2.9.0.js?v=2.9.0"></script>
 </body>
 </html>

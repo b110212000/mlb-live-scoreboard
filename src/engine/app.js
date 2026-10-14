@@ -23,47 +23,7 @@ async function disableLegacyPwaCache(){
   return false;
 }
 
-async function fetchRemoteVersion(){
-  const u=new URL('./version.json',location.href);
-  u.searchParams.set('_check',Date.now());
-  const r=await fetch(u.toString(),{cache:'no-store'});
-  if(!r.ok)throw new Error('version check failed');
-  const data=await r.json();
-  return String(data?.version||'').trim().replace(/^v/i,'');
-}
-
-async function deployedIndexHasVersion(version){
-  // GitHub Pages / CDN 可能短暫先更新 version.json。
-  // 只有確認新版 index.html 也已經部署，才真正 reload，避免反覆刷新舊頁。
-  const u=new URL('./index.html',location.href);
-  u.searchParams.set('_ready',version+'-'+Date.now());
-  const r=await fetch(u.toString(),{cache:'no-store'});
-  if(!r.ok)return false;
-  const html=await r.text();
-  return html.includes('name="app-version" content="'+version+'"')||html.includes('<span class="app-version">v'+version+'</span>');
-}
-
-let versionCheckInFlight=false;
-async function checkForAppUpdate(){
-  if(versionCheckInFlight)return;
-  // 回饋草稿或寄送中暫緩版本重載，避免使用者輸入到一半被清空。
-  if(document.querySelector('#feedbackMessage')?.value.trim()||document.querySelector('#feedbackEmail')?.value.trim()||document.querySelector('.feedback-form')?.getAttribute('aria-busy')==='true')return;
-  versionCheckInFlight=true;
-  try{
-    const current=currentAppVersion();
-    const remote=await fetchRemoteVersion();
-    if(!remote||remote===current)return;
-    if(!await deployedIndexHasVersion(remote))return;
-
-    const u=new URL(location.href);
-    u.searchParams.set('_v',remote);
-    location.replace(u.toString());
-  }catch(_){
-    // 版本檢查失敗不影響即時比分與其他主要功能。
-  }finally{
-    versionCheckInFlight=false;
-  }
-}
+function checkForAppUpdate(){return callbacks.checkAppUpdate?.()}
 
 // PWA / 安裝事件
 on(window,'beforeinstallprompt',e=>{
@@ -174,11 +134,23 @@ document.querySelectorAll('[data-collapse-section]').forEach(section=>{
 
 on(els.refreshBtn,'click',()=>state.notificationGamePending?loadInitialGame():loadSchedule(true));
 on(els.dateInput,'change',()=>{clearNotificationRoute();loadSchedule(false);if(state.view==='bracket')loadBracket(true)});
-els.dateInput.value=localDateString();
+let updateReturn=null;
+try{
+  const saved=JSON.parse(sessionStorage.getItem('mlb-update-return')||'null');
+  sessionStorage.removeItem('mlb-update-return');
+  if(saved&&Date.now()-saved.at<120000&&new URL(location.href).searchParams.has('_v'))updateReturn=saved;
+}catch(_){}
+els.dateInput.value=updateReturn?.date||localDateString();
+if(updateReturn?.gamePk)state.selectedGamePk=Number(updateReturn.gamePk);
 
 // 賽事資料是核心功能：先啟動資料載入，再初始化其他非必要 UI。
 // 這樣即使某個附加 UI 發生錯誤，也不會讓整個即時比分停在「尚未更新」。
-loadInitialGame().catch(err=>{
+(updateReturn?loadSchedule(true):loadInitialGame()).then(()=>{
+  if(!updateReturn)return;
+  setLiveDetailTab(updateReturn.tab,{animate:false});
+  switchView(updateReturn.view);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo(0,updateReturn.scroll||0)));
+}).catch(err=>{
   console.error('Initial schedule load failed',err);
   showError(t('初始賽事資料載入失敗：{error}',{error:err?.message||String(err)}));
 });
@@ -186,7 +158,7 @@ loadInitialGame().catch(err=>{
 try{
   const requestedView=new URL(location.href).searchParams.get('view');
   const initialView=new URL(location.href).searchParams.has('gamePk')?'live':
-    (['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language','feedback'].includes(requestedView)?requestedView:'live');
+    (['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language','feedback','updates'].includes(requestedView)?requestedView:'live');
   switchView(initialView);
   // 即時比賽頁要標示追蹤的球隊：先發布本機快取，再向伺服器更新（訂閱相關頁面會自行載入）。
   publishSubs();
@@ -218,7 +190,7 @@ on(document,'visibilitychange',()=>{
   if(state.view==='notifications'||state.view==='teams')loadSubscriptions();
 });
 on(window,'focus',checkForAppUpdate);
-setInterval(checkForAppUpdate,15000);
+setInterval(()=>{if(!document.hidden)checkForAppUpdate()},60000);
 
 
 // 保持 Push-only Service Worker 最新；無需重新訂閱或重新詢問權限。

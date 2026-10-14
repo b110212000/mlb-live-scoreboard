@@ -1,5 +1,20 @@
 // English translations, keyed by the original Traditional Chinese text (see src/i18n.js).
 export default {
+  "版本更新":"App updates",
+  "有新版本":"Update available",
+  "目前版本：v{version}":"Current version: v{version}",
+  "有新版時會顯示紅點，由你決定何時更新，不會自動重整。":"A red dot marks new versions. Update when you are ready; the app will not reload automatically.",
+  "正在檢查更新…":"Checking for updates…",
+  "可更新至 v{version}":"Update to v{version} available",
+  "目前已是最新版本。":"You are up to date.",
+  "更新內容":"What’s new",
+  "檢查更新":"Check for updates",
+  "正在準備更新…":"Preparing update…",
+  "請先送出或清空回饋草稿，再更新。":"Send or clear your feedback draft before updating.",
+  "新版還在部署，請稍後再更新。":"The update is still being deployed. Try again shortly.",
+  "無法確認更新，請檢查網路後再試。":"Could not check the update. Check your connection and try again.",
+  "返回意見回饋":"Back to feedback",
+
   // Feedback
   "意見回饋":"Feedback",
   "分享你的想法":"Share your thoughts",
@@ -140,7 +155,7 @@ export default {
   '選擇比賽後查看精華':'Choose a game to see highlights',
   '即時比賽更新狀態':'Live update status',
   '尚未更新':'Not updated yet',
-  '立即更新':'Refresh now',
+  '立即更新':'Update now',
 
   // ---- Live page: engine ----
   '通知指定的比賽不在該日賽程中，請稍後重新整理':'The game from the notification is not on that day\'s schedule. Please refresh later.',

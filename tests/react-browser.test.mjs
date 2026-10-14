@@ -79,7 +79,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=live]').count(),0);
  assert.equal(await page.locator('[data-view=teams]').count(),0);
  assert.equal(await page.locator('[data-view=notifications]').count(),0);
- assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['settings','language','notificationTest','install','feedback']);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['settings','language','notificationTest','install','feedback','updates']);
  assert.equal(await page.locator('[data-view=notificationTest]').innerText(),'訂閱測試');
  await page.locator('[data-view=notificationTest]').click();
  assert(await page.locator('#featureMenu').evaluate(d=>d.open),'must remain open during exit');
@@ -800,4 +800,49 @@ test('Feedback: settings navigation, failure retains draft, retry ID, double sub
  release();await page.locator('.feedback-result').filter({hasText:'回饋已送出'}).waitFor();
  assert.equal(await page.locator('#feedbackMessage').inputValue(),'');assert.equal(await page.locator('#feedbackEmail').inputValue(),'');
  await page.locator('#toast .toast.success').waitFor();assert.deepEqual(errors,[]);await page.close();
+});
+
+test('App update: opt-in reload, release notes, deploy guard, feedback protection and game restoration',async()=>{
+ const {page,errors}=await setup();
+ const next=version.split('.').map(Number);next[1]+=1;next[2]=0;const remote=next.join('.');
+ await page.route('**/version.json*',r=>r.fulfill({json:{version:remote}}));
+ await page.route('**/release-notes.json*',r=>r.fulfill({json:{version:remote,notes:{zh:['測試更新說明'],en:['Update test'],ja:['更新テスト']}}}));
+ let ready=false;
+ const html=await readFile('index.html','utf8');
+ await page.route('**/index.html*',r=>r.fulfill({contentType:'text/html',body:ready?html.replace('name="app-version" content="'+version+'"','name="app-version" content="'+remote+'"'):html}));
+ await page.locator('[data-live-tab=stats]').click();
+ await page.locator('#boxScoreBoard table').first().waitFor();
+ await page.evaluate(()=>{window.scrollTo(0,180);window.__updateIdentity='kept'});
+ const openUpdates=async()=>{
+  await page.locator('#featureMenuButton').click();await page.waitForTimeout(310);
+  if(await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+  await page.locator('[data-view=updates]').click();await page.waitForTimeout(310);
+ };
+ await openUpdates();await page.getByRole('button',{name:'檢查更新',exact:true}).click();
+ await page.locator('.app-update-status').filter({hasText:'可更新至'}).waitFor();
+ assert.equal(await page.evaluate(()=>window.__updateIdentity),'kept');
+ assert(await page.locator('#featureMenuButton .app-update-dot').isVisible());
+ assert.equal(await page.locator('.app-update-notes li').innerText(),'測試更新說明');
+ await page.getByRole('button',{name:'立即更新',exact:true}).click();
+ await page.locator('.app-update-status').filter({hasText:'新版還在部署'}).waitFor();
+ assert.equal(await page.evaluate(()=>window.__updateIdentity),'kept');
+ // Feedback is still mounted while visiting update settings.
+ await page.locator('#featureMenuButton').click();await page.waitForTimeout(310);await page.locator('[data-view=feedback]').click();await page.waitForTimeout(310);
+ await page.locator('#feedbackMessage').fill('這是一份不能因為更新而遺失的回饋草稿。');
+ await openUpdates();await page.getByRole('button',{name:'立即更新',exact:true}).click();
+ await page.locator('.app-update-status').filter({hasText:'請先送出或清空'}).waitFor();
+ await page.getByRole('button',{name:'返回意見回饋',exact:true}).click();
+ assert.match(await page.locator('#feedbackMessage').inputValue(),/不能因為更新/);
+ await page.locator('#feedbackMessage').fill('');
+ await page.locator('#featureMenuButton').click();await page.waitForTimeout(310);await page.locator('[data-menu-back]').click();await page.locator('[data-view=live]').click();await page.waitForTimeout(310);
+ await page.locator('[data-live-tab=stats]').click();await page.evaluate(()=>window.scrollTo(0,180));
+ await openUpdates();ready=true;
+ await page.getByRole('button',{name:'立即更新',exact:true}).click();
+ await page.waitForURL(u=>u.searchParams.get('_v')===remote);
+ await page.locator('#liveView').waitFor();await page.locator('#boxScoreBoard table').first().waitFor();
+ assert.equal(await page.locator('[data-live-tab=stats]').getAttribute('aria-selected'),'true');
+ assert.equal(await page.locator('#awayName').innerText(),feed.gameData.teams.away.name);
+ assert.equal(await page.evaluate(()=>window.__updateIdentity),undefined);
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ assert.deepEqual(errors,[]);await page.close();
 });

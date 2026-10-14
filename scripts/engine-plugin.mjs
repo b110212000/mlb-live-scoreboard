@@ -25,6 +25,7 @@ export async function engineSource(){
     ${sources.join('\n\n')}
     return {
       navigate:switchView,
+      captureView:()=>({view:state.view,gamePk:state.selectedGamePk,date:els.dateInput.value,tab:state.liveDetailTab,scroll:window.scrollY}),
       relocalize(){if(!disposed)relocalizeEngine()},
       async selectGame(gamePk){if(disposed)return;clearNotificationRoute();state.selectedGamePk=Number(gamePk);renderTabs();await loadGame(state.selectedGamePk)},
       subscriptions:{refresh:()=>disposed?null:loadSubscriptions(),setDefaultPrefs,setGamePrefs,unsubscribeGame,followTeam,unfollowTeam,openGame:openSubscribedGame},
