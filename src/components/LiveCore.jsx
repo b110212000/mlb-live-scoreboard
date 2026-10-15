@@ -3,7 +3,7 @@ import {useScoreboard,actions} from '../store.js';
 import {t} from '../i18n.js';
 const logo=id=>id?`https://www.mlbstatic.com/team-logos/${id}.svg`:undefined;
 // 沒有球隊資料或隊徽載入失敗時顯示本機 SVG；球隊切換以 key 重建，重新嘗試新隊徽。
-function TeamLogo({id,team,label}){
+export function TeamLogo({id,team,label}){
   const [failed,setFailed]=useState(false);
   const src=logo(team.id);
   if(src&&!failed)return <img id={id} className="logo" src={src} data-team-id={team.id} alt={label} onError={()=>setFailed(true)}/>;

@@ -1,17 +1,20 @@
 {
-  "version": "2.10.0",
+  "version": "2.11.0",
   "notes": {
     "zh": [
-      "統計與球員資料可點有底線的欄位查看數據說明。",
-      "打者與投手同名指標分別說明，附 MLB 官方詞彙表連結。"
+      "新增多場同看，釘選最多 4 場比賽並記住選擇。",
+      "同時查看比分、局數、壘包、出局數，點卡片進入詳細賽況。",
+      "退到背景或所選比賽全部結束後停止輪詢。"
     ],
     "en": [
-      "Tap underlined stats in box scores and player profiles for explanations.",
-      "Hitting and pitching terms are explained separately, with MLB glossary links."
+      "Pin up to 4 games in the new multi-game view. Your selection is saved.",
+      "Follow scores, innings, runners and outs; tap a card for full details.",
+      "Polling pauses in the background and stops when all selected games finish."
     ],
     "ja": [
-      "成績表や選手情報の下線付き指標をタップすると説明を表示します。",
-      "打撃と投球の用語を区別し、MLB 公式用語集へのリンクを掲載します。"
+      "複数試合画面で最大4試合を固定し、選択を保存できます。",
+      "スコア・イニング・走者・アウトを同時表示。カードから詳細を開けます。",
+      "バックグラウンドや選択した全試合の終了後は自動更新を停止します。"
     ]
   }
 }

@@ -197,7 +197,7 @@ async function installThisApp(){
 }
 
 function switchView(view){
-  if(!['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language','feedback','updates'].includes(view))view='live';
+  if(!['live','multi','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language','feedback','updates'].includes(view))view='live';
   state.view=view;
   bridge.publish({view});
   const live=view==='live';

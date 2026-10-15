@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict');
+(async()=>{
+ process.env.TZ='Asia/Taipei';
+ const m=await import('../src/gameData.js');
+ assert(m.validDate('2026-10-15'));assert(!m.validDate('2026-02-30'));assert(!m.validDate('../bad'));
+ assert.equal(m.shiftDate('2026-01-01',-1),'2025-12-31');
+ const game={gamePk:123,gameDate:'2026-05-01T23:30:00Z',status:{abstractGameState:'Final',codedGameState:'D',detailedState:'Postponed'}};
+ assert.equal(m.gamesOnDate({dates:[{games:[game,game,{...game,gamePk:124,gameDate:'bad'}]}]},'2026-05-02').length,1);
+ assert.equal(m.gamesOnDate({dates:[{games:[game]}]},'2026-05-01').length,0);
+ assert.throws(()=>m.gamesOnDate({},'2026-05-02'));
+ assert.equal(m.gameKind(game),'postponed');
+ assert.equal(m.gameKind({status:{abstractGameState:'Final',codedGameState:'X'}}),'cancelled');
+ assert.equal(m.gameKind({status:{abstractGameState:'Live',detailedState:'Suspended'}}),'suspended');
+ assert.equal(m.gameKind({status:{abstractGameState:'Final'}}),'final');
+ let calls=0,release;global.fetch=async()=>{calls++;await new Promise(r=>release=r);return {ok:true,json:async()=>({ok:true})}};
+ const a=m.cachedJSON('https://statsapi.mlb.com/mock'),b=m.cachedJSON('https://statsapi.mlb.com/mock');
+ assert.equal(calls,1);release();assert.deepEqual(await a,await b);await m.cachedJSON('https://statsapi.mlb.com/mock');assert.equal(calls,1);
+ global.fetch=async()=>{calls++;throw new Error('offline')};
+ await assert.rejects(m.cachedJSON('https://statsapi.mlb.com/mock',0));
+ global.fetch=async()=>{calls++;return {ok:true,json:async()=>({fresh:true})}};
+ assert.deepEqual(await m.cachedJSON('https://statsapi.mlb.com/mock',0),{fresh:true});assert.equal(calls,3);
+ console.log('PASS game data: local dates, doubleheader dedupe, called-off vs final, cache, concurrent sharing and retry');
+})().catch(e=>{console.error(e);process.exitCode=1});

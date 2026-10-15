@@ -482,6 +482,21 @@ html[data-theme=light] .stat-help-dialog{border:1px solid #98b1c9;background:#f7
 html[data-theme=light] .stat-help-dialog::backdrop{background:rgba(0,0,0,0.33)}
 html[data-theme=light] .stat-help-dialog a{color:#0a7fb0}
 html[data-theme=light] .stat-help-dialog button{border:1px solid #98b1c9;color:inherit;background:#d0e0f1}
+html[data-theme=light] .multi-toolbar input{background:#f7f8fa;color:#00152f;border:1px solid #98b1c9}
+html[data-theme=light] .multi-toolbar button,html[data-theme=light] .multi-picker button{color:#00152f;background:#f7f8fa;border:1px solid #98b1c9}
+html[data-theme=light] .multi-picker{border:0}
+html[data-theme=light] .multi-picker legend{color:#35516b}
+html[data-theme=light] .multi-picker small{color:#35516b}
+html[data-theme=light] .multi-picker button[aria-pressed=true]{border-color:#298e5f;background:#f8fbfa}
+html[data-theme=light] .multi-card{background:#f7f8fa;border:1px solid #98b1c9}
+html[data-theme=light] .multi-card>header{border-bottom:1px solid #bbd0e2}
+html[data-theme=light] .multi-live{color:#1d9a59}
+html[data-theme=light] .multi-remove{border:0;background:none;color:#35516b}
+html[data-theme=light] .multi-open{border:0;color:inherit;background:none}
+html[data-theme=light] .multi-detail{color:#35516b}
+html[data-theme=light] .multi-bases span{color:#35516b;background:#fdfefe}
+html[data-theme=light] .multi-bases .occupied{color:#1d9a59;background:#f8fbfa}
+html[data-theme=light] .multi-unavailable{color:#35516b}
 
 /* ---- 手動調整（src/theme-light.css） ---- */
 /* 淺色主題的手動調整：接在自動產生的規則後面（同權重時以這裡為準）。

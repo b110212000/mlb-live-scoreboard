@@ -15,6 +15,7 @@ import {HallOfFame} from './components/HallOfFame.jsx';
 import {PlayerPage} from './components/PlayerPage.jsx';
 import {SettingsPage,LanguagePage} from './components/SettingsPage.jsx';
 import {FeedbackPage} from './components/FeedbackPage.jsx';
+import {MultiGamePage} from './components/MultiGamePage.jsx';
 import {StatHelpDialog} from './components/StatHelp.jsx';
 import {AppUpdatePage} from './components/AppUpdatePage.jsx';
 import {checkAppUpdate,useAppUpdate} from './updates.js';
@@ -25,7 +26,7 @@ import {t,lang as currentLang,locale} from './i18n.js';
 import {teamLabel} from './teams.js';
 
 // 頁面標題在畫面重畫時才翻譯（跟著目前語言）。
-const pageTitle=view=>({live:t('MLB 即時戰況'),bracket:t('MLB 季後賽戰況'),standings:t('戰績排行'),taiwan:t('台灣旅外球員'),hof:t('名人堂'),player:t('球員資料'),teams:t('追蹤球隊'),roster:t('MLB 對戰名單'),install:t('安裝 / 分享 MLB 戰況'),notifications:t('訂閱管理'),notificationTest:t('訂閱測試'),settings:t('外觀'),language:t('語言 / Language'),feedback:t('意見回饋'),updates:t('版本更新')})[view];
+const pageTitle=view=>({live:t('MLB 即時戰況'),bracket:t('MLB 季後賽戰況'),standings:t('戰績排行'),taiwan:t('台灣旅外球員'),hof:t('名人堂'),player:t('球員資料'),teams:t('追蹤球隊'),roster:t('MLB 對戰名單'),install:t('安裝 / 分享 MLB 戰況'),notifications:t('訂閱管理'),notificationTest:t('訂閱測試'),settings:t('外觀'),language:t('語言 / Language'),feedback:t('意見回饋'),updates:t('版本更新'),multi:t('多場同看')})[view];
 
 export function App(){
   const update=useAppUpdate();
@@ -46,6 +47,7 @@ export function App(){
     <main className="wrap">
       <div className="topbar"><div className="topbar-title"><div className="brand-group"><div className="feature-menu-wrap"><button id="featureMenuButton" className="feature-menu-button" type="button" aria-expanded={menuOpen} aria-controls="featureMenu" aria-label={t('功能列表')} onClick={()=>setMenuOpen(true)}><i/><i/><i/>{update.remote&&<span className="app-update-dot" aria-label={t('有新版本')}/>}</button></div><div><h1 id="appTitle">{pageTitle(view)}</h1><div id="appSubtitle" className="subtitle"/></div></div><div id="liveTitleActions" hidden={view!=='live'}><UpdateControls lang={lang}/></div></div></div>
       <div id="liveView" className="app-view" hidden={view!=='live'}><LiveDetails lang={lang}/></div>
+      <div id="multiView" className="app-view" hidden={view!=='multi'}><MultiGamePage/></div>
       <div id="bracketView" className="app-view" hidden={view!=='bracket'}><BracketContent lang={lang}/></div>
       <div id="standingsView" className="app-view" hidden={view!=='standings'}><StandingsPage/></div>
       <div id="taiwanView" className="app-view" hidden={view!=='taiwan'}><TaiwanPlayers/></div>

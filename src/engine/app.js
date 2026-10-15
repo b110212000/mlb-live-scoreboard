@@ -158,7 +158,7 @@ if(updateReturn?.gamePk)state.selectedGamePk=Number(updateReturn.gamePk);
 try{
   const requestedView=new URL(location.href).searchParams.get('view');
   const initialView=new URL(location.href).searchParams.has('gamePk')?'live':
-    (['live','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language','feedback','updates'].includes(requestedView)?requestedView:'live');
+    (['live','multi','bracket','standings','taiwan','hof','player','teams','roster','install','notifications','notificationTest','settings','language','feedback','updates'].includes(requestedView)?requestedView:'live');
   switchView(initialView);
   // 即時比賽頁要標示追蹤的球隊：先發布本機快取，再向伺服器更新（訂閱相關頁面會自行載入）。
   publishSubs();

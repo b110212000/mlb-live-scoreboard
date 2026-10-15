@@ -69,7 +69,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=install]').count(),0);
  assert.equal(await page.locator('[data-view=notificationTest]').count(),0);
  // 追蹤球隊與訂閱管理在主選單，不在設定子選單。
- assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','bracket','standings','taiwan','hof','teams','notifications']);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','multi','bracket','standings','taiwan','hof','teams','notifications']);
  assert.equal(await page.locator('[data-view=teams]').innerText(),'追蹤球隊');
  assert.equal(await page.locator('[data-view=notifications]').innerText(),'訂閱管理');
  await page.locator('[data-menu-settings]').click();
@@ -95,7 +95,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['hof','hofView'],['teams','teamsView'],['install','installView'],['settings','settingsView'],['language','languageView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
    if(['install','notificationTest','settings','language','feedback'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
-   if(['live','bracket','standings','taiwan','hof','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+   if(['live','multi','bracket','standings','taiwan','hof','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
  }
@@ -869,4 +869,47 @@ test('Stat glossary: batter vs pitcher meaning, modal dismissal, official link a
   assert(await page.locator('.stat-help-dialog').evaluate(el=>el.getBoundingClientRect().right<=innerWidth));
   assert.deepEqual(errors,[]);await page.close();
  }
+});
+
+test('Multi-game: four-card limit, stable updates, reload, visibility pause, final stop and deep links',async()=>{
+ const {page,errors}=await setup();
+ let requests=0,fail=false,selectedFeed=null;
+ const cards=[0,1,2,3,4].map((i)=>({...structuredClone(game),gamePk:810001+i,linescore:{...structuredClone(feed.liveData.linescore),outs:1,offense:{first:{id:123}}},gameNumber:i===1?2:1,teams:{...structuredClone(game.teams),home:{...structuredClone(game.teams.home),score:10+i}}}));
+ cards[1].status={abstractGameState:'Preview',detailedState:'Scheduled'};
+ cards[2].status={abstractGameState:'Final',detailedState:'Final'};
+ cards[3].status={abstractGameState:'Final',detailedState:'Postponed',codedGameState:'D'};
+ await page.route('https://statsapi.mlb.com/**',route=>{
+  const u=new URL(route.request().url());
+  if(u.pathname.endsWith('/schedule')){requests++;return fail?route.fulfill({status:503,json:{}}):route.fulfill({json:{dates:[{date:today,games:cards}]}})}
+  const id=Number(u.pathname.match(/game\/(\d+)\/feed\/live/)?.[1]);
+  if(id>=810001&&id<=810005){selectedFeed=id;const f=structuredClone(feed);f.gamePk=id;f.gameData.game.pk=id;f.liveData.linescore.teams.home.runs=10+id-810001;return route.fulfill({json:f})}
+  return route.fallback();
+ });
+ await openMain(page,'multi');await page.locator('[data-multi-pick]').first().waitFor();
+ for(let i=0;i<4;i++)await page.locator('[data-multi-pick="'+cards[i].gamePk+'"]').click();
+ assert.equal(await page.locator('.multi-card').count(),4);
+ assert(await page.locator('[data-multi-pick="810005"]').isDisabled());
+ assert.match(await page.locator('[data-multi-game="810004"] header').innerText(),/延賽/);
+ assert.match(await page.locator('[data-multi-game="810001"] .multi-bases').innerText(),/一壘 · 有人/);
+ assert.match(await page.locator('[data-multi-game="810001"] .multi-detail').innerText(),/1 出局/);
+ await page.locator('[data-multi-game="810001"]').evaluate(el=>el.dataset.identity='same');
+ cards[0].teams.home.score=18;
+ await page.getByRole('button',{name:'重新整理',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('[data-multi-game="810001"] .multi-team-row:last-of-type b')?.textContent==='18'||[...document.querySelectorAll('[data-multi-game="810001"] .multi-team-row b')].some(x=>x.textContent==='18'));
+ assert.equal(await page.locator('[data-multi-game="810001"]').getAttribute('data-identity'),'same');
+ fail=true;await page.getByRole('button',{name:'重新整理',exact:true}).click();await page.locator('#multiView .subs-banner').waitFor();
+ assert.equal(await page.locator('.multi-card').count(),4);fail=false;
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'))});
+ await page.waitForTimeout(200);const before=requests;await page.waitForTimeout(5400);assert.equal(requests,before,'hidden view must stop schedule requests');
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'))});
+ await page.reload();await openMain(page,'multi');assert.equal(await page.locator('.multi-card').count(),4);
+ await page.screenshot({path:'/tmp/mlb-multi-dark.png',fullPage:true});
+ await page.evaluate(()=>document.documentElement.dataset.theme='light');await page.screenshot({path:'/tmp/mlb-multi-light.png',fullPage:true});
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.clock.install();cards.forEach(c=>c.status={abstractGameState:'Final',detailedState:'Final'});
+ await page.getByRole('button',{name:'重新整理',exact:true}).click();await page.waitForFunction(()=>[...document.querySelectorAll('.multi-card header')].every(h=>h.textContent.includes('已完賽')));
+ const finished=requests;await page.clock.fastForward(65000);assert.equal(requests,finished,'finished boards should stop polling');
+ await page.locator('[data-multi-game="810002"] .multi-open').click();await page.locator('#liveView').waitFor();
+ await page.waitForFunction(()=>[...document.querySelectorAll('#bigScore span')].at(-1)?.textContent==='11');assert.equal(selectedFeed,810002);
+ assert.deepEqual(errors,[]);await page.close();
 });
