@@ -497,6 +497,12 @@ html[data-theme=light] .multi-detail{color:#35516b}
 html[data-theme=light] .multi-bases span{color:#35516b;background:#fdfefe}
 html[data-theme=light] .multi-bases .occupied{color:#1d9a59;background:#f8fbfa}
 html[data-theme=light] .multi-unavailable{color:#35516b}
+html[data-theme=light] .tw-daily{color:#2b4359}
+html[data-theme=light] .tw-daily-title{color:#0a1c2e}
+html[data-theme=light] .tw-daily-game{border:1px solid #a8c2d9;background:#f9fafb;color:#0a1c2e}
+html[data-theme=light] .tw-daily-game:hover{border-color:#0a7fb0}
+html[data-theme=light] .tw-daily-match{color:#35516b}
+html[data-theme=light] .tw-daily-warning{color:#924e00}
 
 /* ---- 手動調整（src/theme-light.css） ---- */
 /* 淺色主題的手動調整：接在自動產生的規則後面（同權重時以這裡為準）。

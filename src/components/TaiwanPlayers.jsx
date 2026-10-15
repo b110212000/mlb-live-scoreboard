@@ -1,28 +1,18 @@
-import {useEffect,useState} from 'react';
-import {useScoreboard,actions} from '../store.js';
+import {useEffect,useRef,useState} from 'react';
+import {actions} from '../store.js';
 import {teamById,teamLabel} from '../teams.js';
 import {PUSH_API} from '../config.js';
 import {TAIWAN_PLAYER_NAMES} from '../taiwanPlayers.js';
 import {logo} from './SubscriptionShared.jsx';
 import {headshot,positionName,levelName} from '../players.js';
-import {t,lang,locale} from '../i18n.js';
+import {t,lang} from '../i18n.js';
 
-const MLB_API='https://statsapi.mlb.com/api/v1';
-const REFRESH_MS=10*60_000;
-const LEVEL_SPORTS='1,11,12,13,14,16';
+import {TaiwanToday} from './TaiwanToday.jsx';
+import {useVisiblePage} from '../useVisiblePage.js';
+import {cachedJSON,localDate,gameKind} from '../gameData.js';
+import {loadTaiwanSchedule,loadTodayBoxes} from '../taiwanToday.js';
 // 層級名稱依 sportId 在前端翻譯（Worker 回傳的 label 是中文）。
 const levelLabel=level=>({1:'MLB',11:levelName('AAA'),12:levelName('AA'),13:levelName('A+'),14:levelName('A'),16:t('新人聯盟')})[level.sportId]||level.label;
-
-async function getJSON(url){
-  const response=await fetch(url,{cache:'no-store'});
-  if(!response.ok)throw new Error('HTTP '+response.status);
-  return response.json();
-}
-
-function localDate(offsetDays=0){
-  const date=new Date(Date.now()+offsetDays*86_400_000);
-  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-}
 
 function teamText(player){
   const team=player.currentTeam;
@@ -43,22 +33,7 @@ function pitchingLine(s){
   return [t('{ip} 局',{ip:s.inningsPitched??'0.0'}),t('防禦率 {era}',{era:s.era??'-'}),record,t('{n} 三振',{n:s.strikeOuts??0})].join(' · ');
 }
 
-// 今天（裝置當地日期）的比賽狀態。
-function todayText(game,teamId){
-  const away=game.teams?.away,home=game.teams?.home;
-  const isHome=Number(home?.team?.id)===Number(teamId);
-  const opponentTeam=(isHome?away:home)?.team;
-  const opponent=teamLabel(opponentTeam)||opponentTeam?.name||'';
-  const state=game.status?.abstractGameState;
-  const score=`${away?.score??0} : ${home?.score??0}`;
-  const versus=`${isHome?'vs':'@'} ${opponent}`;
-  if(state==='Final')return t('今日終場 {score} {versus}',{score,versus});
-  if(state==='Live')return t('比賽進行中 {score} {versus}',{score,versus});
-  const time=new Intl.DateTimeFormat(locale(),{hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(game.gameDate));
-  return t('今天 {time} {versus}',{time,versus});
-}
-
-function PlayerCard({player,game}){
+function PlayerCard({player,daily}){
   // 中文與日文介面顯示中文（漢字）姓名，英文介面只顯示英文名。
   const zh=lang()==='en'?null:TAIWAN_PLAYER_NAMES[player.id];
   const position=positionName(player.position)||player.position;
@@ -72,7 +47,7 @@ function PlayerCard({player,game}){
         {parent&&<span className="subs-logo small" aria-hidden="true"><img src={logo(parent)} alt=""/></span>}
         <span>{[position,teamText(player)].filter(Boolean).join(' · ')}</span>
       </div>
-      {game&&<div className={'tw-today'+(game.status?.abstractGameState==='Live'?' live':'')}>{todayText(game,player.currentTeam?.id)}</div>}
+      <TaiwanToday player={player} daily={daily}/>
       <ul className="tw-stats">{player.levels.map(level=><li key={level.sportId}>
         <span className="tw-level">{levelLabel(level)}</span>
         <span>{player.pitcher?pitchingLine(level.pitching):hittingLine(level.hitting)}</span>
@@ -82,44 +57,36 @@ function PlayerCard({player,game}){
 }
 
 export function TaiwanPlayers(){
-  const {view}=useScoreboard();
-  const [data,setData]=useState(null);
-  const [games,setGames]=useState({});
-  const [error,setError]=useState('');
-
+  const active=useVisiblePage('taiwan'),lastRetry=useRef(0);
+  const [data,setData]=useState(null),[daily,setDaily]=useState(null),[error,setError]=useState(''),[retry,setRetry]=useState(0),[busy,setBusy]=useState(false);
   useEffect(()=>{
-    if(view!=='taiwan')return;
-    let cancelled=false;
+    if(!active)return;
+    let cancelled=false,timer;
     const load=async()=>{
+      let delay=60000;
+      const date=localDate(),force=retry!==lastRetry.current;lastRetry.current=retry;
+      setBusy(true);
       try{
-        // 開季前今年名單可能還是空的，改顯示上一季。
         let season=new Date().getFullYear();
-        let next=await getJSON(`${PUSH_API}/api/taiwan-players?season=${season}`);
-        if(!next.players?.length){season-=1;next=await getJSON(`${PUSH_API}/api/taiwan-players?season=${season}`);}
+        let next=await cachedJSON(`${PUSH_API}/api/taiwan-players?season=${season}`,600000);
+        if(!next.players?.length){season-=1;next=await cachedJSON(`${PUSH_API}/api/taiwan-players?season=${season}`,600000)}
+        if(!Array.isArray(next.players))throw new Error('players');
         if(cancelled)return;
         setData(next);setError('');
-        // 今天（前後各多抓一天再依當地日期篩選）有沒有比賽。
-        const teamIds=[...new Set((next.players||[]).map(p=>p.currentTeam?.id).filter(Boolean))];
-        if(!teamIds.length)return;
-        const schedule=await getJSON(`${MLB_API}/schedule?sportId=${LEVEL_SPORTS}&teamId=${teamIds.join(',')}&startDate=${localDate(-1)}&endDate=${localDate(1)}`);
-        const today=localDate(0),byTeam={};
-        for(const day of schedule.dates||[]){
-          for(const game of day.games||[]){
-            const date=new Date(game.gameDate);
-            const key=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-            if(key!==today)continue;
-            for(const side of ['away','home'])byTeam[game.teams?.[side]?.team?.id]=game;
-          }
-        }
-        if(!cancelled)setGames(byTeam);
-      }catch(err){
-        if(!cancelled)setError(err.message);
-      }
+        try{
+          const schedule=await loadTaiwanSchedule(next.players,date,force);
+          if(cancelled)return;
+          const boxes=await loadTodayBoxes(schedule.games,()=>cancelled,force);
+          if(cancelled)return;
+          setDaily({...schedule,boxes,date,failed:false});
+          if(schedule.games.some(game=>gameKind(game)==='live'))delay=30000;
+        }catch{if(!cancelled)setDaily({date,failed:true})}
+      }catch(err){if(!cancelled)setError(err.message)}
+      finally{if(!cancelled)setBusy(false)}
+      if(!cancelled)timer=setTimeout(load,delay);
     };
-    load();
-    const timer=setInterval(load,REFRESH_MS);
-    return ()=>{cancelled=true;clearInterval(timer)};
-  },[view]);
+    load();return ()=>{cancelled=true;clearTimeout(timer)};
+  },[active,retry]);
 
   const players=data?.players||[];
   const groups=(data?.levels||[]).map((level,index)=>({
@@ -130,11 +97,12 @@ export function TaiwanPlayers(){
 
   return <section className="card subs-shell tw-shell" aria-label={t('台灣旅外球員')}>
     <p className="subs-intro">{data?t('{season} 球季在 MLB 與小聯盟出賽的台灣球員，共 {n} 人（大聯盟 {mlb} 人）。',{season:data.season||'',n:players.length,mlb:mlbCount}):t('MLB 與小聯盟的台灣球員。')}{t('依最高出賽層級分組，成績為各層級本季成績；資料來自 MLB 官方球員名單（出生地為台灣）。')}</p>
+    <button type="button" className="subs-btn tw-daily-refresh" disabled={busy} onClick={()=>setRetry(x=>x+1)}>{busy?t('正在更新今日表現…'):t('更新今日表現')}</button>
     {error&&<div className="subs-banner">{t('旅外球員資料讀取失敗：{error}',{error})}</div>}
     {!data&&!error&&<p className="subs-empty">{t('載入旅外球員中…')}</p>}
     {groups.map(group=><section key={group.level.sportId} className="subs-section tw-group" aria-label={levelLabel(group.level)}>
       <div className="subs-section-head"><h3>{group.level.sportId===1?t('大聯盟'):levelLabel(group.level)}</h3><span>{t('{n} 人',{n:group.players.length})}</span></div>
-      <div className="tw-list">{group.players.map(player=><PlayerCard key={player.id} player={player} game={games[player.currentTeam?.id]}/>)}</div>
+      <div className="tw-list">{group.players.map(player=><PlayerCard key={player.id} player={player} daily={daily?.date===localDate()?daily:null}/>)}</div>
     </section>)}
   </section>;
 }

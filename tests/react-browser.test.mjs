@@ -409,7 +409,8 @@ test('Regular season, standings and Taiwan players',async()=>{
  assert.deepEqual(await page.locator('#taiwanView .tw-group h3').allInnerTexts(),['大聯盟','3A']);
  const leeText=await lee.innerText();
  for(const text of ['李灝宇','Hao-Yu Lee','二壘手','老虎','打擊率 .264','12 轟','3A','打擊率 .232'])assert(leeText.includes(text),'Lee card missing '+text);
- await lee.locator('.tw-today.live').filter({hasText:'比賽進行中 2 : 1 @ Some Club'}).waitFor();
+ await lee.locator('.tw-today.live').filter({hasText:'進行中'}).waitFor();
+ assert.match(await lee.locator('.tw-daily-match').innerText(),/@ Some Club · 2 : 1/);
  const linText=await page.locator('.tw-card[data-player-id="827734"]').innerText();
  for(const text of ['林維恩','投手','運動家體系 · Las Vegas Aviators','90.0 局','防禦率 3.10','5 勝 3 敗','80 三振'])assert(linText.includes(text),'Lin card missing '+text);
  assert((await page.locator('#taiwanView .subs-intro').innerText()).includes('共 2 人（大聯盟 1 人）'));
@@ -911,5 +912,48 @@ test('Multi-game: four-card limit, stable updates, reload, visibility pause, fin
  const finished=requests;await page.clock.fastForward(65000);assert.equal(requests,finished,'finished boards should stop polling');
  await page.locator('[data-multi-game="810002"] .multi-open').click();await page.locator('#liveView').waitFor();
  await page.waitForFunction(()=>[...document.querySelectorAll('#bigScore span')].at(-1)?.textContent==='11');assert.equal(selectedFeed,810002);
+ assert.deepEqual(errors,[]);await page.close();
+});
+
+test('Taiwan today: shared box scores, doubleheaders, two-way, zero stats, failure, background and game links',async()=>{
+ const roster=structuredClone(twData);roster.players[1].currentTeam={id:116,name:'Detroit Tigers'};
+ const extra=(id,team)=>({...structuredClone(roster.players[0]),id,fullName:'Test Player '+id,currentTeam:{id:team,name:'Test Club '+team}});
+ roster.players.push(extra(900001,116),extra(900002,600),extra(900003,700),extra(900004,800));
+ const worker=route=>new URL(route.request().url()).pathname==='/api/taiwan-players'?route.fulfill({json:roster}):route.fulfill({json:{ok:true}});
+ const {page,errors}=await setup({worker});
+ const dailyGames=[0,1,2,3].map(i=>({...structuredClone(game),gamePk:910001+i,gameNumber:i===1?2:1,gameDate:today+'T0'+(2+i)+':00:00Z',teams:{away:{team:{id:i<2?116:i===2?700:800,name:i<2?'Detroit Tigers':'Test Club'},score:3},home:{team:{id:500,name:'Some Club'},score:1}},status:i===0?{abstractGameState:'Live',detailedState:'In Progress'}:i===1?{abstractGameState:'Final',detailedState:'Final'}:i===2?{abstractGameState:'Preview',detailedState:'Scheduled'}:{abstractGameState:'Final',detailedState:'Postponed',codedGameState:'D'}}));
+ const boxes={910001:{teams:{away:{players:{ID701678:{stats:{batting:{gamesPlayed:1,atBats:4,hits:2,rbi:1,homeRuns:1}}},ID827734:{stats:{batting:{gamesPlayed:1,atBats:0,hits:0,rbi:0},pitching:{gamesPlayed:1,inningsPitched:'6.1',runs:1,strikeOuts:7}}},ID900001:{stats:{batting:{gamesPlayed:0,atBats:0,hits:0,rbi:0}}}}},home:{players:{}}}},910002:{teams:{away:{players:{ID701678:{stats:{batting:{gamesPlayed:0,atBats:0,hits:0,rbi:0}}},ID827734:{stats:{}},ID900001:{stats:{}}}},home:{players:{}}}}};
+ let total=0,boxCalls={},failSecond=false,opened=null;
+ await page.route('https://statsapi.mlb.com/**',route=>{
+  const u=new URL(route.request().url());total++;
+  if(u.pathname.endsWith('/schedule'))return route.fulfill({json:{dates:[{date:today,games:dailyGames}]}});
+  const boxId=Number(u.pathname.match(/game\/(\d+)\/boxscore/)?.[1]);
+  if(boxId){boxCalls[boxId]=(boxCalls[boxId]||0)+1;return failSecond&&boxId===910002?route.fulfill({status:503,json:{}}):route.fulfill({json:boxes[boxId]})}
+  const feedId=Number(u.pathname.match(/game\/(\d+)\/feed\/live/)?.[1]);
+  if(feedId===910001){opened=feedId;const f=structuredClone(feed);f.gamePk=feedId;f.gameData.game.pk=feedId;f.gameData.teams.away={id:116,name:'Detroit Tigers'};return route.fulfill({json:f})}
+  return route.fallback();
+ });
+ await openMain(page,'taiwan');
+ const lee=page.locator('.tw-card[data-player-id="701678"]'),lin=page.locator('.tw-card[data-player-id="827734"]');
+ await lee.locator('[data-tw-game="910001"]').filter({hasText:'4 打數 · 2 安打 · 1 打點'}).waitFor();
+ assert.equal(await lee.locator('[data-tw-game]').count(),2);
+ assert.match(await lee.locator('[data-tw-game="910002"]').innerText(),/本場未出賽/);
+ const line=await lin.locator('[data-tw-game="910001"]').innerText();assert.match(line,/投 6\.1 局 · 1 失分 · 7 三振/);assert.match(line,/0 打數 · 0 安打 · 0 打點/);
+ assert.match(await page.locator('.tw-card[data-player-id="900001"] [data-tw-game="910001"]').innerText(),/尚未出賽/);
+ assert.match(await page.locator('.tw-card[data-player-id="900002"] .tw-daily').innerText(),/今日沒有比賽/);
+ assert.match(await page.locator('.tw-card[data-player-id="900003"] .tw-daily').innerText(),/尚未開賽/);
+ assert.match(await page.locator('.tw-card[data-player-id="900004"] .tw-daily').innerText(),/延賽/);
+ assert.deepEqual(boxCalls,{910001:1,910002:1},'same game shared by all player cards; preview/postponed not fetched');
+ failSecond=true;boxes[910001].teams.away.players.ID701678.stats.batting.hits=0;
+ await page.locator('.tw-daily-refresh').click();await lee.locator('[data-tw-game="910002"]').filter({hasText:'本場資料暫時無法取得'}).waitFor();
+ assert.match(await lee.locator('[data-tw-game="910001"]').innerText(),/4 打數 · 0 安打 · 1 打點/);
+ await page.screenshot({path:'/tmp/mlb-taiwan-today-dark.png',fullPage:true});
+ await page.evaluate(()=>document.documentElement.dataset.theme='light');await page.screenshot({path:'/tmp/mlb-taiwan-today-light.png',fullPage:true});
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.clock.install();await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'))});
+ await page.waitForTimeout(50);const count=total;await page.clock.fastForward(65000);assert.equal(total,count,'background must stop today polling');
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'))});
+ await lee.locator('[data-tw-game="910001"]').click();await page.locator('#liveView').waitFor();await page.locator('#awayName').filter({hasText:'Detroit Tigers'}).waitFor();
+ assert.equal(opened,910001);assert(!(await page.locator('#playerView').isVisible()),'daily game click must not bubble into player navigation');
  assert.deepEqual(errors,[]);await page.close();
 });

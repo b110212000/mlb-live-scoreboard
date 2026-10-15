@@ -1,20 +1,20 @@
 {
-  "version": "2.11.0",
+  "version": "2.12.0",
   "notes": {
     "zh": [
-      "新增多場同看，釘選最多 4 場比賽並記住選擇。",
-      "同時查看比分、局數、壘包、出局數，點卡片進入詳細賽況。",
-      "退到背景或所選比賽全部結束後停止輪詢。"
+      "台灣旅外新增今日逐場打擊與投球摘要，可點擊直達賽況。",
+      "雙重賽分開顯示，二刀流同時顯示打擊與投球，並區分未出賽、延賽與資料異常。",
+      "同場球員共用資料，離開頁面或進入背景時暫停更新。"
     ],
     "en": [
-      "Pin up to 4 games in the new multi-game view. Your selection is saved.",
-      "Follow scores, innings, runners and outs; tap a card for full details.",
-      "Polling pauses in the background and stops when all selected games finish."
+      "Taiwan Abroad now shows daily batting and pitching lines with direct game links.",
+      "Doubleheaders and two-way players are supported; no appearance, postponement and missing data are clearly distinguished.",
+      "Players in the same game share data. Updates pause when the page is inactive or hidden."
     ],
     "ja": [
-      "複数試合画面で最大4試合を固定し、選択を保存できます。",
-      "スコア・イニング・走者・アウトを同時表示。カードから詳細を開けます。",
-      "バックグラウンドや選択した全試合の終了後は自動更新を停止します。"
+      "台湾出身選手の今日の打撃・投球成績を表示し、試合詳細へ移動できます。",
+      "ダブルヘッダーと二刀流に対応し、未出場・順延・データ取得失敗を区別します。",
+      "同じ試合のデータを共有し、別画面やバックグラウンドでは更新を停止します。"
     ]
   }
 }

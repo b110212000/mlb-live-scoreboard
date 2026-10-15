@@ -2834,3 +2834,9 @@ html[lang=ja] .team-card-zh{white-space:nowrap;font-size:min(15px,calc(100cqi / 
 .multi-team-row{display:grid;grid-template-columns:38px minmax(0,1fr) 42px;align-items:center;gap:12px;margin:8px 0}.multi-team-row .logo{width:36px;height:36px;object-fit:contain}.multi-team-row span{overflow-wrap:anywhere;font-weight:650}.multi-team-row b{font-size:32px;text-align:right;font-variant-numeric:tabular-nums}
 .multi-detail{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#a6bdd3;margin-top:20px}.multi-bases{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.multi-bases span{font-size:11px;color:#a6bdd3;background:#173048;padding:5px 8px;border-radius:6px}.multi-bases .occupied{color:#6be3a4;background:#14362d}.multi-unavailable{font-size:12px;color:#a6bdd3;padding:12px}
 @media(max-width:650px){.multi-grid{grid-template-columns:1fr}.multi-picker button{flex:1 1 calc(50% - 8px)}.multi-team-row span{font-size:16px}}
+
+/* Taiwanese players: daily game stats */
+.tw-daily{display:flex;flex-direction:column;gap:7px;margin:10px 0;font-size:12px;color:#b7cadc;min-width:0}
+.tw-daily-title{font-size:12px;color:#e3eef9}.tw-daily-game{display:flex;flex-direction:column;align-items:flex-start;gap:6px;border:1px solid #315371;border-radius:10px;background:#10283e;color:#e3eef9;padding:10px;text-align:left;font:inherit;line-height:1.6;cursor:pointer;max-width:100%;width:100%}
+.tw-daily-game:hover{border-color:#55d8ff}.tw-daily-game .tw-today{border-radius:6px;font-size:11px;padding:1px 5px;max-width:100%;white-space:normal;box-sizing:border-box}
+.tw-daily-match{color:#a6bdd3;overflow-wrap:anywhere}.tw-daily-warning{color:#ffc787}.tw-daily-refresh{margin:0 0 16px}.tw-body{min-width:0;flex:1}
