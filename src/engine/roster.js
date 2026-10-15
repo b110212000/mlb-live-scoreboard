@@ -45,7 +45,7 @@ function estimatedFip(s){
   return (13*hr+3*(bb+hbp)-2*k)/ip+3.10;
 }
 function metricHTML(label,value){
-  return '<span class="roster-stat"><small>'+esc(label)+'</small>'+esc(value)+'</span>';
+  return '<span class="roster-stat"><small>'+(['AVG','OBP','SLG','OPS','HR','RBI','ERA','WHIP'].includes(label)?statHelpButton(label):esc(label))+'</small>'+esc(value)+'</span>';
 }
 function hitterMetrics(person){
   const s=seasonStat(person,'hitting');

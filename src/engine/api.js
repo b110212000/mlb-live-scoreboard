@@ -94,3 +94,5 @@ function gameLocalDateKey(g){
   return Number.isNaN(d.getTime())?'':localDateString(d);
 }
 
+
+function statHelpButton(id,label=id){return '<button type="button" class="stat-help-trigger" data-stat-help="'+esc(id)+'" aria-label="'+esc(t('查看 {stat} 說明',{stat:label}))+'">'+esc(label)+'</button>'}

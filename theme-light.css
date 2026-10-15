@@ -475,6 +475,13 @@ html[data-theme=light] .lang-options small{color:var(--muted)}
 html[data-theme=light] .app-update-dot{background:#a90808;box-shadow:0 0 0 2px var(--panel,rgba(16,34,53,0.45))}
 html[data-theme=light] .app-update-actions button{border:1px solid #98b1c9;background:#fbfcfd;color:#00152f}
 html[data-theme=light] .app-update-actions .app-update-primary{background:#b7efd8;border-color:#298e5f;color:#13202e}
+html[data-theme=light] .stat-help-trigger{color:inherit;border:0;border-bottom:1px dotted currentColor;background:none}
+html[data-theme=light] .stat-help-trigger:focus-visible{outline:2px solid #0a7fb0}
+html[data-theme=light] .stat-help-hint{color:#35516b}
+html[data-theme=light] .stat-help-dialog{border:1px solid #98b1c9;background:#f7f8fa;color:#00152f}
+html[data-theme=light] .stat-help-dialog::backdrop{background:rgba(0,0,0,0.33)}
+html[data-theme=light] .stat-help-dialog a{color:#0a7fb0}
+html[data-theme=light] .stat-help-dialog button{border:1px solid #98b1c9;color:inherit;background:#d0e0f1}
 
 /* ---- 手動調整（src/theme-light.css） ---- */
 /* 淺色主題的手動調整：接在自動產生的規則後面（同權重時以這裡為準）。

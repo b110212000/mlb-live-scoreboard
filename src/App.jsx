@@ -15,6 +15,7 @@ import {HallOfFame} from './components/HallOfFame.jsx';
 import {PlayerPage} from './components/PlayerPage.jsx';
 import {SettingsPage,LanguagePage} from './components/SettingsPage.jsx';
 import {FeedbackPage} from './components/FeedbackPage.jsx';
+import {StatHelpDialog} from './components/StatHelp.jsx';
 import {AppUpdatePage} from './components/AppUpdatePage.jsx';
 import {checkAppUpdate,useAppUpdate} from './updates.js';
 import {APP_VERSION} from './config.js';
@@ -39,6 +40,7 @@ export function App(){
   // 固定元件（engine 直接寫入其中的元素）只在 lang 改變時重畫。
   return <>
     <Toast/>
+    <StatHelpDialog/>
     <Sidebar updateAvailable={!!update.remote} open={menuOpen} view={view} onClose={()=>setMenuOpen(false)} onNavigate={actions.navigate}/>
     <div id="pullRefresh" className="pull-refresh" aria-hidden="true"><span className="pull-refresh-icon">↓</span><span id="pullRefreshText">{t('下拉重新整理')}</span></div>
     <main className="wrap">

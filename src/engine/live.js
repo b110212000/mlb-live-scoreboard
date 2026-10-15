@@ -661,7 +661,7 @@ function boxBattingTable(box){
     '</tr>';
   }).join('');
   return '<div class="boxscore-scroll"><table class="boxscore-table">'+
-    '<thead><tr><th>'+t('打者')+'</th><th>AB</th><th>R</th><th>H</th><th>RBI</th><th>BB</th><th>SO</th><th>HR</th></tr></thead>'+
+    '<thead><tr><th>'+t('打者')+'</th><th>'+statHelpButton('AB','AB')+'</th><th>'+statHelpButton('R','R')+'</th><th>'+statHelpButton('H','H')+'</th><th>'+statHelpButton('RBI','RBI')+'</th><th>'+statHelpButton('BB','BB')+'</th><th>'+statHelpButton('SO','SO')+'</th><th>'+statHelpButton('HR','HR')+'</th></tr></thead>'+
     '<tbody>'+rows+'</tbody></table></div>';
 }
 function boxPitchingTable(box){
@@ -679,7 +679,7 @@ function boxPitchingTable(box){
     '</tr>';
   }).join('');
   return '<div class="boxscore-scroll"><table class="boxscore-table">'+
-    '<thead><tr><th>'+t('投手')+'</th><th>IP</th><th>H</th><th>R</th><th>ER</th><th>BB</th><th>K</th><th>HR</th><th>P</th></tr></thead>'+
+    '<thead><tr><th>'+t('投手')+'</th><th>'+statHelpButton('IP','IP')+'</th><th>'+statHelpButton('H_ALLOWED','H')+'</th><th>'+statHelpButton('R_ALLOWED','R')+'</th><th>'+statHelpButton('ER','ER')+'</th><th>'+statHelpButton('BB_ALLOWED','BB')+'</th><th>'+statHelpButton('K','K')+'</th><th>'+statHelpButton('HR_ALLOWED','HR')+'</th><th>'+statHelpButton('P','P')+'</th></tr></thead>'+
     '<tbody>'+rows+'</tbody></table></div>';
 }
 function boxTeamHTML(team,box){

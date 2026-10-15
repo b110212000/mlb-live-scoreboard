@@ -48,7 +48,7 @@ export const LiveDetails=memo(function LiveDetails(){return <>
 </div>
 <div id="liveDetailViewport" className="live-detail-viewport" hidden>
 <div id="liveDetailTrack" className="live-detail-track">
-<div id="liveDetailStats" className="live-detail-panel" data-live-panel="stats">
+<div id="liveDetailStats" className="live-detail-panel" data-live-panel="stats"><p className="stat-help-hint">{t('點有底線的數據名稱，可查看說明。')}</p>
 <div className="card boxscore-content">
 <div className="boxscore-subsection-title">{t('隊伍數據')}</div>
 <div id="teamStatsBoard" className="team-stats-empty">{t('等待比賽資料')}</div>

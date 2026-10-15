@@ -846,3 +846,27 @@ test('App update: opt-in reload, release notes, deploy guard, feedback protectio
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  assert.deepEqual(errors,[]);await page.close();
 });
+
+test('Stat glossary: batter vs pitcher meaning, modal dismissal, official link and three languages',async()=>{
+ for(const language of ['zh-TW','en-US','ja-JP']){
+  const {page,errors}=await setup({locale:language});
+  await page.locator('[data-live-tab=stats]').click();
+  const open=async id=>{await page.locator('#boxScoreBoard [data-stat-help="'+id+'"]').first().click();await page.locator('.stat-help-dialog[open]').waitFor()};
+  await open('R');
+  const scored=await page.locator('#statHelpTitle').innerText();
+  assert.equal(new URL(await page.locator('.stat-help-dialog a').getAttribute('href')).hostname,'www.mlb.com');
+  await page.keyboard.press('Escape');assert(!(await page.locator('.stat-help-dialog').evaluate(d=>d.open)));
+  assert.equal(await page.evaluate(()=>document.activeElement.dataset.statHelp),'R');
+  await open('R_ALLOWED');assert.notEqual(await page.locator('#statHelpTitle').innerText(),scored);
+  await page.locator('.stat-help-dialog button').click();
+  await open('IP');assert.match(await page.locator('#statHelpText').innerText(),/6\.1/);
+  if(language==='en-US')assert(!/[\u3400-\u9fff]/.test(await page.locator('.stat-help-dialog').innerText()));
+  if(language==='zh-TW'){
+   await page.screenshot({path:'/tmp/mlb-glossary-dark.png'});
+   await page.evaluate(()=>document.documentElement.dataset.theme='light');
+   await page.screenshot({path:'/tmp/mlb-glossary-light.png'});
+  }
+  assert(await page.locator('.stat-help-dialog').evaluate(el=>el.getBoundingClientRect().right<=innerWidth));
+  assert.deepEqual(errors,[]);await page.close();
+ }
+});

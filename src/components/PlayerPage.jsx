@@ -5,6 +5,8 @@ import {TAIWAN_PLAYER_NAMES} from '../taiwanPlayers.js';
 import {logo} from './SubscriptionShared.jsx';
 import {headshot,positionName,positionTypeName,countryName,levelName,handsText,bodyText,dateText,ageOn,majorAwards,seasonsText,teamDisplayName,groupSeasons} from '../players.js';
 import {loadWikiBio,wikiUrl} from '../wiki.js';
+import {StatLabel} from './StatHelp.jsx';
+import {STAT_FIELDS} from '../statGlossary.js';
 import {t,tParts,lang} from '../i18n.js';
 
 const API='https://statsapi.mlb.com/api/v1';
@@ -72,7 +74,7 @@ function YearTable({group,seasons}){
   const statCells=split=>columns.map(([,key])=><td key={key}>{split.stat?.[key]??'-'}</td>);
   return <div className="standings-scroll">
     <table className="standings-table player-years">
-      <thead><tr><th scope="col">{t('年')}</th><th scope="col">{t('層級')}</th><th scope="col" className="team-col">{t('球隊')}</th>{columns.map(([label,key])=><th key={key} scope="col">{label}</th>)}</tr></thead>
+      <thead><tr><th scope="col">{t('年')}</th><th scope="col">{t('層級')}</th><th scope="col" className="team-col">{t('球隊')}</th>{columns.map(([label,key])=><th key={key} scope="col"><StatLabel id={STAT_FIELDS[key]}>{label}</StatLabel></th>)}</tr></thead>
       <tbody>{seasons.flatMap(row=>{
         const more=row.details.length,expanded=more>0&&open.has(row.season);
         const toggleLabel=expanded?t('{year} 年，收合同年其他 {n} 筆紀錄',{year:row.season,n:more}):t('{year} 年，展開同年其他 {n} 筆紀錄',{year:row.season,n:more});
@@ -215,7 +217,7 @@ export function PlayerPage(){
         <div className="subs-section-head"><h3 id="playerCareerTitle">{t('大聯盟生涯')}</h3></div>
         {hasMlb?data.groups.filter(group=>data.career[group]?.gamesPlayed).map(group=><div key={group} className="player-tiles" aria-label={groupName(group)}>
           {data.groups.length>1&&<span className="player-tiles-label">{groupName(group)}</span>}
-          {careerTiles[group](data.career[group]).map(([label,value])=><div key={label} className="player-tile"><b>{value??'-'}</b><span>{label}</span></div>)}
+          {careerTiles[group](data.career[group]).map(([label,value],i)=><div key={label} className="player-tile"><b>{value??'-'}</b><span><StatLabel id={(group==='hitting'?['G','H','HR','RBI','SB','AVG','OBP','OPS']:['G',null,'ERA','IP','K',null,'WHIP'])[i]}>{label}</StatLabel></span></div>)}
         </div>):<p className="subs-empty">{careerNote(person,data.groups.some(group=>data.yearly[group]?.length))}</p>}
       </section>
 
