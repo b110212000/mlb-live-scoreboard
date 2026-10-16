@@ -110,7 +110,7 @@ function Facts({person}){
   const age=!deceased&&person.birthDate?ageOn(person.birthDate):null;
   const place=[countryName(person.birthCountry),[person.birthCity,person.birthStateProvince].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
   const rows=[
-    [deceased?t('生卒'):t('生日'),person.birthDate?(deceased?`${dateText(person.birthDate)} – ${dateText(person.deathDate)}`:`${dateText(person.birthDate)}${age!=null?t('（{n} 歲）',{n:age}):''}`):''],
+    [deceased?t('生卒'):t('生日'),person.birthDate?(deceased?`${dateText(person.birthDate)} – ${dateText(person.deathDate)}`:<>{dateText(person.birthDate)}{age!=null&&<><wbr/><span className="player-fact-age">{t('（{n} 歲）',{n:age})}</span></>}</>):''],
     [t('出生地'),place],
     [t('身高體重'),bodyText(person)],
     [t('大聯盟初登板'),dateText(person.mlbDebutDate)],

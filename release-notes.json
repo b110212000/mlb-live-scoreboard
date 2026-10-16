@@ -1,20 +1,20 @@
 {
-  "version": "2.12.0",
+  "version": "2.12.1",
   "notes": {
     "zh": [
-      "台灣旅外新增今日逐場打擊與投球摘要，可點擊直達賽況。",
-      "雙重賽分開顯示，二刀流同時顯示打擊與投球，並區分未出賽、延賽與資料異常。",
-      "同場球員共用資料，離開頁面或進入背景時暫停更新。"
+      "修正多場同看的日期操作列與選場格子，手機上保持整齊對齊。",
+      "修正旅外卡片與訂閱日期在窄螢幕的溢出，改善長文字與各頁排版。",
+      "加入手機、平板、桌面與三語深淺色的排版回歸檢查。"
     ],
     "en": [
-      "Taiwan Abroad now shows daily batting and pitching lines with direct game links.",
-      "Doubleheaders and two-way players are supported; no appearance, postponement and missing data are clearly distinguished.",
-      "Players in the same game share data. Updates pause when the page is inactive or hidden."
+      "Fixed the multi-game date toolbar and game picker alignment on phones.",
+      "Fixed narrow-screen overflow in Taiwan player cards and subscription dates, with better long-text wrapping.",
+      "Added responsive layout regression checks across phone, tablet and desktop sizes, languages and themes."
     ],
     "ja": [
-      "台湾出身選手の今日の打撃・投球成績を表示し、試合詳細へ移動できます。",
-      "ダブルヘッダーと二刀流に対応し、未出場・順延・データ取得失敗を区別します。",
-      "同じ試合のデータを共有し、別画面やバックグラウンドでは更新を停止します。"
+      "複数試合画面の日付操作欄と試合選択を、スマートフォンでも整列するよう修正しました。",
+      "台湾出身選手カードと購読日時のはみ出しを修正し、長い文字列の折り返しを改善しました。",
+      "スマートフォン・タブレット・デスクトップ、3言語と両テーマのレイアウト回帰検証を追加しました。"
     ]
   }
 }

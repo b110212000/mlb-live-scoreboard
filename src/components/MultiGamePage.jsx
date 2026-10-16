@@ -57,7 +57,7 @@ export function MultiGamePage(){
     {error&&<p className="subs-banner" role="status">{t('更新失敗，畫面保留上次資料，請稍後重試。')}</p>}
     {result?.date!==date&&!error&&<p className="subs-empty">{t('載入賽程中…')}</p>}
     {result?.date===date&&!games.length&&!error&&<p className="subs-empty">{t('這天沒有 MLB 比賽')}</p>}
-    {!!games.length&&<fieldset className="multi-picker"><legend>{t('已選 {n} / 4 場',{n:pins.length})}</legend>{games.map(game=><button type="button" key={game.gamePk} data-multi-pick={game.gamePk} aria-pressed={pins.includes(game.gamePk)} disabled={pins.length>=4&&!pins.includes(game.gamePk)} onClick={()=>toggle(game.gamePk)}><span>{pins.includes(game.gamePk)?'✓':'＋'} {teamLabel(game.teams?.away?.team,{short:true})} @ {teamLabel(game.teams?.home?.team,{short:true})}</span><small>{gameTime(game)} · {gameStatusText(game)}</small></button>)}</fieldset>}
+    {!!games.length&&<fieldset className="multi-picker"><legend>{t('已選 {n} / 4 場',{n:pins.length})}</legend><div className="multi-options">{games.map(game=><button type="button" key={game.gamePk} data-multi-pick={game.gamePk} aria-pressed={pins.includes(game.gamePk)} disabled={pins.length>=4&&!pins.includes(game.gamePk)} onClick={()=>toggle(game.gamePk)}><span>{pins.includes(game.gamePk)?'✓':'＋'} {teamLabel(game.teams?.away?.team,{short:true})} @ {teamLabel(game.teams?.home?.team,{short:true})}</span><small>{gameTime(game)} · {gameStatusText(game)}</small></button>)}</div></fieldset>}
     <div className="multi-grid">{pins.map(id=><GameCard key={id} id={id} game={games.find(game=>game.gamePk===id)} onRemove={()=>toggle(id)}/>)}</div>
     {!!games.length&&!pins.length&&<p className="subs-empty">{t('先點選上方場次，建立你的看球畫面。')}</p>}
   </section>;

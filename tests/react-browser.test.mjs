@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import {readFile} from 'node:fs/promises';
-import {chromium} from '@playwright/test';
+import {chromium,webkit} from '@playwright/test';
 const {version}=JSON.parse(await readFile('package.json','utf8'));
 const fixture=JSON.parse(await readFile('tests/fixtures/game.json','utf8'));
 const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -13,13 +13,13 @@ const game={gamePk:feed.gamePk,gameDate:today+'T02:00:00Z',gameType:'D',status:f
 const server=http.createServer(async(req,res)=>{try{const p=new URL(req.url,'http://local').pathname;const file=p==='/'?'index.html':p.slice(1);res.setHeader('content-type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.png')?'image/png':file.endsWith('.json')?'application/json':'text/html');res.end(await readFile(file))}catch{res.statusCode=404;res.end()}});
 await new Promise(r=>server.listen(0,'127.0.0.1',r));
 const origin=`http://127.0.0.1:${server.address().port}`;
-const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const browser=await (process.env.PLAYWRIGHT_BROWSER==='webkit'?webkit:chromium).launch({headless:true,args:process.env.PLAYWRIGHT_BROWSER==='webkit'?[]:['--no-sandbox']});
 test.after(async()=>{await browser.close();await new Promise(r=>server.close(r))});
 // 介面語言預設「跟隨裝置」：既有測試以繁體中文裝置執行。
-async function setup({width=390,subscribed=false,empty=false,worker=null,push=false,extraGames=[],locale='zh-TW',failedLogos=[]}={}){
- const page=await browser.newPage({viewport:{width,height:844},timezoneId:'Asia/Taipei',locale}),errors=[];
+async function setup({width=390,subscribed=false,empty=false,worker=null,push=false,extraGames=[],locale='zh-TW',failedLogos=[],serviceWorkers='allow'}={}){
+ const page=await browser.newPage({viewport:{width,height:844},timezoneId:'Asia/Taipei',locale,serviceWorkers}),errors=[];
  // Headless Chromium 沒有推播服務：以假的 PushSubscription 模擬「已允許通知」。
- if(push)await page.addInitScript(()=>{const sub={endpoint:'https://push.example/mock',toJSON(){return {endpoint:this.endpoint,keys:{p256dh:'p',auth:'a'}}},unsubscribe:async()=>true};Object.defineProperty(Notification,'permission',{configurable:true,get:()=>'granted'});PushManager.prototype.getSubscription=async function(){return sub};PushManager.prototype.subscribe=async function(){return sub};});
+ if(push)await page.addInitScript(()=>{const sub={endpoint:'https://push.example/mock',toJSON(){return {endpoint:this.endpoint,keys:{p256dh:'p',auth:'a'}}},unsubscribe:async()=>true};Object.defineProperty(Notification,'permission',{configurable:true,get:()=>'granted'});if('PushManager' in window){PushManager.prototype.getSubscription=async function(){return sub};PushManager.prototype.subscribe=async function(){return sub}};});
  page.on('pageerror',e=>errors.push(e.message));
  let current=structuredClone(feed);
  await page.route('**/version.json*',r=>r.fulfill({json:{version}}));
@@ -956,4 +956,120 @@ test('Taiwan today: shared box scores, doubleheaders, two-way, zero stats, failu
  await lee.locator('[data-tw-game="910001"]').click();await page.locator('#liveView').waitFor();await page.locator('#awayName').filter({hasText:'Detroit Tigers'}).waitFor();
  assert.equal(opened,910001);assert(!(await page.locator('#playerView').isVisible()),'daily game click must not bubble into player navigation');
  assert.deepEqual(errors,[]);await page.close();
+});
+
+// Layout checks include component content: body overflow can be hidden while a
+// date input or a card's text still escapes its own column.
+async function layoutProblems(page){
+ return page.evaluate(()=>{
+  const problems=[],visible=el=>!!el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden';
+  const name=el=>el.tagName.toLowerCase()+(el.id?'#'+el.id:'.'+String(el.className||'').replaceAll(' ','.'));
+  const roots=[...document.querySelectorAll('.app-view:not([hidden]),.topbar,.foot,dialog[open]')];
+  if(document.documentElement.scrollWidth>innerWidth+1)problems.push('document overflow '+document.documentElement.scrollWidth+'/'+innerWidth);
+  for(const root of roots)for(const el of [root,...root.querySelectorAll('*')]){
+   if(!visible(el)||el.closest('.feedback-trap,svg'))continue;
+   const r=el.getBoundingClientRect(),s=getComputedStyle(el);
+   if(r.width<1||r.height<1)continue;
+   let clipped=false;
+   for(let p=el.parentElement;p&&p!==root.parentElement;p=p.parentElement){if(['auto','scroll','hidden','clip'].includes(getComputedStyle(p).overflowX)){clipped=true;break}}
+   if(!clipped&&(r.left<-.5||r.right>innerWidth+.5))problems.push(name(el)+' outside viewport '+Math.round(r.left)+'..'+Math.round(r.right));
+   if(!el.matches('input,textarea')&&el.clientWidth&&el.scrollWidth>el.clientWidth+2&&s.overflowX==='visible'&&!['inline','contents'].includes(s.display)&&!el.closest('table,.league-track,.live-detail-track,.series-track'))problems.push(name(el)+' content overflow '+el.scrollWidth+'/'+el.clientWidth+' '+el.textContent.slice(0,80));
+  }
+  return [...new Set(problems)];
+ });
+}
+test('Responsive layout: all pages, card interiors, three languages and both themes',async()=>{
+ const failures=[];
+ const widths=(process.env.LAYOUT_WIDTHS||'320,375,390,430,651,768,1024,1280').split(',').map(Number);
+ const languages=(process.env.LAYOUT_LANGS||'zh-TW,en-US,ja-JP').split(',');
+ for(const locale of languages){
+  const mock=mockWorker(),worker=route=>new URL(route.request().url()).pathname==='/api/taiwan-players'?route.fulfill({json:twData}):mock.handler(route);
+  const {page,errors}=await setup({width:widths[0],locale,worker,push:true,serviceWorkers:'block'});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  const cards=[game,...Array.from({length:14},(_,i)=>({...structuredClone(game),gamePk:810001+i,gameNumber:i%2+1,teams:{away:{team:{id:[116,133,109,108,147,111,136][i%7],name:'A Very Long Minor League Team Name'},score:12},home:{...game.teams.home,score:10}},linescore:{...structuredClone(feed.liveData.linescore),outs:2,offense:{first:{id:1}}}}))];
+  await page.route('https://statsapi.mlb.com/**',route=>{
+   const u=new URL(route.request().url());
+   if(u.pathname.endsWith('/standings'))return route.fulfill({json:u.searchParams.get('standingsTypes')==='wildCard'?standingsWild:standingsDivision});
+   if(u.pathname.endsWith('/awards/MLBHOF/recipients'))return route.fulfill({json:hofData});
+   if(u.pathname.endsWith('/schedule'))return route.fulfill({json:{dates:[{date:today,games:cards}]}});
+   if(u.pathname.endsWith('/boxscore'))return route.fulfill({json:{teams:{away:{players:{ID701678:{stats:{batting:{gamesPlayed:1,atBats:4,hits:2,rbi:3,homeRuns:1}}},ID827734:{stats:{pitching:{gamesPlayed:1,inningsPitched:'6.1',runs:1,strikeOuts:7}}}}},home:{players:{}}}}});
+   if(u.pathname.endsWith('/roster'))return route.fulfill({json:{roster:Object.values(feed.liveData.boxscore.teams.away.players).map(p=>({person:{...p.person,stats:[career('hitting',{avg:'.300',ops:'.900'}),career('pitching',{era:'3.20',inningsPitched:'123.1'})]},position:p.position}))}});
+   const m=u.pathname.match(/\/people\/(\d+)(\/stats)?$/),p=m&&playerFixtures[m[1]];
+   if(p)return route.fulfill({json:m[2]?(p.years[u.searchParams.get('group')]||{stats:[]}):{people:[p.person]}});
+   return route.fallback();
+  });
+  const go=async view=>{
+   await page.locator('#featureMenuButton').click();await page.waitForTimeout(120);
+   const settings=['settings','language','notificationTest','install','feedback','updates'].includes(view);
+   if(settings&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
+   if(!settings&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+   await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(140);await page.evaluate(()=>scrollTo(0,0));
+  };
+  const check=async label=>{
+   await page.evaluate(()=>scrollTo(0,0));
+   for(const theme of ['dark','light']){
+    await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
+    const issues=await layoutProblems(page);
+    if(issues.length)failures.push({locale,width:page.viewportSize().width,theme,page:label,issues});
+   }
+  };
+  await go('multi');await page.locator('[data-multi-pick]').first().waitFor();
+  assert.equal(await page.locator('[data-multi-pick]').count(),15,'all mocked games must reach the picker');
+  for(let i=0;i<4;i++)await page.locator('[data-multi-pick]').nth(i).click();
+  for(const width of widths){
+   await page.setViewportSize({width,height:844});
+   await go('multi');await check('multi');
+   const date=await page.locator('.multi-toolbar input').boundingBox(),toolbar=await page.locator('.multi-toolbar').boundingBox();
+   assert(date.x>=toolbar.x-.5&&date.x+date.width<=toolbar.x+toolbar.width+.5,'native date control escapes toolbar');
+   await page.screenshot({path:`/tmp/layout-multi-${process.env.PLAYWRIGHT_BROWSER||'chromium'}-${locale}-${width}.png`,fullPage:true});
+   const positions=await page.locator('.multi-picker button').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}}));
+   for(let a=0;a<positions.length;a++)for(let b=a+1;b<positions.length;b++){const x=positions[a],y=positions[b];if(Math.min(x.x+x.w,y.x+y.w)-Math.max(x.x,y.x)>1&&Math.min(x.y+x.h,y.y+y.h)-Math.max(x.y,y.y)>1)failures.push({locale,width,page:'multi',issues:['picker buttons overlap']})}
+   for(const view of ['live','bracket','standings','taiwan','hof','teams','notifications','notificationTest','install','settings','language','feedback','updates']){
+    await go(view);
+    if(view==='live'){
+     for(const tab of ['stats','status','series','summary']){await page.locator(`[data-live-tab=${tab}]`).click();await page.waitForTimeout(80);await check('live/'+tab)}
+     await page.locator('#heroRosterBtn').click();await page.waitForTimeout(100);await check('roster');await page.locator('#rosterBackBtn').click();
+    }else{
+     await check(view);
+     if(view==='hof'){await page.locator('.hof-card[data-player-id="400085"]').click();await page.locator('.player-title h2').waitFor();await check('player');}
+     if(view==='notifications'){await page.locator('.subs-game .game-row').first().click();await check('notifications/expanded');}
+    }
+   }
+   await page.locator('#featureMenuButton').click();await page.waitForTimeout(120);await check('sidebar/settings');
+   if(await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();await check('sidebar/main');await page.keyboard.press('Escape');await page.waitForTimeout(120);
+  }
+  // Short landscape viewports must keep the sidebar scrollable and leave room
+  // above the fixed footer for the last page action.
+  await page.setViewportSize({width:844,height:390});await go('multi');await check('multi/landscape');
+  await page.locator('.multi-remove').last().scrollIntoViewIfNeeded();
+  assert(await page.locator('.multi-remove').last().evaluate(el=>{const r=el.getBoundingClientRect();return r.top>=document.querySelector('.topbar').getBoundingClientRect().bottom&&r.bottom<=document.querySelector('.foot').getBoundingClientRect().top}),'last card action is obscured');
+  await page.locator('#featureMenuButton').click();await page.waitForTimeout(120);
+  await page.locator('[data-view=notifications]').scrollIntoViewIfNeeded();await page.locator('[data-view=notifications]').click();await page.waitForTimeout(120);await check('notifications/landscape');
+  assert.deepEqual(errors,[]);await page.close();
+ }
+ if(failures.length)console.log('LAYOUT_FAILURES '+JSON.stringify(failures));
+ assert.deepEqual(failures,[]);
+});
+
+test('Responsive layout: empty, failed, loading and long messages stay inside mobile pages',async()=>{
+ for(const mode of ['empty','error','loading']){
+  const worker=route=>route.fulfill({status:mode==='error'?503:200,json:{ok:true,players:[],levels:[],teams:[],games:[],defaults:ALL}});
+  const {page}=await setup({width:320,locale:'en-US',empty:true,worker,serviceWorkers:'block'});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.route('https://statsapi.mlb.com/**',route=>mode==='loading'?new Promise(()=>{}):route.fulfill({status:mode==='error'?503:200,json:{dates:[],records:[],awards:[],people:[],roster:[]}}));
+  const check=async label=>assert.deepEqual(await layoutProblems(page),[],mode+'/'+label);
+  await check('live');
+  for(const view of ['multi','bracket','standings','taiwan','hof','notifications']){
+   await page.locator('#featureMenuButton').click();await page.waitForTimeout(120);
+   await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(200);
+   await check(view);
+  }
+  if(mode==='empty'){
+   // User text, API errors and long team/player names must wrap inside their
+   // existing card, without hiding the overflow at the page boundary.
+   await page.locator('#featureMenuButton').click();await page.waitForTimeout(120);await page.locator('[data-menu-settings]').click();await page.locator('[data-view=feedback]').click();await page.waitForTimeout(120);
+   await page.locator('#feedbackMessage').fill('LongUnbrokenFeedback'.repeat(25));await page.locator('#feedbackEmail').fill('a'.repeat(100)+'@example.com');await check('feedback/long');
+  }
+  await page.close();
+ }
 });

@@ -593,11 +593,11 @@
     .event.top-half,.event.bottom-half{padding-left:10px;padding-right:10px;border-radius:9px}
     .live-chip{position:relative}
     .live-chip::after{
-      content:attr(data-tooltip);position:absolute;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);
+      content:attr(data-tooltip);position:absolute;right:0;top:calc(100% + 7px);display:none;
       padding:5px 7px;border-radius:7px;background:#020812;color:#eaf4ff;border:1px solid var(--line);
       font-size:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:20
     }
-    .live-chip:hover::after,.live-chip:focus::after{opacity:1}
+    .live-chip:hover::after,.live-chip:focus::after{display:block;opacity:1}
     @media(max-width:600px){
       .highlights-card{margin-bottom:10px!important}
       .diamond-area{align-items:start}
@@ -2513,7 +2513,7 @@ body.sidebar-open{overflow:hidden}
 .game-row-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .game-row-text b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .game-row-text small{color:var(--muted);font-size:12px;line-height:1.4}
-.game-row-meta{white-space:nowrap}
+.game-row-meta{white-space:normal;overflow-wrap:anywhere}
 .game-row .subs-tag{flex:none}
 .game-row-chevron{flex:none;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#ffffff0d;color:#c5d4e2;transition:transform .2s}
 .game-row-chevron svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
@@ -2663,7 +2663,7 @@ body.sidebar-open{overflow:hidden}
 .standings-legend span{display:inline-flex;align-items:center;gap:4px}
 
 /* v2.3.0 台灣旅外球員 */
-.tw-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.tw-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
 .tw-card{display:flex;gap:12px;padding:12px;border:1px solid #294966;border-radius:14px;background:#0b1a2b;min-width:0}
 .tw-photo{width:64px;height:64px;flex:none;border-radius:50%;object-fit:cover;object-position:top;background:#203449}
 .tw-body{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}
@@ -2730,6 +2730,7 @@ body.sidebar-open{overflow:hidden}
 .player-facts div{min-width:0;padding:8px 10px;border-radius:11px;border:1px solid #1d354d;background:#0b1a2b}
 .player-facts dt{color:var(--muted);font-size:11px;font-weight:700}
 .player-facts dd{margin:2px 0 0;font-size:14px;font-weight:700;overflow-wrap:anywhere}
+.player-fact-age{display:inline-block;white-space:nowrap}
 .player-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
 .player-tiles+.player-tiles{margin-top:6px}
 .player-tiles-label{grid-column:1/-1;color:var(--muted);font-size:12px;font-weight:800}
@@ -2821,22 +2822,55 @@ html[lang=ja] .team-card-zh{white-space:nowrap;font-size:min(15px,calc(100cqi / 
 .stat-help-dialog a{color:#55d8ff}.stat-help-dialog footer{display:flex;align-items:center;justify-content:space-between;gap:20px}
 .stat-help-dialog button{font:inherit;border:1px solid #42617f;border-radius:10px;color:inherit;background:#18334e;padding:8px 14px}
 
-/* Multi-game scoreboard */
-.multi-shell{padding:12px 10px}.multi-toolbar{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px}
-.multi-toolbar label{display:flex;flex-direction:column;gap:6px;font-size:13px}.multi-toolbar input{font:inherit;font-size:16px;min-width:0;background:#102235;color:#e6f1ff;border:1px solid #42617f;border-radius:10px;padding:10px}
-.multi-toolbar button,.multi-picker button{font:inherit;color:#e6f1ff;background:#102235;border:1px solid #42617f;border-radius:10px;padding:10px 14px;cursor:pointer}
-.multi-picker{display:flex;flex-wrap:wrap;gap:8px;border:0;padding:0;margin:18px 0}.multi-picker legend{font-size:13px;padding:0 0 10px;color:#a6bdd3}
-.multi-picker button{text-align:left;display:flex;flex-direction:column;gap:5px;max-width:100%}.multi-picker small{color:#a6bdd3;font-size:11px}.multi-picker button[aria-pressed=true]{border-color:#44c98b;background:#14362d}.multi-picker button:disabled{opacity:.4;cursor:default}
-.multi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.multi-card{background:#102235;border:1px solid #42617f;border-radius:16px;overflow:hidden;min-width:0}
+/* Multi-game scoreboard: explicit tracks also constrain native Safari date controls. */
+.multi-shell{padding:12px 10px;min-width:0}
+.multi-toolbar{display:grid;grid-template-columns:minmax(0,220px) auto auto;justify-content:start;align-items:end;gap:10px}
+.multi-toolbar label{display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:0}
+.multi-toolbar input{display:block;width:100%;max-width:100%;min-width:0;min-inline-size:0;min-height:44px;box-sizing:border-box;font:inherit;font-size:16px;background:#102235;color:#e6f1ff;border:1px solid #42617f;border-radius:10px;padding:10px}
+.multi-toolbar input::-webkit-date-and-time-value{text-align:left;min-width:0}
+.multi-toolbar button,.multi-picker button{font:inherit;color:#e6f1ff;background:#102235;border:1px solid #42617f;border-radius:10px;padding:10px 12px;cursor:pointer;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.multi-toolbar+.subs-intro{margin-top:14px}
+.multi-picker{min-width:0;min-inline-size:0;max-width:100%;border:0;padding:0;margin:18px 0}
+.multi-picker legend{font-size:13px;padding:0 0 10px;color:#a6bdd3;max-width:100%}
+.multi-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:8px;min-width:0}
+.multi-picker button{text-align:left;display:flex;flex-direction:column;gap:5px;width:100%;max-width:100%;font-size:14px;line-height:1.5}
+.multi-picker button>span,.multi-picker small{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.multi-picker small{color:#a6bdd3;font-size:11px}
+.multi-picker button[aria-pressed=true]{border-color:#44c98b;background:#14362d}
+.multi-picker button:disabled{opacity:.4;cursor:default}
+.multi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.multi-card{background:#102235;border:1px solid #42617f;border-radius:16px;overflow:hidden;min-width:0}
 .multi-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-bottom:1px solid #29465f;font-size:13px}
-.multi-live{color:#6be3a4}.multi-remove{border:0;background:none;color:#a6bdd3;font-size:24px;width:32px;height:32px;cursor:pointer}
-.multi-open{display:block;width:100%;border:0;border-radius:0;color:inherit;background:none;padding:16px;text-align:left;cursor:pointer;font:inherit}
-.multi-team-row{display:grid;grid-template-columns:38px minmax(0,1fr) 42px;align-items:center;gap:12px;margin:8px 0}.multi-team-row .logo{width:36px;height:36px;object-fit:contain}.multi-team-row span{overflow-wrap:anywhere;font-weight:650}.multi-team-row b{font-size:32px;text-align:right;font-variant-numeric:tabular-nums}
-.multi-detail{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#a6bdd3;margin-top:20px}.multi-bases{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.multi-bases span{font-size:11px;color:#a6bdd3;background:#173048;padding:5px 8px;border-radius:6px}.multi-bases .occupied{color:#6be3a4;background:#14362d}.multi-unavailable{font-size:12px;color:#a6bdd3;padding:12px}
-@media(max-width:650px){.multi-grid{grid-template-columns:1fr}.multi-picker button{flex:1 1 calc(50% - 8px)}.multi-team-row span{font-size:16px}}
+.multi-card>header>span{min-width:0;overflow-wrap:anywhere}
+.multi-live{color:#6be3a4}
+.multi-remove{display:grid;place-items:center;flex:none;padding:0;border:0;background:none;color:#a6bdd3;font-size:24px;line-height:1;width:36px;height:36px;min-height:36px;cursor:pointer}
+.multi-open{display:block;width:100%;min-width:0;border:0;border-radius:0;color:inherit;background:none;padding:16px;text-align:left;cursor:pointer;font:inherit;white-space:normal;overflow-wrap:anywhere}
+.multi-team-row{display:grid;grid-template-columns:38px minmax(0,1fr) minmax(42px,max-content);align-items:center;gap:12px;margin:8px 0}
+.multi-team-row .logo{width:36px;height:36px;object-fit:contain}
+.multi-team-row span{min-width:0;overflow-wrap:anywhere;font-weight:650}
+.multi-team-row b{font-size:32px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.multi-detail{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;font-size:12px;color:#a6bdd3;margin-top:20px}
+.multi-bases{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.multi-bases span{font-size:11px;color:#a6bdd3;background:#173048;padding:5px 8px;border-radius:6px}
+.multi-bases .occupied{color:#6be3a4;background:#14362d}
+.multi-unavailable{font-size:12px;color:#a6bdd3;padding:12px}
+@media(max-width:650px){
+ .multi-toolbar{grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch}
+ .multi-toolbar label{grid-column:1/-1}
+ .multi-options{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .multi-grid{grid-template-columns:minmax(0,1fr)}
+ .multi-team-row span{font-size:16px}
+}
 
 /* Taiwanese players: daily game stats */
 .tw-daily{display:flex;flex-direction:column;gap:7px;margin:10px 0;font-size:12px;color:#b7cadc;min-width:0}
 .tw-daily-title{font-size:12px;color:#e3eef9}.tw-daily-game{display:flex;flex-direction:column;align-items:flex-start;gap:6px;border:1px solid #315371;border-radius:10px;background:#10283e;color:#e3eef9;padding:10px;text-align:left;font:inherit;line-height:1.6;cursor:pointer;max-width:100%;width:100%}
 .tw-daily-game:hover{border-color:#55d8ff}.tw-daily-game .tw-today{border-radius:6px;font-size:11px;padding:1px 5px;max-width:100%;white-space:normal;box-sizing:border-box}
 .tw-daily-match{color:#a6bdd3;overflow-wrap:anywhere}.tw-daily-warning{color:#ffc787}.tw-daily-refresh{margin:0 0 16px}.tw-body{min-width:0;flex:1}
+
+/* v2.12.1: content must shrink inside page/card columns, including long translations. */
+.brand-group>div:last-child{min-width:0}
+#appTitle{overflow-wrap:anywhere}
+#liveTitleActions{flex:none}
+.tw-team>span:last-child,.tw-stats li>span:last-child{min-width:0;overflow-wrap:anywhere}
+.stat-help-dialog footer{flex-wrap:wrap;gap:12px}
