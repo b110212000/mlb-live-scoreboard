@@ -22,6 +22,6 @@
   <div id="root"><main class="wrap"><p role="status">正在載入 MLB 戰況…</p><span class="app-version">v__VERSION__</span></main></div>
   <script>/* 載入中的文字跟著語言設定（規則與 src/i18n.js 的 detectLang 相同）。 */try{var p=localStorage.getItem('mlb-lang'),l=p==='zh'||p==='en'||p==='ja'?p:'',n=navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language];for(var i=0;!l&&i<n.length;i++){var v=String(n[i]||'').toLowerCase();l=v.indexOf('zh')===0?'zh':v.indexOf('ja')===0?'ja':v.indexOf('en')===0?'en':''}if(!l)l=n.some(Boolean)?'en':'zh';var s={en:'Loading MLB scores…',ja:'MLB スコアを読み込み中…'}[l];if(s)document.querySelector('#root [role=status]').textContent=s}catch(e){}</script>
   <noscript>請啟用 JavaScript 以查看即時比賽。</noscript>
-  <script type="module" src="./assets/app-__VERSION__.js?v=__VERSION__"></script>
+  <script type="module" src="./assets/app-__VERSION__.js?v=__VERSION__-navfix"></script>
 </body>
 </html>
