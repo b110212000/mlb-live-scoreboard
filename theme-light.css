@@ -503,6 +503,18 @@ html[data-theme=light] .tw-daily-game{border:1px solid #a8c2d9;background:#f9faf
 html[data-theme=light] .tw-daily-game:hover{border-color:#0a7fb0}
 html[data-theme=light] .tw-daily-match{color:#35516b}
 html[data-theme=light] .tw-daily-warning{color:#924e00}
+html[data-theme=light] .active-team-card{border:1px solid #b5cce1;background:#f3f5f8;color:var(--text)}
+html[data-theme=light] .active-team-card:hover,html[data-theme=light] .active-player-card:hover{border-color:#8ea7c1;background:#f3f6fa}
+html[data-theme=light] .active-team-card small{color:var(--muted)}
+html[data-theme=light] .active-player-card{border:1px solid #b5cce1;background:#f3f5f8;color:var(--text)}
+html[data-theme=light] .active-player-card img{background:#d2dfeb}
+html[data-theme=light] .active-player-card small,html[data-theme=light] .active-player-card em{color:var(--muted)}
+html[data-theme=light] .active-player-card em{color:#25394a}
+html[data-theme=light] .active-player-card i{color:var(--muted)}
+html[data-theme=light] .player-tabs{border-bottom:1px solid #b5cce1}
+html[data-theme=light] .player-tabs button{border:0;border-bottom:3px solid transparent;background:none;color:var(--muted)}
+html[data-theme=light] .player-tabs button[aria-selected=true]{border-color:var(--accent);color:var(--text)}
+html[data-theme=light] .player-tabs button:focus-visible{outline:2px solid var(--accent)}
 
 /* ---- 手動調整（src/theme-light.css） ---- */
 /* 淺色主題的手動調整：接在自動產生的規則後面（同權重時以這裡為準）。

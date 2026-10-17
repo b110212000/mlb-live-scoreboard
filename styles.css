@@ -2874,3 +2874,16 @@ html[lang=ja] .team-card-zh{white-space:nowrap;font-size:min(15px,calc(100cqi / 
 #liveTitleActions{flex:none}
 .tw-team>span:last-child,.tw-stats li>span:last-child{min-width:0;overflow-wrap:anywhere}
 .stat-help-dialog footer{flex-wrap:wrap;gap:12px}
+
+/* v2.13.0 現役 40 人名單與球員當季資料。 */
+.active-team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+.active-team-card{min-width:0;padding:11px;border:1px solid #294966;border-radius:13px;background:#0b1a2b;color:var(--text);display:grid;grid-template-columns:38px minmax(0,1fr);align-items:center;gap:3px 9px;text-align:left;cursor:pointer}
+.active-team-card:hover,.active-player-card:hover{border-color:#4a6888;background:#10233a}
+.active-team-card .subs-logo{grid-row:1/3}.active-team-card b,.active-team-card small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.active-team-card small{color:var(--muted);font-size:11px}
+.active-back{align-self:flex-start}.active-team-title{display:flex;align-items:center;gap:10px;margin:8px 0 2px}.active-team-title h2{margin:0;font-size:22px}.active-team-title .subs-logo{width:42px;height:42px}
+.active-player-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.active-player-card{min-width:0;padding:9px;border:1px solid #294966;border-radius:13px;background:#0b1a2b;color:var(--text);display:grid;grid-template-columns:46px minmax(0,1fr) auto;align-items:center;gap:10px;text-align:left;cursor:pointer;font:inherit}
+.active-player-card img{width:46px;height:60px;border-radius:9px;object-fit:cover;object-position:50% 0;background:#203449}.active-player-card>span{display:flex;flex-direction:column;gap:3px;min-width:0}.active-player-card b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.active-player-card small,.active-player-card em{color:var(--muted);font-size:12px;font-style:normal;overflow-wrap:anywhere}.active-player-card em{color:#c5d4e2}.active-player-card i{color:var(--muted);font-size:20px;font-style:normal}
+.player-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:18px;border-bottom:1px solid #294966}.player-tabs button{min-height:44px;border:0;border-bottom:3px solid transparent;background:none;color:var(--muted);font:inherit;font-weight:800;cursor:pointer}.player-tabs button[aria-selected=true]{border-color:var(--accent);color:var(--text)}.player-tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+.player-current{touch-action:pan-y}
+@media(max-width:600px){.active-team-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.active-player-list{grid-template-columns:1fr}}

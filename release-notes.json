@@ -1,20 +1,20 @@
 {
-  "version": "2.12.1",
+  "version": "2.13.0",
   "notes": {
     "zh": [
-      "修正多場同看的日期操作列與選場格子，手機上保持整齊對齊。",
-      "修正旅外卡片與訂閱日期在窄螢幕的溢出，改善長文字與各頁排版。",
-      "加入手機、平板、桌面與三語深淺色的排版回歸檢查。"
+      "新增 MLB 各隊 40 人名單：按隊讀取，包含傷兵與下放名單內球員。",
+      "打者依 MLB 當季 OPS 排序，投手依 MLB 當季 ERA 排序；無成績者固定排後。",
+      "現役球員頁新增可點擊、滑動與鍵盤切換的當季成績／球員資料分頁。"
     ],
     "en": [
-      "Fixed the multi-game date toolbar and game picker alignment on phones.",
-      "Fixed narrow-screen overflow in Taiwan player cards and subscription dates, with better long-text wrapping.",
-      "Added responsive layout regression checks across phone, tablet and desktop sizes, languages and themes."
+      "Added on-demand MLB 40-man rosters for every team, including injured and optioned players.",
+      "Ordered hitters by current MLB OPS and pitchers by current MLB ERA, with players lacking stats last.",
+      "Added clickable, swipeable and keyboard-accessible Season Stats / Player Info tabs for active players."
     ],
     "ja": [
-      "複数試合画面の日付操作欄と試合選択を、スマートフォンでも整列するよう修正しました。",
-      "台湾出身選手カードと購読日時のはみ出しを修正し、長い文字列の折り返しを改善しました。",
-      "スマートフォン・タブレット・デスクトップ、3言語と両テーマのレイアウト回帰検証を追加しました。"
+      "各チームのMLB 40人枠をオンデマンドで追加。故障者・オプション降格中の選手も含まれます。",
+      "打者は今季MLB OPS順、投手はERA順に並び、成績なしの選手は最後に表示します。",
+      "現役選手ページに、タップ・スワイプ・キーボードで切り替えられる今季成績／選手情報タブを追加しました。"
     ]
   }
 }

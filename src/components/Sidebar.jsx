@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import {Icon} from './Icon.jsx';
 import {t} from '../i18n.js';
 // 標籤用函式，畫面重畫時才翻譯（跟著目前語言）。
-const links=[['live',()=>t('即時比賽')],['multi',()=>t('多場同看')],['bracket',()=>t('季後賽戰況')],['standings',()=>t('戰績排行')],['taiwan',()=>t('台灣旅外')],['hof',()=>t('名人堂')],['teams',()=>t('追蹤球隊')],['notifications',()=>t('訂閱管理')]];
+const links=[['live',()=>t('即時比賽')],['multi',()=>t('多場同看')],['bracket',()=>t('季後賽戰況')],['standings',()=>t('戰績排行')],['taiwan',()=>t('台灣旅外')],['activePlayers',()=>t('現役球員')],['hof',()=>t('名人堂')],['teams',()=>t('追蹤球隊')],['notifications',()=>t('訂閱管理')]];
 const settingsLinks=[['settings',()=>t('外觀')],['language',()=>t('語言 / Language')],['notificationTest',()=>t('訂閱測試')],['install',()=>t('安裝 / 分享 App')],['feedback',()=>t('意見回饋')],['updates',()=>t('版本更新')]];
 // 選單項目的圖示（預設與頁面同名）；「外觀」用太陽 / 月亮，與「設定」的齒輪區分。
 const ICONS={settings:'theme',language:'language',updates:'install'};

@@ -10,7 +10,7 @@ import {STAT_FIELDS} from '../statGlossary.js';
 import {t,tParts,lang} from '../i18n.js';
 
 const API='https://statsapi.mlb.com/api/v1';
-const backLabel=from=>({hof:t('名人堂'),taiwan:t('台灣旅外'),live:t('即時比賽'),standings:t('戰績排行')})[from]||'';
+const backLabel=from=>({hof:t('名人堂'),taiwan:t('台灣旅外'),activePlayers:t('現役球員'),live:t('即時比賽'),standings:t('戰績排行')})[from]||'';
 const cache=new Map();
 
 async function getJSON(url){
@@ -29,8 +29,9 @@ function statGroups(person,career){
 }
 
 // 一位球員只查需要的資料（個人、非大量使用）：基本資料 + 獎項 + 大聯盟生涯，以及含小聯盟的逐年成績。
-async function loadPlayer(id){
-  if(cache.has(id))return cache.get(id);
+async function loadPlayer(id,mlbOnly=false){
+  const key=`${id}:${mlbOnly?'mlb':'all'}`;
+  if(cache.has(key))return cache.get(key);
   const data=await getJSON(`${API}/people/${id}?hydrate=currentTeam,awards,stats(group=[hitting,pitching],type=[career])`);
   const person=data.people?.[0];
   if(!person)throw new Error(t('找不到這位球員'));
@@ -39,14 +40,18 @@ async function loadPlayer(id){
     if(stat.type?.displayName==='career')career[stat.group?.displayName]=stat.splits?.[0]?.stat||null;
   }
   const groups=statGroups(person,career);
-  const yearly={};
+  const yearly={},current={};
   await Promise.all(groups.map(async group=>{
-    const stats=await getJSON(`${API}/people/${id}/stats?stats=yearByYear&group=${group}&leagueListId=mlb_milb`).catch(()=>({stats:[]}));
+    const stats=await getJSON(`${API}/people/${id}/stats?stats=yearByYear&group=${group}&leagueListId=${mlbOnly?'mlb':'mlb_milb'}`).catch(()=>({stats:[]}));
     // 年份由舊到新，每年一列主要成績（大聯盟優先），同年其他紀錄收在 details。
     yearly[group]=groupSeasons(stats.stats?.[0]?.splits||[]);
+    if(mlbOnly){
+      const seasonStats=await getJSON(`${API}/people/${id}/stats?stats=season&group=${group}&season=${new Date().getFullYear()}&sportId=1`).catch(()=>({stats:[]}));
+      current[group]=seasonStats.stats?.[0]?.splits?.find(split=>split.sport?.id===1)?.stat||null;
+    }
   }));
-  const result={person,groups,yearly,career};
-  cache.set(id,result);
+  const result={person,groups,yearly,career,current};
+  cache.set(key,result);
   return result;
 }
 
@@ -173,15 +178,18 @@ function careerNote(person,hasMinors){
 export function PlayerPage(){
   const {view,playerId,playerFrom,lang:uiLang}=useScoreboard();
   const [loaded,setLoaded]=useState({id:null,data:null,error:''});
+  const [tab,setTab]=useState('season');
+  const swipeStart=useRef(null);
+  const activeOnly=playerFrom==='activePlayers';
   useEffect(()=>{
     if(view!=='player'||!playerId)return;
     let cancelled=false;
     setLoaded(current=>current.id===playerId?current:{id:playerId,data:null,error:''});
-    loadPlayer(playerId)
+    loadPlayer(playerId,activeOnly)
       .then(data=>{if(!cancelled)setLoaded({id:playerId,data,error:''})})
       .catch(err=>{if(!cancelled)setLoaded({id:playerId,data:null,error:err.message})});
     return ()=>{cancelled=true};
-  },[view,playerId]);
+  },[view,playerId,activeOnly]);
 
   const from=playerFrom&&playerFrom!=='player'?playerFrom:'hof';
   const data=loaded.id===playerId?loaded.data:null;
@@ -192,6 +200,10 @@ export function PlayerPage(){
   const localName=person&&lang()!=='en'?TAIWAN_PLAYER_NAMES[person.id]:null;
   const team=person?.active?person.currentTeam:null;
   const hasMlb=data&&data.groups.some(group=>data.career[group]?.gamesPlayed);
+  const switchTab=next=>setTab(next);
+  const tabKeys=event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();switchTab(tab==='season'?'profile':'season')}};
+  const swipeStartAt=event=>{swipeStart.current=event.touches[0]?.clientX??null};
+  const swipeEndAt=event=>{const start=swipeStart.current,end=event.changedTouches[0]?.clientX;swipeStart.current=null;if(start!=null&&end!=null&&Math.abs(end-start)>48)switchTab(end<start?'profile':'season')};
 
   return <section className="card subs-shell player-shell" aria-label={t('球員資料')}>
     <button type="button" className="subs-link player-back" onClick={actions.closePlayer}>{t('← 返回{page}',{page:backLabel(from)})}</button>
@@ -211,6 +223,16 @@ export function PlayerPage(){
           </div>
         </div>
       </header>
+      {activeOnly&&<div className="player-tabs" role="tablist" aria-label={t('球員頁分頁')} onKeyDown={tabKeys}>
+        <button type="button" role="tab" id="player-season-tab" aria-selected={tab==='season'} aria-controls="player-season-panel" tabIndex={tab==='season'?0:-1} onClick={()=>switchTab('season')}>{t('當季成績')}</button>
+        <button type="button" role="tab" id="player-profile-tab" aria-selected={tab==='profile'} aria-controls="player-profile-panel" tabIndex={tab==='profile'?0:-1} onClick={()=>switchTab('profile')}>{t('球員資料')}</button>
+      </div>}
+      {activeOnly&&tab==='season'&&<section id="player-season-panel" role="tabpanel" aria-labelledby="player-season-tab" className="subs-section player-current" onTouchStart={swipeStartAt} onTouchEnd={swipeEndAt}>
+        <div className="subs-section-head"><h3>{t('{year} 年 MLB 當季成績',{year:new Date().getFullYear()})}</h3></div>
+        {data.groups.map(group=>data.current[group]?.gamesPlayed?<div key={group} className="player-tiles" aria-label={groupName(group)}>{data.groups.length>1&&<span className="player-tiles-label">{groupName(group)}</span>}{careerTiles[group](data.current[group]).map(([label,value])=><div key={label} className="player-tile"><b>{value??'-'}</b><span>{label}</span></div>)}</div>:null)}
+        {!data.groups.some(group=>data.current[group]?.gamesPlayed)&&<p className="subs-empty">{t('本季尚無 MLB 成績')}</p>}
+      </section>}
+      {(!activeOnly||tab==='profile')&&<div id={activeOnly?'player-profile-panel':undefined} role={activeOnly?'tabpanel':undefined} aria-labelledby={activeOnly?'player-profile-tab':undefined} onTouchStart={activeOnly?swipeStartAt:undefined} onTouchEnd={activeOnly?swipeEndAt:undefined}>
       <Facts person={person}/>
 
       <section className="subs-section" aria-labelledby="playerCareerTitle">
@@ -235,6 +257,7 @@ export function PlayerPage(){
       </section>:null)}
 
       <WikiBio person={person} visible={view==='player'} uiLang={uiLang}/>
+      </div>}
     </>}
   </section>;
 }

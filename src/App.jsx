@@ -11,6 +11,7 @@ import {SubscriptionManager} from './components/SubscriptionManager.jsx';
 import {TeamFollow} from './components/TeamFollow.jsx';
 import {StandingsPage} from './components/StandingsPage.jsx';
 import {TaiwanPlayers} from './components/TaiwanPlayers.jsx';
+import {ActivePlayers} from './components/ActivePlayers.jsx';
 import {HallOfFame} from './components/HallOfFame.jsx';
 import {PlayerPage} from './components/PlayerPage.jsx';
 import {SettingsPage,LanguagePage} from './components/SettingsPage.jsx';
@@ -26,7 +27,7 @@ import {t,lang as currentLang,locale} from './i18n.js';
 import {teamLabel} from './teams.js';
 
 // 頁面標題在畫面重畫時才翻譯（跟著目前語言）。
-const pageTitle=view=>({live:t('MLB 即時戰況'),bracket:t('MLB 季後賽戰況'),standings:t('戰績排行'),taiwan:t('台灣旅外球員'),hof:t('名人堂'),player:t('球員資料'),teams:t('追蹤球隊'),roster:t('MLB 對戰名單'),install:t('安裝 / 分享 MLB 戰況'),notifications:t('訂閱管理'),notificationTest:t('訂閱測試'),settings:t('外觀'),language:t('語言 / Language'),feedback:t('意見回饋'),updates:t('版本更新'),multi:t('多場同看')})[view];
+const pageTitle=view=>({live:t('MLB 即時戰況'),bracket:t('MLB 季後賽戰況'),standings:t('戰績排行'),taiwan:t('台灣旅外球員'),activePlayers:t('現役球員'),hof:t('名人堂'),player:t('球員資料'),teams:t('追蹤球隊'),roster:t('MLB 對戰名單'),install:t('安裝 / 分享 MLB 戰況'),notifications:t('訂閱管理'),notificationTest:t('訂閱測試'),settings:t('外觀'),language:t('語言 / Language'),feedback:t('意見回饋'),updates:t('版本更新'),multi:t('多場同看')})[view];
 
 export function App(){
   const update=useAppUpdate();
@@ -51,6 +52,7 @@ export function App(){
       <div id="bracketView" className="app-view" hidden={view!=='bracket'}><BracketContent lang={lang}/></div>
       <div id="standingsView" className="app-view" hidden={view!=='standings'}><StandingsPage/></div>
       <div id="taiwanView" className="app-view" hidden={view!=='taiwan'}><TaiwanPlayers/></div>
+      <div id="activePlayersView" className="app-view" hidden={view!=='activePlayers'}><ActivePlayers/></div>
       <div id="hofView" className="app-view" hidden={view!=='hof'}><HallOfFame/></div>
       <div id="playerView" className="app-view" hidden={view!=='player'}><PlayerPage/></div>
       <div id="teamsView" className="app-view" hidden={view!=='teams'}><TeamFollow/></div>
