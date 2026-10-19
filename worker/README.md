@@ -224,3 +224,28 @@ API 需要 `Content-Type: application/json`、與 FRONTEND_ORIGIN 一致的 Orig
 儲存內容只有限流時間、次數、雜湊、隨機回饋 ID 與寄送狀態，不保存回饋正文或聯絡信箱；鬧鐘清理 24 小時前的記錄，閒置時停止。Email 本身保留在維護者 Gmail。
 
 `/health` 的 `feedbackEnabled` 只代表三個 Secrets 與 binding 已設定，不保證認證成功。部署後還要以表單送一則測試回饋，並確認收到信。`npm test` 的 SMTP 與 API 測試使用 mock，不會寄信。
+
+
+### 共用 SMTP 寄送（Issue #8：後端指定收件者）
+
+`worker/src/smtp.js` 的 `sendGmail(env,message)` 現在可由**可信的伺服器端呼叫者**用 `message.to` 指定單一收件者，例如 OrderLead 已驗證／待驗證帳號所屬的 Email。未傳 `message.to` 時仍沿用 `env.FEEDBACK_TO_EMAIL`，保留舊版回饋流程。SMTP `To:` 與 `RCPT TO` 一致，嚴格驗證收件地址，不接受多收件人或換行 Header 注入。可選的 `kind` 僅支援 `mlb-feedback`、`orderlead-verify`、`orderlead-reset`，顯示固定的 MLB Feedback 或 OrderLead 寄件名稱。
+
+可信後端程式使用示例（**這不是公共 API**）：
+
+```js
+await sendGmail(env, {
+  id: crypto.randomUUID(),
+  to: verifiedRecipientEmail, // 從 OrderLead 後端註冊/重設流程得到
+  kind: "orderlead-verify", // 或 orderlead-reset
+  subject: "OrderLead 信箱驗證",
+  text: "請在期限內使用你的專屬驗證連結完成驗證。"
+});
+```
+
+- MLB `POST /api/feedback` **仍只能寄到後端固定 `FEEDBACK_TO_EMAIL`**。公開請求的 `to`、`email`、`kind` 都不會用來設定 SMTP 收件者；它不是任意寄信 Relay。
+- **沒有新增 `/api/send-mail` 或任意跨網站寄信 API**。若跨專案共用，應優先讓 OrderLead Worker 自行引入 SMTP 模組並為自己的 Worker 配置同一 Gmail 的 `SMTP_USER`／`SMTP_PASSWORD` **Cloudflare Secrets**，或未來將私有郵件服務抽出後用 Cloudflare Service Binding（僅 Worker→Worker）調用。
+- 不同 Worker **不會自動共享** Secret，不能從 MLB 的 Cloudflare Worker 直接讀取 `SMTP_PASSWORD`。切勿把 Gmail 應用程式密碼放在 GitHub、`wrangler.jsonc`、PWA 或 GET 回應內。
+- OrderLead 忘記密碼／註冊驗證還需要自己的 D1 高熵一次性 Token、原子消耗、真實 Email 歸屬驗證、寄信節流、防帳號探測、重設後 Session 撤銷；僅 SMTP 支援 `to` **不代表 OrderLead 登入或救援已完成**。
+- Gmail 的實際寄信配額與垃圾郵件政策適用於**兩個 App 合計**，伺服器 `FeedbackService` 的獨立限流不代替 OrderLead 自己的驗證郵件限流。
+
+本次 SMTP 和回饋單元測試使用模擬 Socket，不會實際向用戶發信。Cloudflare Workers Builds 更新完成後仍須確認 MLB 原有意見回饋正常。

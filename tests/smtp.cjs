@@ -27,6 +27,33 @@ function connection({rejectAt=-1,disconnectAt=-1,quitError=false,hang=false}={})
  assert(!mail.includes('Bcc: injected'));assert.equal(Buffer.from(mail.split('\r\n\r\n')[1].replace(/\r\n/g,''),'base64').toString(),message.text);
  assert.throws(()=>api.createMail({...message,from:env.SMTP_USER,to:'x@y.com\r\nBcc:z@y.com'}));
  const good=connection();assert.equal((await api.sendGmail(env,message,good.open)).accepted,true);assert(good.closed);
+ // Reusable server-only recipient: OrderLead signup/reset email can go to
+ // an individual verified address without FEEDBACK_TO_EMAIL being configured.
+ const mailEnv={SMTP_USER:env.SMTP_USER,SMTP_PASSWORD:env.SMTP_PASSWORD};
+ const verifyMail={...message,to:'new-account@example.com',kind:'orderlead-verify',
+   subject:'OrderLead Email 驗證',text:'請完成 Email 驗證'};
+ const verifyConn=connection();
+ assert.equal((await api.sendGmail(mailEnv,verifyMail,verifyConn.open)).accepted,true);
+ assert.equal(verifyConn.writes[5],'RCPT TO:<new-account@example.com>\r\n');
+ const verifyMime=verifyConn.writes[7];
+ assert(verifyMime.includes('From: OrderLead <sender@gmail.com>'));
+ assert(verifyMime.includes('To: <new-account@example.com>'));
+ assert(verifyMime.includes('Message-ID: <orderlead-verify-'));
+ const resetConn=connection();
+ assert.equal((await api.sendGmail(mailEnv,{...verifyMail,kind:'orderlead-reset',
+   to:'new-account+reset@example.com'},resetConn.open)).accepted,true);
+ assert.equal(resetConn.writes[5],'RCPT TO:<new-account+reset@example.com>\r\n');
+ assert(resetConn.writes[7].includes('Message-ID: <orderlead-reset-'));
+ // A user-controlled recipient that is not a single valid address must
+ // be rejected before opening a socket or sending an SMTP command.
+ for(const badTo of ['', 'a@example.com\r\nBcc:evil@example.com',
+   'person@example.com,evil@example.com', 'bad', 1, null]){
+   await assert.rejects(api.sendGmail(mailEnv,{...verifyMail,to:badTo},
+     ()=>{throw Error('MUST_NOT_CONNECT')}),/SMTP_CONFIG/);
+ }
+ await assert.rejects(api.sendGmail(mailEnv,{...verifyMail,kind:'evil\r\nBcc:'},
+   ()=>{throw Error('MUST_NOT_CONNECT')}),/SMTP_CONFIG/);
+
  assert.equal(good.writes[2],Buffer.from(env.SMTP_USER).toString('base64')+'\r\n');
  assert.equal(good.writes[3],Buffer.from('apppasswordfortest').toString('base64')+'\r\n');
  assert.equal(good.writes[5],'RCPT TO:<owner@gmail.com>\r\n');assert(good.writes[7].endsWith('\r\n.\r\n'));

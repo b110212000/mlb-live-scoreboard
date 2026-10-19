@@ -1,7 +1,8 @@
 import { connect } from "cloudflare:sockets";
 
 // This client only submits authenticated mail to Gmail over implicit TLS.
-// The caller fixes both envelope addresses from server-side secrets.
+// Only TRUSTED server-side callers may select recipients; NEVER forward public body.to.
+// The SMTP credential stays a Cloudflare Worker Secret, not a browser/API field.
 export const validEmail = value => typeof value === "string" && value.length <= 254 &&
   /^[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(value);
 
@@ -9,15 +10,25 @@ function base64(text) {
   return btoa(Array.from(new TextEncoder().encode(text), byte => String.fromCharCode(byte)).join(""));
 }
 
-export function createMail({ from, to, replyTo, subject, text, id }) {
+// Brand labels are fixed server-defined values, not caller-provided header text.
+const mailKinds = Object.freeze({
+  "mlb-feedback": { label: "MLB Feedback", prefix: "feedback" },
+  "orderlead-verify": { label: "OrderLead", prefix: "orderlead-verify" },
+  "orderlead-reset": { label: "OrderLead", prefix: "orderlead-reset" }
+});
+
+export function createMail({ from, to, replyTo, subject, text, id, kind = "mlb-feedback" }) {
   if (!validEmail(from) || !validEmail(to) || (replyTo && !validEmail(replyTo))) throw new Error("SMTP_CONFIG");
+  if (typeof kind !== "string" || !Object.hasOwn(mailKinds, kind)) throw new Error("SMTP_CONFIG");
+  if (typeof subject !== "string" || typeof text !== "string" || !text.length) throw new Error("SMTP_CONFIG");
+  const { label, prefix } = mailKinds[kind];
   if (!/^[a-f0-9-]{36}$/i.test(id)) throw new Error("SMTP_MESSAGE_ID");
   const headers = [
-    `From: MLB Feedback <${from}>`, `To: <${to}>`,
+    `From: ${label} <${from}>`, `To: <${to}>`,
     ...(replyTo ? [`Reply-To: <${replyTo}>`] : []),
     `Subject: =?UTF-8?B?${base64(subject)}?=`,
     `Date: ${new Date().toUTCString()}`,
-    `Message-ID: <feedback-${id}@${from.split("@")[1]}>`,
+    `Message-ID: <${prefix}-${id}@${from.split("@")[1]}>`,
     "MIME-Version: 1.0", "Content-Type: text/plain; charset=UTF-8",
     "Content-Transfer-Encoding: base64"
   ];
@@ -28,7 +39,10 @@ export function createMail({ from, to, replyTo, subject, text, id }) {
 export async function sendGmail(env, message, openSocket = connect) {
   const user = String(env.SMTP_USER || "").trim();
   const password = String(env.SMTP_PASSWORD || "").replace(/\s/g, "");
-  const to = String(env.FEEDBACK_TO_EMAIL || "").trim();
+  // message.to must originate from a verified backend workflow (never an
+  // unchecked frontend field). Keep the old feedback recipient as fallback.
+  const chosen = message.to === undefined ? env.FEEDBACK_TO_EMAIL : message.to;
+  const to = typeof chosen === "string" ? chosen.trim() : "";
   if (!validEmail(user) || !validEmail(to) || !password) throw new Error("SMTP_CONFIG");
   const mail = createMail({ ...message, from: user, to });
   const socket = openSocket({ hostname: "smtp.gmail.com", port: 465 }, { secureTransport: "on" });
