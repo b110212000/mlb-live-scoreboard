@@ -46,6 +46,12 @@ export async function applyAppUpdate(returnPoint){
     const url=new URL(location.href);url.searchParams.set('_v',target);
     url.searchParams.delete('gamePk');url.searchParams.delete('gameDate');
     if(point.view==='player'&&point.playerId){url.searchParams.set('view','player');url.searchParams.set('playerId',point.playerId)}
+    if(point.view==='activePlayers'||point.view==='player'&&point.playerFrom==='activePlayers'){
+      url.searchParams.set('view',point.view);
+      url.searchParams.set('playersTab',point.activeTab||'teams');url.searchParams.set('league',point.activeLeague||'MLB');
+      if(point.activeTeamId)url.searchParams.set('teamId',point.activeTeamId);else url.searchParams.delete('teamId');
+      if(point.view==='player')url.searchParams.set('playerFrom','activePlayers');
+    }
     location.replace(url.href);
   }catch{publish({error:'network',applying:false})}
 }

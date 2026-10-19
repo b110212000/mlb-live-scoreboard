@@ -4,7 +4,7 @@
 
 公開網站：<https://b110212000.github.io/mlb-live-scoreboard/>
 
-目前版本：`v2.13.0`
+目前版本：`v2.14.0`
 
 ## 功能
 
@@ -1362,3 +1362,14 @@ MLB Stats API
 發布先更新程式與頁尾 / CSS / JS 版本，等待 Pages 與 Worker 部署驗證，最後更新 version.json。
 
 本機回歸驗證：`node tests/game-monitor.cjs` 與 `node tests/game-watch-ui.cjs`。測試使用模擬 MLB 與 Push 回應，不發送真實通知。
+
+## v2.14.0 現役球員排行榜（#7）
+
+- 現役球員入口補上人物圖示，分類為「投手／球隊／打者」，預設球隊。
+- 投手 ERA 升冪、打者 OPS 降冪，使用 MLB Stats API 的 `playerPool=QUALIFIED`，依當季 MLB 合格局數／打席資格，並非賽揚獎票選資格。
+- 排行榜提供美聯／國聯／通算；通算指當季兩聯盟合併，非生涯成績。只有當前分類開啟時才請求排行榜，快取 5 分鐘；不批次抓全聯盟生涯。
+- 球隊保留 40 人名單，包含 API 回傳的傷兵（可能超過 40 人）；隊內名單不套排行榜資格。交易球員優先使用官方合計，不平均 OPS／ERA。
+- 修復「所有球隊」返回；球隊、分頁、聯盟可由網址還原，瀏覽器返回及前進保留上下層。
+- 隊伍頁向右滑返回球隊列表。球員頁第一分頁向右滑返回來源；資料分頁中央右滑回當季成績，左側 40px 內起滑可直接返回來源。表格橫向捲動、垂直捲動及多指手勢不觸發返回。
+- 排名資格：https://www.mlb.com/glossary/standard-stats/rate-stats-qualifiers
+- 發布時先部署及核對靜態資源，再以獨立提交更新 version.json。

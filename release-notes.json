@@ -1,20 +1,20 @@
 {
-  "version": "2.13.0",
+  "version": "2.14.0",
   "notes": {
     "zh": [
-      "新增 MLB 各隊 40 人名單：按隊讀取，包含傷兵與下放名單內球員。",
-      "打者依 MLB 當季 OPS 排序，投手依 MLB 當季 ERA 排序；無成績者固定排後。",
-      "現役球員頁新增可點擊、滑動與鍵盤切換的當季成績／球員資料分頁。"
+      "現役球員新增投手／球隊／打者三分頁，入口補上圖示。",
+      "新增合格球員 ERA、OPS 排行榜，可篩選美聯、國聯或當季通算。",
+      "修復所有球隊返回，支援右滑返回與瀏覽狀態還原。"
     ],
     "en": [
-      "Added on-demand MLB 40-man rosters for every team, including injured and optioned players.",
-      "Ordered hitters by current MLB OPS and pitchers by current MLB ERA, with players lacking stats last.",
-      "Added clickable, swipeable and keyboard-accessible Season Stats / Player Info tabs for active players."
+      "Added Pitchers / Teams / Hitters tabs and an active-player menu icon.",
+      "Added qualified ERA and OPS leaders with AL, NL and combined MLB filters.",
+      "Fixed team-list navigation and added swipe back with restored browsing context."
     ],
     "ja": [
-      "各チームのMLB 40人枠をオンデマンドで追加。故障者・オプション降格中の選手も含まれます。",
-      "打者は今季MLB OPS順、投手はERA順に並び、成績なしの選手は最後に表示します。",
-      "現役選手ページに、タップ・スワイプ・キーボードで切り替えられる今季成績／選手情報タブを追加しました。"
+      "現役選手に投手／チーム／打者タブとメニューアイコンを追加。",
+      "規定到達者のERA・OPSランキングとリーグ別／両リーグの絞り込みを追加。",
+      "チーム一覧への戻り操作を修正し、右スワイプと閲覧状態の復元に対応。"
     ]
   }
 }

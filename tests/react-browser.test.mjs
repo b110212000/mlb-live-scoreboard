@@ -69,7 +69,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  assert.equal(await page.locator('[data-view=install]').count(),0);
  assert.equal(await page.locator('[data-view=notificationTest]').count(),0);
  // 追蹤球隊與訂閱管理在主選單，不在設定子選單。
- assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','multi','bracket','standings','taiwan','hof','teams','notifications']);
+ assert.deepEqual(await page.locator('.sidebar-nav [data-view]').evaluateAll(nodes=>nodes.map(n=>n.dataset.view)),['live','multi','bracket','standings','taiwan','activePlayers','hof','teams','notifications']);
  assert.equal(await page.locator('[data-view=teams]').innerText(),'追蹤球隊');
  assert.equal(await page.locator('[data-view=notifications]').innerText(),'訂閱管理');
  await page.locator('[data-menu-settings]').click();
@@ -95,7 +95,7 @@ test('React mobile: score, tables, focus timer, navigation, animation, Final',as
  for(const [view,id] of [['bracket','bracketView'],['standings','standingsView'],['taiwan','taiwanView'],['hof','hofView'],['teams','teamsView'],['install','installView'],['settings','settingsView'],['language','languageView'],['notifications','notificationView'],['notificationTest','notificationTestView'],['live','liveView']]){
    await page.locator('#featureMenuButton').click();await page.waitForTimeout(300);
    if(['install','notificationTest','settings','language','feedback'].includes(view)&&await page.locator('[data-menu-settings]').count())await page.locator('[data-menu-settings]').click();
-   if(['live','multi','bracket','standings','taiwan','hof','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
+   if(['live','multi','bracket','standings','taiwan','activePlayers','hof','teams','notifications'].includes(view)&&await page.locator('[data-menu-back]').count())await page.locator('[data-menu-back]').click();
    await page.locator(`[data-view=${view}]`).click();await page.waitForTimeout(300);assert(await page.locator('#'+id).isVisible());
    if(view==='notificationTest'){assert(await page.locator('#testNotificationBtn').isVisible());assert.equal(await page.locator('#appTitle').innerText(),'訂閱測試');assert.equal(await page.locator('#notificationTestView .subs-shell').count(),0);}
  }
@@ -1072,4 +1072,147 @@ test('Responsive layout: empty, failed, loading and long messages stay inside mo
   }
   await page.close();
  }
+});
+
+// Current-season MLB roster/leaderboard fixtures; low-sample players only appear if the query omits QUALIFIED.
+async function activeSetup(options={}){
+ const result=await setup(options),{page}=result,year=String(new Date().getFullYear()),requests=[];
+ const stat=(group,splits,type='season')=>({type:{displayName:type},group:{displayName:group},splits});
+ const split=(values,extra={})=>({season:year,sport:{id:1,abbreviation:'MLB'},stat:values,...extra});
+ const people={
+  101:{id:101,fullName:'Qualified Ace',active:true,primaryPosition:{type:'Pitcher',abbreviation:'P'}},
+  102:{id:102,fullName:'Qualified Hitter',active:true,primaryPosition:{type:'Outfielder',abbreviation:'CF'}},
+  103:{id:103,fullName:'Another Ace',active:true,primaryPosition:{type:'Pitcher',abbreviation:'P'}}
+ };
+ const pitching={gamesPlayed:30,inningsPitched:'175.2',era:'2.10',strikeOuts:210,wins:15,losses:5},hitting={gamesPlayed:150,plateAppearances:600,ops:'.950',avg:'.300',homeRuns:35,rbi:100};
+ let mode='normal';
+ await page.route('https://statsapi.mlb.com/api/v1/**',async r=>{
+  const u=new URL(r.request().url());
+  if(u.pathname.endsWith('/stats')&&!u.pathname.includes('/people/')){
+   requests.push(u.href);
+   if(mode==='error')return r.fulfill({status:503,json:{}});
+   const group=u.searchParams.get('group'),league=u.searchParams.get('leagueId');
+   const a=group==='pitching'?101:102,b=103;
+   const rows=group==='pitching'?[split({...pitching,era:'3.20'},{player:people[b],team:{id:147}}),split(pitching,{player:people[a],team:{id:119}})]:[split(hitting,{player:people[a],team:{id:119}})];
+   if(u.searchParams.get('playerPool')!=='QUALIFIED')rows.push(split({gamesPlayed:1,era:'0.00',inningsPitched:'1.0',ops:'4.0'},{player:{id:999,fullName:'One game only'}}));
+   if(league==='103')rows.splice(1);if(league==='104')rows.splice(0,group==='pitching'?1:0);
+   return r.fulfill({json:{stats:[{...stat(group,mode==='empty'?[]:rows),playerPool:'QUALIFIED'}]}});
+  }
+  if(u.pathname.endsWith('/roster')){
+   requests.push(u.href);
+   if(mode==='roster-error')return r.fulfill({status:503,json:{}});
+   return r.fulfill({json:{roster:[{person:{...people[101],stats:[stat('pitching',[split(pitching)])]},position:people[101].primaryPosition},{person:{...people[102],stats:[stat('hitting',[split(hitting)])]},position:people[102].primaryPosition}]}});
+  }
+  const match=u.pathname.match(/\/people\/(\d+)(\/stats)?$/);
+  if(match){
+   requests.push(u.href);const person=people[match[1]]||people[101],group=person.id===102?'hitting':'pitching',values=group==='hitting'?hitting:pitching;
+   if(match[2])return r.fulfill({json:{stats:[stat(u.searchParams.get('group'),[split(values,{team:{id:119,name:'Los Angeles Dodgers'}})],u.searchParams.get('stats'))]}});
+   return r.fulfill({json:{people:[{...person,birthDate:'1997-01-01',currentTeam:{id:119,name:'Los Angeles Dodgers'},stats:[stat(group,[split(values)],'career')]}]}});
+  }
+  return r.fallback();
+ });
+ const go=async()=>{await page.locator('#featureMenuButton').click();await page.locator('[data-view=activePlayers]').click();await page.locator('#activePlayersView').waitFor();await page.waitForTimeout(300)};
+ await go();return {...result,requests,go,setMode:v=>mode=v};
+}
+async function swipeOn(page,selector,dx,{edge=false,dy=0}={}){
+ await page.locator(selector).first().evaluate((el,{dx,edge,dy})=>{
+  const r=el.getBoundingClientRect(),x=edge?24:Math.max(90,Math.min(innerWidth-100,r.left+r.width*.55)),y=Math.max(120,Math.min(innerHeight-100,r.top+40));
+  const send=(type,x,y)=>{const touch=new Touch({identifier:1,target:el,clientX:x,clientY:y});el.dispatchEvent(new TouchEvent(type,{bubbles:true,cancelable:true,touches:type==='touchend'?[]:[touch],changedTouches:[touch]}))};
+  send('touchstart',x,y);send('touchmove',x+dx/2,y+dy/2);send('touchmove',x+dx,y+dy);send('touchend',x+dx,y+dy);
+ },{dx,edge,dy});
+ await page.waitForTimeout(150);
+}
+test('Active players: icon, three tabs, qualified league leaders, error/retry and empty',async()=>{
+ const {page,errors,requests,setMode}=await activeSetup();
+ assert.equal(await page.locator('[data-view=activePlayers] svg').count(),1);
+ assert.deepEqual(await page.locator('.active-tabs [role=tab]').allTextContents(),['投手','球隊','打者']);
+ assert.equal(await page.locator('[data-active-tab=teams]').getAttribute('aria-selected'),'true');
+ assert.equal(await page.locator('.active-team-card').count(),30);assert.equal(requests.length,0,'team index must not fetch every roster');
+ await page.locator('[data-active-tab=pitching]').click();await page.locator('.active-leader-list .active-player-card').first().waitFor();
+ assert.deepEqual(await page.locator('.active-leader-list b').allTextContents(),['Qualified Ace','Another Ace']);
+ assert(!await page.locator('.active-shell').innerText().then(s=>s.includes('One game only')));
+ for(const url of requests){const q=new URL(url).searchParams;assert.equal(q.get('playerPool'),'QUALIFIED');assert.equal(q.get('gameType'),'R')}
+ await page.locator('[data-active-league=AL]').click();await page.waitForFunction(()=>document.querySelectorAll('.active-leader-list b').length===1);
+ assert.equal(await page.locator('.active-leader-list b').innerText(),'Another Ace');
+ await page.locator('[data-active-league=NL]').click();await page.locator('.active-leader-list b').filter({hasText:'Qualified Ace'}).waitFor();
+ await page.locator('[data-active-tab=hitting]').click();await page.locator('.active-leader-list b').filter({hasText:'Qualified Hitter'}).waitFor();
+ assert.equal(await page.locator('[data-active-league=NL]').getAttribute('aria-checked'),'true');
+ assert(requests.some(url=>new URL(url).searchParams.get('sortStat')==='ops'));
+ setMode('error');await page.locator('[data-active-league=AL]').click();await page.locator('.active-shell [role=alert]').waitFor();
+ setMode('normal');await page.locator('.active-shell [role=alert] button').click();await page.locator('.active-leader-list b').waitFor();
+ setMode('empty');await page.locator('[data-active-league=MLB]').click();await page.getByText('目前沒有符合資格的球員',{exact:true}).waitFor();
+ await page.locator('[data-active-tab=hitting]').focus();await page.keyboard.press('Home');assert.equal(await page.locator('[data-active-tab=pitching]').getAttribute('aria-selected'),'true');
+ assert.deepEqual(errors,[]);await page.close();
+});
+test('Active players: team return, history, reload, player scope and swipe navigation',async()=>{
+ const {page,errors,requests}=await activeSetup();
+ await page.locator('.active-team-card').filter({hasText:'Los Angeles Dodgers'}).click();await page.locator('.active-player-card').first().waitFor();
+ assert(new URL(page.url()).searchParams.get('teamId')==='119');
+ await page.locator('.active-back').click();await page.locator('.active-team-grid').waitFor();
+ await page.goForward();await page.locator('.active-team-title h2').waitFor();
+ await page.reload();await page.locator('.active-team-title h2').waitFor();assert.equal(await page.locator('.active-team-title h2').innerText(),'道奇');
+ await swipeOn(page,'.active-team-title',10,{dy:-150});assert(await page.locator('.active-team-title').isVisible());
+ await swipeOn(page,'.active-team-title',120);await page.locator('.active-team-grid').waitFor();
+ await page.locator('.active-team-card').filter({hasText:'New York Yankees'}).click();await page.locator('.active-player-card').first().waitFor();
+ await page.locator('.active-player-card').filter({hasText:'Qualified Hitter'}).click();await page.locator('#player-season-panel').waitFor();
+ await swipeOn(page,'.player-current',-120);await page.locator('#player-profile-panel').waitFor();
+ await swipeOn(page,'.standings-scroll',120);assert(await page.locator('#player-profile-panel').isVisible());
+ await swipeOn(page,'.player-facts',120);await page.locator('#player-season-panel').waitFor();
+ await swipeOn(page,'.player-current',120);await page.locator('.active-team-title h2').waitFor();assert.equal(await page.locator('.active-team-title h2').innerText(),'洋基');
+ await page.locator('.active-back').click();await page.locator('.active-team-grid').waitFor();
+ await page.locator('[data-active-tab=pitching]').click();await page.locator('[data-active-league=NL]').click();await page.locator('.active-leader-list b').waitFor();
+ await page.locator('.active-leader-list .active-player-card').click();await page.locator('#player-season-panel').waitFor();
+ await page.reload();await page.locator('#player-season-panel').waitFor();
+ await page.locator('#player-profile-tab').click();await swipeOn(page,'.player-facts',120,{edge:true});await page.locator('.active-leader-list b').waitFor();
+ assert.equal(await page.locator('[data-active-tab=pitching]').getAttribute('aria-selected'),'true');assert.equal(await page.locator('[data-active-league=NL]').getAttribute('aria-checked'),'true');
+ assert(requests.filter(u=>u.includes('/people/')&&u.includes('/stats?')).every(u=>new URL(u).searchParams.get('sportIds')==='1'));
+ assert.deepEqual(errors,[]);await page.close();
+});
+test('Active players: responsive tabs, rosters and leaders across languages and themes',async()=>{
+ for(const locale of ['zh-TW','en-US','ja-JP']){
+  const {page,errors}=await activeSetup({locale});
+  for(const width of [320,390,768,1280]){
+   await page.setViewportSize({width,height:844});
+   for(const theme of ['dark','light']){
+    await page.evaluate(v=>document.documentElement.dataset.theme=v,theme);
+    for(const tab of ['teams','pitching','hitting']){
+     await page.locator(`[data-active-tab=${tab}]`).click();
+     await page.locator(tab==='teams'?'.active-team-grid':'.active-leader-list').waitFor();
+     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${locale}/${width}/${theme}/${tab} overflow`);
+     const bad=await page.locator('.active-shell button:visible').evaluateAll(es=>es.filter(e=>e.getBoundingClientRect().right>innerWidth+1||e.getBoundingClientRect().left<0).map(e=>e.textContent));
+     assert.deepEqual(bad,[]);
+    }
+   }
+  }
+  await page.setViewportSize({width:390,height:844});await page.screenshot({path:`/tmp/active-players-${locale}.png`,fullPage:true});
+  assert.deepEqual(errors,[]);await page.close();
+ }
+});
+test('Active players: touch input, deep links, roster retry and mobile player layout',async()=>{
+ const {page,errors,setMode}=await activeSetup();
+ setMode('roster-error');await page.locator('.active-team-card').filter({hasText:'Los Angeles Dodgers'}).click();await page.locator('.active-shell [role=alert]').waitFor();
+ setMode('normal');await page.locator('.active-shell [role=alert] button').click();await page.locator('.active-player-card').first().waitFor();
+ if(process.env.PLAYWRIGHT_BROWSER!=='webkit'){
+  const cdp=await page.context().newCDPSession(page);await cdp.send('Emulation.setTouchEmulationEnabled',{enabled:true});
+  const box=await page.locator('.active-team-title').boundingBox(),y=box.y+box.height/2;
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:70,y}]});
+  for(let i=1;i<=10;i++){await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:70+i*20,y}]});await page.waitForTimeout(20)}
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.locator('.active-team-grid').waitFor();await cdp.detach();
+ }
+ await page.goto(origin+'/?view=activePlayers&teamId=119&playersTab=teams&league=MLB');await page.locator('.active-team-title').waitFor();
+ await page.locator('.active-back').click();await page.locator('.active-team-grid').waitFor();
+ await page.locator('.active-team-card').filter({hasText:'Los Angeles Dodgers'}).click();await page.locator('.active-player-card').first().waitFor();
+ for(const width of [320,390,768,1280]){
+  await page.setViewportSize({width,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'roster overflow');
+ }
+ await page.locator('.active-player-card').first().click();await page.locator('#player-season-panel').waitFor();
+ for(const width of [320,390,768,1280]){
+  await page.setViewportSize({width,height:844});
+  for(const tab of ['season','profile']){
+   await page.locator(`#player-${tab}-tab`).click();await page.locator(`#player-${tab}-panel`).waitFor();
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`player/${width}/${tab} overflow`);
+  }
+ }
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/active-player-profile.png',fullPage:true});
+ assert.deepEqual(errors,[]);await page.close();
 });

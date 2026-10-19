@@ -515,6 +515,11 @@ html[data-theme=light] .player-tabs{border-bottom:1px solid #b5cce1}
 html[data-theme=light] .player-tabs button{border:0;border-bottom:3px solid transparent;background:none;color:var(--muted)}
 html[data-theme=light] .player-tabs button[aria-selected=true]{border-color:var(--accent);color:var(--text)}
 html[data-theme=light] .player-tabs button:focus-visible{outline:2px solid var(--accent)}
+html[data-theme=light] .active-leagues button{border:1px solid #b5cce1;background:#f3f5f8;color:var(--muted)}
+html[data-theme=light] .active-leagues button[aria-checked=true]{border-color:var(--accent);background:#fcfdfd;color:var(--text)}
+html[data-theme=light] .active-leagues button:focus-visible{outline:2px solid var(--accent)}
+html[data-theme=light] .active-ranking-note{color:var(--muted)}
+html[data-theme=light] .active-player-card .active-rank{color:var(--accent)}
 
 /* ---- 手動調整（src/theme-light.css） ---- */
 /* 淺色主題的手動調整：接在自動產生的規則後面（同權重時以這裡為準）。

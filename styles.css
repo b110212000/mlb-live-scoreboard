@@ -2887,3 +2887,18 @@ html[lang=ja] .team-card-zh{white-space:nowrap;font-size:min(15px,calc(100cqi / 
 .player-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:18px;border-bottom:1px solid #294966}.player-tabs button{min-height:44px;border:0;border-bottom:3px solid transparent;background:none;color:var(--muted);font:inherit;font-weight:800;cursor:pointer}.player-tabs button[aria-selected=true]{border-color:var(--accent);color:var(--text)}.player-tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
 .player-current{touch-action:pan-y}
 @media(max-width:600px){.active-team-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.active-player-list{grid-template-columns:1fr}}
+
+/* v2.14.0：現役球員分類、合格排行榜、返回手勢。 */
+.active-tabs{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:0;margin-bottom:16px}
+.active-leagues{display:flex;gap:6px;margin:4px 0 12px;flex-wrap:wrap}
+.active-leagues button{flex:1;min-height:40px;border:1px solid #294966;border-radius:10px;background:#0b1a2b;color:var(--muted);font:inherit;font-size:14px;cursor:pointer}
+.active-leagues button[aria-checked=true]{border-color:var(--accent);background:#173a42;color:var(--text);font-weight:800}
+.active-leagues button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.active-ranking-note{font-size:12px;line-height:1.7;color:var(--muted);margin:10px 0 16px}
+.active-leader-list{display:grid;gap:8px}
+.active-player-card.active-ranked{grid-template-columns:30px 46px minmax(0,1fr) auto}
+.active-player-card .active-rank{display:block;font-variant-numeric:tabular-nums;font-weight:900;color:var(--accent);text-align:center}
+.active-player-card .active-player-copy{min-width:0}
+.swipe-navigation{transform:translateX(var(--swipe-offset,0px))}
+.active-team-title h2{min-width:0;overflow-wrap:anywhere}
+@media(max-width:360px){.active-player-card.active-ranked{grid-template-columns:24px 38px minmax(0,1fr) auto;gap:7px}.active-ranked img{width:38px;height:50px}}

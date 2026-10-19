@@ -23,3 +23,5 @@
 - Before repository writes, read the latest main SHA. Never overwrite concurrent changes.
 - Keep footer, package version, resource version references, README and icons in sync. version.json must be updated LAST in a separate commit after deployed assets have been verified.
 - Do not describe browser simulations as physical iPhone/Web Push tests.
+
+- Active-player browsing: src/activePlayers.js uses current-season MLB qualified leaderboards on demand and 40-man team rosters. Keep team rosters unfiltered by leaderboard qualification. Store navigation context in activeTab/activeLeague/activeTeamId; retain official combined rate stats for trades. Swipe navigation must leave table horizontal scrolling and vertical/pinch gestures native.

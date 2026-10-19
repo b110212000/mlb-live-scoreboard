@@ -5,6 +5,9 @@ import {TAIWAN_PLAYER_NAMES} from '../taiwanPlayers.js';
 import {logo} from './SubscriptionShared.jsx';
 import {headshot,positionName,positionTypeName,countryName,levelName,handsText,bodyText,dateText,ageOn,majorAwards,seasonsText,teamDisplayName,groupSeasons} from '../players.js';
 import {loadWikiBio,wikiUrl} from '../wiki.js';
+import {useSwipeNavigation} from '../useSwipeNavigation.js';
+import {seasonStat,currentSeason} from '../activePlayers.js';
+import {cachedJSON} from '../gameData.js';
 import {StatLabel} from './StatHelp.jsx';
 import {STAT_FIELDS} from '../statGlossary.js';
 import {t,tParts,lang} from '../i18n.js';
@@ -13,11 +16,7 @@ const API='https://statsapi.mlb.com/api/v1';
 const backLabel=from=>({hof:t('名人堂'),taiwan:t('台灣旅外'),activePlayers:t('現役球員'),live:t('即時比賽'),standings:t('戰績排行')})[from]||'';
 const cache=new Map();
 
-async function getJSON(url){
-  const response=await fetch(url,{cache:'no-store'});
-  if(!response.ok)throw new Error('HTTP '+response.status);
-  return response.json();
-}
+const getJSON=url=>cachedJSON(url,300000);
 
 // 依守備位置決定要看打擊或投球；另一項有足夠出賽時也一起列（例如 Babe Ruth 的投球、Martín Dihigo 的打擊）。
 function statGroups(person,career){
@@ -30,9 +29,9 @@ function statGroups(person,career){
 
 // 一位球員只查需要的資料（個人、非大量使用）：基本資料 + 獎項 + 大聯盟生涯，以及含小聯盟的逐年成績。
 async function loadPlayer(id,mlbOnly=false){
-  const key=`${id}:${mlbOnly?'mlb':'all'}`;
-  if(cache.has(key))return cache.get(key);
-  const data=await getJSON(`${API}/people/${id}?hydrate=currentTeam,awards,stats(group=[hitting,pitching],type=[career])`);
+  const key=`${id}:${mlbOnly?'mlb':'all'}:${currentSeason()}`;
+  if(cache.has(key)&&Date.now()-cache.get(key).at<300000)return cache.get(key).data;
+  const data=await getJSON(`${API}/people/${id}?hydrate=currentTeam,awards,stats(group=[hitting,pitching],type=[career]${mlbOnly?',sportIds=[1]':''})`);
   const person=data.people?.[0];
   if(!person)throw new Error(t('找不到這位球員'));
   const career={};
@@ -42,16 +41,17 @@ async function loadPlayer(id,mlbOnly=false){
   const groups=statGroups(person,career);
   const yearly={},current={};
   await Promise.all(groups.map(async group=>{
-    const stats=await getJSON(`${API}/people/${id}/stats?stats=yearByYear&group=${group}&leagueListId=${mlbOnly?'mlb':'mlb_milb'}`).catch(()=>({stats:[]}));
+    const stats=await getJSON(`${API}/people/${id}/stats?stats=yearByYear&group=${group}&${mlbOnly?'sportIds=1':'leagueListId=mlb_milb'}`).catch(()=>({stats:[]}));
     // 年份由舊到新，每年一列主要成績（大聯盟優先），同年其他紀錄收在 details。
-    yearly[group]=groupSeasons(stats.stats?.[0]?.splits||[]);
+    const splits=stats.stats?.[0]?.splits||[];
+    yearly[group]=groupSeasons(mlbOnly?splits.filter(s=>s.sport?.id===1||s.sport?.abbreviation==='MLB'):splits);
     if(mlbOnly){
-      const seasonStats=await getJSON(`${API}/people/${id}/stats?stats=season&group=${group}&season=${new Date().getFullYear()}&sportId=1`).catch(()=>({stats:[]}));
-      current[group]=seasonStats.stats?.[0]?.splits?.find(split=>split.sport?.id===1)?.stat||null;
+      const seasonStats=await getJSON(`${API}/people/${id}/stats?stats=season&group=${group}&season=${currentSeason()}&sportIds=1&gameType=R`).catch(()=>({stats:[]}));
+      current[group]=seasonStat(seasonStats.stats,group);
     }
   }));
   const result={person,groups,yearly,career,current};
-  cache.set(key,result);
+  cache.set(key,{at:Date.now(),data:result});
   return result;
 }
 
@@ -179,20 +179,25 @@ export function PlayerPage(){
   const {view,playerId,playerFrom,lang:uiLang}=useScoreboard();
   const [loaded,setLoaded]=useState({id:null,data:null,error:''});
   const [tab,setTab]=useState('season');
-  const swipeStart=useRef(null);
+
   const activeOnly=playerFrom==='activePlayers';
+  useEffect(()=>setTab('season'),[playerId,activeOnly]);
+  const swipeRef=useSwipeNavigation((direction,edge)=>{
+    if(direction==='right'&&(edge||!activeOnly||tab==='season'))actions.closePlayer();
+    else if(activeOnly)setTab(direction==='right'?'season':'profile');
+  },view==='player');
   useEffect(()=>{
     if(view!=='player'||!playerId)return;
     let cancelled=false;
-    setLoaded(current=>current.id===playerId?current:{id:playerId,data:null,error:''});
+    setLoaded(current=>current.id===`${playerId}:${activeOnly}`?current:{id:`${playerId}:${activeOnly}`,data:null,error:''});
     loadPlayer(playerId,activeOnly)
-      .then(data=>{if(!cancelled)setLoaded({id:playerId,data,error:''})})
-      .catch(err=>{if(!cancelled)setLoaded({id:playerId,data:null,error:err.message})});
+      .then(data=>{if(!cancelled)setLoaded({id:`${playerId}:${activeOnly}`,data,error:''})})
+      .catch(err=>{if(!cancelled)setLoaded({id:`${playerId}:${activeOnly}`,data:null,error:err.message})});
     return ()=>{cancelled=true};
   },[view,playerId,activeOnly]);
 
   const from=playerFrom&&playerFrom!=='player'?playerFrom:'hof';
-  const data=loaded.id===playerId?loaded.data:null;
+  const data=loaded.id===`${playerId}:${activeOnly}`?loaded.data:null;
   const person=data?.person;
   const awards=person?majorAwards(person.awards):[];
   const hof=awards.find(award=>award.key==='MLBHOF');
@@ -201,14 +206,17 @@ export function PlayerPage(){
   const team=person?.active?person.currentTeam:null;
   const hasMlb=data&&data.groups.some(group=>data.career[group]?.gamesPlayed);
   const switchTab=next=>setTab(next);
-  const tabKeys=event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();switchTab(tab==='season'?'profile':'season')}};
-  const swipeStartAt=event=>{swipeStart.current=event.touches[0]?.clientX??null};
-  const swipeEndAt=event=>{const start=swipeStart.current,end=event.changedTouches[0]?.clientX;swipeStart.current=null;if(start!=null&&end!=null&&Math.abs(end-start)>48)switchTab(end<start?'profile':'season')};
+  const tabKeys=event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const next=event.key==='Home'?'season':event.key==='End'?'profile':tab==='season'?'profile':'season';
+    switchTab(next);event.currentTarget.querySelector(`#player-${next}-tab`)?.focus();
+  };
 
-  return <section className="card subs-shell player-shell" aria-label={t('球員資料')}>
+  return <section ref={swipeRef} className="card subs-shell player-shell swipe-navigation" aria-label={t('球員資料')}>
     <button type="button" className="subs-link player-back" onClick={actions.closePlayer}>{t('← 返回{page}',{page:backLabel(from)})}</button>
     {!playerId&&<p className="subs-empty">{t('請從名人堂或台灣旅外選擇球員。')}</p>}
-    {loaded.error&&loaded.id===playerId&&<div className="subs-banner">{t('球員資料讀取失敗：{error}',{error:loaded.error})}</div>}
+    {loaded.error&&loaded.id===`${playerId}:${activeOnly}`&&<div className="subs-banner">{t('球員資料讀取失敗：{error}',{error:loaded.error})}</div>}
     {playerId&&!data&&!loaded.error&&<p className="subs-empty">{t('載入球員資料中…')}</p>}
     {person&&<>
       <header className="player-head">
@@ -227,12 +235,12 @@ export function PlayerPage(){
         <button type="button" role="tab" id="player-season-tab" aria-selected={tab==='season'} aria-controls="player-season-panel" tabIndex={tab==='season'?0:-1} onClick={()=>switchTab('season')}>{t('當季成績')}</button>
         <button type="button" role="tab" id="player-profile-tab" aria-selected={tab==='profile'} aria-controls="player-profile-panel" tabIndex={tab==='profile'?0:-1} onClick={()=>switchTab('profile')}>{t('球員資料')}</button>
       </div>}
-      {activeOnly&&tab==='season'&&<section id="player-season-panel" role="tabpanel" aria-labelledby="player-season-tab" className="subs-section player-current" onTouchStart={swipeStartAt} onTouchEnd={swipeEndAt}>
+      {activeOnly&&tab==='season'&&<section id="player-season-panel" role="tabpanel" aria-labelledby="player-season-tab" className="subs-section player-current">
         <div className="subs-section-head"><h3>{t('{year} 年 MLB 當季成績',{year:new Date().getFullYear()})}</h3></div>
         {data.groups.map(group=>data.current[group]?.gamesPlayed?<div key={group} className="player-tiles" aria-label={groupName(group)}>{data.groups.length>1&&<span className="player-tiles-label">{groupName(group)}</span>}{careerTiles[group](data.current[group]).map(([label,value])=><div key={label} className="player-tile"><b>{value??'-'}</b><span>{label}</span></div>)}</div>:null)}
         {!data.groups.some(group=>data.current[group]?.gamesPlayed)&&<p className="subs-empty">{t('本季尚無 MLB 成績')}</p>}
       </section>}
-      {(!activeOnly||tab==='profile')&&<div id={activeOnly?'player-profile-panel':undefined} role={activeOnly?'tabpanel':undefined} aria-labelledby={activeOnly?'player-profile-tab':undefined} onTouchStart={activeOnly?swipeStartAt:undefined} onTouchEnd={activeOnly?swipeEndAt:undefined}>
+      {(!activeOnly||tab==='profile')&&<div id={activeOnly?'player-profile-panel':undefined} role={activeOnly?'tabpanel':undefined} aria-labelledby={activeOnly?'player-profile-tab':undefined}>
       <Facts person={person}/>
 
       <section className="subs-section" aria-labelledby="playerCareerTitle">

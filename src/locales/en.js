@@ -1,5 +1,17 @@
 // English translations, keyed by the original Traditional Chinese text (see src/i18n.js).
 export default {
+  "目前沒有球員名單":"No roster available",
+  "美聯":"AL",
+  "國聯":"NL",
+  "通算":"MLB",
+  "{year} 年 MLB 例行賽・僅列合格球員":"{year} MLB regular season · Qualified players only",
+  "ERA 由低至高；資格依 MLB 規定局數。":"Lowest ERA first; MLB qualifying innings required.",
+  "OPS 由高至低；資格依 MLB 規定打席。":"Highest OPS first; MLB qualifying plate appearances required.",
+  "通算為美聯與國聯合併成績。":"MLB combines both leagues for this season.",
+  "載入排行榜中…":"Loading leaders…",
+  "目前沒有符合資格的球員":"No qualified players yet",
+  "現役球員分類":"Browse active players",
+
   "今日表現":"Today’s performance",
   "本場資料暫時無法取得":"Game stats temporarily unavailable",
   "載入本場表現中…":"Loading game stats…",
