@@ -21,6 +21,8 @@ function service(){
  for(const patch of [{id:'bad'},{type:'__proto__'},{message:'short'},{message:'x'.repeat(2001)},{email:'a@b.com\r\nBcc: x@z.com'},{website:'bot'},{message:'a'.repeat(10)+'\0'}])assert.equal(ctx.api.normalizeFeedback(data(patch)),null);
  const d=service(),item=data();let captured;sender=async(_,mail)=>{captured=mail};count=0;
  assert.equal((await d.call(item)).status,200);assert.equal(count,1);assert(captured.text.includes(item.message));assert(!captured.text.includes('a'.repeat(64)));
+ assert.equal(captured.to,env.FEEDBACK_TO_EMAIL,'MLB feedback recipient must be owned by server, not client');
+ assert.equal(captured.kind,'mlb-feedback','MLB public feedback must not use OrderLead mail branding');
  assert.equal((await d.call(item)).status,200);assert.equal(count,1,'same ID should not send twice');
  assert.equal((await d.call({...item,message:'不同的內容，必須拒絕這個 ID'})).status,409);
  assert.equal((await d.call(data())).status,429);now+=30_000;
