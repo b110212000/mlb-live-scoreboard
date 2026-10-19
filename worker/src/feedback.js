@@ -109,7 +109,9 @@ export class FeedbackService extends DurableObject {
     let status = "sent";
     try {
       await sendGmail(this.env, {
-        id: data.id, replyTo: data.email, subject: `[MLB 回饋] ${TYPES[data.type]}`,
+        // Recipient and kind come from trusted server settings, NEVER the public payload.
+        id: data.id, to: this.env.FEEDBACK_TO_EMAIL, kind: "mlb-feedback",
+        replyTo: data.email, subject: `[MLB 回饋] ${TYPES[data.type]}`,
         text: ["MLB 即時戰況 — 使用者回饋", `類型：${TYPES[data.type]}`, `時間：${new Date().toISOString()}`,
           `網站版本：${data.version}`, `比賽 ID：${data.gamePk || "未選擇"}`, `聯絡信箱：${data.email || "未提供"}`,
           `回饋編號：${data.id}`, "", "回饋內容：", data.message].join("\n")
