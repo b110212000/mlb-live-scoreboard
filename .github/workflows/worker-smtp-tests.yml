@@ -4,16 +4,24 @@ on:
   pull_request:
     paths:
       - worker/src/smtp.js
+      - worker/src/account-mail.js
+      - worker/src/index.js
       - worker/src/feedback.js
       - tests/smtp.cjs
+      - tests/account-mail.cjs
+      - tests/account-mail-service.cjs
       - tests/feedback.cjs
       - .github/workflows/worker-smtp-tests.yml
   push:
     branches: [main]
     paths:
       - worker/src/smtp.js
+      - worker/src/account-mail.js
+      - worker/src/index.js
       - worker/src/feedback.js
       - tests/smtp.cjs
+      - tests/account-mail.cjs
+      - tests/account-mail-service.cjs
       - tests/feedback.cjs
       - .github/workflows/worker-smtp-tests.yml
 
@@ -33,5 +41,9 @@ jobs:
           node-version: '22'
       - name: Verify mocked Gmail SMTP
         run: node tests/smtp.cjs
+      - name: Verify RPC validation
+        run: node tests/account-mail.cjs
+      - name: Verify private delivery rate limits
+        run: node tests/account-mail-service.cjs
       - name: Verify feedback cannot redirect mail
         run: node tests/feedback.cjs

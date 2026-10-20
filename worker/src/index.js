@@ -1,5 +1,7 @@
 import { feedbackRequest, feedbackConfigured } from "./feedback.js";
 export { FeedbackService } from "./feedback.js";
+// Internal named RPC entrypoint; NOT a public HTTP endpoint.
+export { OrderLeadMailService } from "./account-mail.js";
 import { getGameHighlights } from "./highlights.js";
 import { gameCalendarResponse } from "./calendar.js";
 import { taiwanPlayersResponse } from "./taiwan.js";

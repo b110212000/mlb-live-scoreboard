@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { sendGmail, validEmail } from "./smtp.js";
+import { validOrderLeadMail, orderLeadMailContent } from "./account-mail.js";
 
 const DAY = 86_400_000, HOUR = 3_600_000, MAX_BYTES = 12_288;
 const ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -70,6 +71,10 @@ export class FeedbackService extends DurableObject {
   constructor(ctx, env) { super(ctx, env); this.ctx = ctx; this.env = env; }
 
   async fetch(request) {
+    // This URL belongs exclusively to this Durable Object's internal stub;
+    // the default public Worker handler DOES NOT route this path.
+    if (request.method === "POST" && new URL(request.url).pathname === "/orderlead-mail")
+      return this.orderLeadMail(request);
     if (request.method !== "POST" || new URL(request.url).pathname !== "/send") return reply({ error: "NOT_FOUND" }, 404);
     const { data: input, client } = await request.json();
     const data = normalizeFeedback(input);
@@ -130,8 +135,96 @@ export class FeedbackService extends DurableObject {
     return status === "sent" ? reply({ ok: true, id: data.id }) : reply({ error: status === "uncertain" ? "FEEDBACK_UNCERTAIN" : "FEEDBACK_SEND_FAILED" }, 502);
   }
 
+  async orderLeadMail(request) {
+    let data;
+    try { data=await request.json(); } catch { return reply({error:"MAIL_INVALID"},400); }
+    if(!validOrderLeadMail(data)||!validEmail(String(this.env.SMTP_USER||"").trim())||
+      !String(this.env.SMTP_PASSWORD||"").trim()){
+      return reply({error:"MAIL_UNAVAILABLE"},503);
+    }
+    const secret=new TextEncoder().encode(this.env.SMTP_PASSWORD);
+    const key=await crypto.subtle.importKey(
+      "raw",secret,{name:"HMAC",hash:"SHA-256"},false,["sign"]
+    );
+    async function privateDigest(input){
+      const bytes=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(input));
+      return Array.from(new Uint8Array(bytes),v=>v.toString(16).padStart(2,"0")).join("");
+    }
+    const recipientHash=await privateDigest("orderlead-recipient\\n"+data.to.toLowerCase());
+    const signature=await privateDigest([
+      "orderlead-message",data.id,data.to,data.kind,data.link
+    ].join("\\n"));
+    const reservation=await this.ctx.blockConcurrencyWhile(async()=>{
+      const now=Date.now(),day=Math.floor(now/DAY),hour=Math.floor(now/HOUR);
+      const s=await this.ctx.storage.get("orderleadMail")||{
+        day,count:0,recipients:{},requests:{}
+      };
+      if(s.day!==day){s.day=day;s.count=0;}
+      for(const [id,v] of Object.entries(s.requests))
+        if(now-v.at>=DAY)delete s.requests[id];
+      for(const [id,v] of Object.entries(s.recipients))
+        if(now-v.at>=HOUR)delete s.recipients[id];
+      const prior=s.requests[data.id];
+      if(prior){
+        if(prior.signature!==signature||prior.recipientHash!==recipientHash)
+          return reply({error:"MAIL_ID_CONFLICT"},409);
+        if(prior.status==="sent")return reply({accepted:true});
+        if(prior.status==="uncertain"||prior.status==="pending")
+          return reply({error:"MAIL_PENDING_OR_UNCERTAIN"},409);
+        // Known failed sends may retry, but must still obey quotas.
+      }
+      const current=s.recipients[recipientHash];
+      if(s.count>=100||(current?.hour===hour&&current.count>=5))
+        return reply({error:"MAIL_RATE_LIMITED"},429);
+      s.count++;
+      s.recipients[recipientHash]={
+        at:now,hour,count:current?.hour===hour?current.count+1:1
+      };
+      // Store ONLY digests, status and timestamps. Never email/link/token.
+      s.requests[data.id]={at:now,recipientHash,signature,status:"pending"};
+      await this.ctx.storage.put("orderleadMail",s);
+      if(!await this.ctx.storage.getAlarm())await this.ctx.storage.setAlarm(now+DAY);
+      return null;
+    });
+    if(reservation)return reservation;
+    const task=(async()=>{
+      let status="sent";
+      try{
+        const outcome=await sendGmail(this.env,orderLeadMailContent(data));
+        if(!outcome?.accepted)status="failed";
+      }catch(e){
+        status=e?.uncertain?"uncertain":"failed";
+      }
+      await this.ctx.blockConcurrencyWhile(async()=>{
+        const s=await this.ctx.storage.get("orderleadMail");
+        if(s?.requests[data.id]){
+          s.requests[data.id].status=status;
+          await this.ctx.storage.put("orderleadMail",s);
+        }
+      });
+      return status==="sent"?reply({accepted:true}):
+        reply({error:status==="uncertain"?"MAIL_UNCERTAIN":"MAIL_FAILED"},502);
+    })();
+    this.ctx.waitUntil(task);
+    return task;
+  }
+
   async alarm() {
     await this.ctx.blockConcurrencyWhile(async () => {
+      const mail=await this.ctx.storage.get("orderleadMail");
+      if(mail){
+        const now=Date.now();
+        for(const [id,v] of Object.entries(mail.requests))
+          if(now-v.at>=DAY)delete mail.requests[id];
+        for(const [id,v] of Object.entries(mail.recipients))
+          if(now-v.at>=HOUR)delete mail.recipients[id];
+        if(!Object.keys(mail.requests).length&&!Object.keys(mail.recipients).length)
+          await this.ctx.storage.delete("orderleadMail");
+        else{
+          await this.ctx.storage.put("orderleadMail",mail);
+          await this.ctx.storage.setAlarm(now+DAY);
+        }
+      }
       const state = await this.ctx.storage.get("feedback"); if (!state) return;
       const now = Date.now();
       for (const [id, item] of Object.entries(state.requests)) if (now - item.at >= DAY) delete state.requests[id];

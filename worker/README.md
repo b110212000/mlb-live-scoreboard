@@ -243,9 +243,21 @@ await sendGmail(env, {
 ```
 
 - MLB `POST /api/feedback` **仍只能寄到後端固定 `FEEDBACK_TO_EMAIL`**。公開請求的 `to`、`email`、`kind` 都不會用來設定 SMTP 收件者；它不是任意寄信 Relay。
-- **沒有新增 `/api/send-mail` 或任意跨網站寄信 API**。若跨專案共用，應優先讓 OrderLead Worker 自行引入 SMTP 模組並為自己的 Worker 配置同一 Gmail 的 `SMTP_USER`／`SMTP_PASSWORD` **Cloudflare Secrets**，或未來將私有郵件服務抽出後用 Cloudflare Service Binding（僅 Worker→Worker）調用。
+- **沒有新增 `/api/send-mail` 或任意跨網站寄信 API**。若跨專案共用，**現在已改採同一個 MLB Worker 的 named Service Binding RPC**，OrderLead 不再另外保存 Gmail Secrets；詳見下方 Issue #10。
 - 不同 Worker **不會自動共享** Secret，不能從 MLB 的 Cloudflare Worker 直接讀取 `SMTP_PASSWORD`。切勿把 Gmail 應用程式密碼放在 GitHub、`wrangler.jsonc`、PWA 或 GET 回應內。
 - OrderLead 忘記密碼／註冊驗證還需要自己的 D1 高熵一次性 Token、原子消耗、真實 Email 歸屬驗證、寄信節流、防帳號探測、重設後 Session 撤銷；僅 SMTP 支援 `to` **不代表 OrderLead 登入或救援已完成**。
 - Gmail 的實際寄信配額與垃圾郵件政策適用於**兩個 App 合計**，伺服器 `FeedbackService` 的獨立限流不代替 OrderLead 自己的驗證郵件限流。
 
 本次 SMTP 和回饋單元測試使用模擬 Socket，不會實際向用戶發信。Cloudflare Workers Builds 更新完成後仍須確認 MLB 原有意見回饋正常。
+
+
+### 由同一個 MLB Worker 給 OrderLead 寄認證信（Issue #10）
+
+**已改用同一支 `mlb-score-notify` Worker，不需要複製 Gmail Secrets 到 OrderLead。**
+
+- `worker/src/index.js` 的 **named RPC export `OrderLeadMailService`** 只可由 Cloudflare 帳號中有明確 Service Binding 的其他 Worker 呼叫；不是公開 HTTP 路由。`/api/feedback` 仍然只能寄到 `FEEDBACK_TO_EMAIL`。
+- OrderLead 的 `orderlead-api` 宣告 `services: [{binding:"MLB_MAIL",service:"mlb-score-notify",entrypoint:"OrderLeadMailService"}]`。未來 OrderLead 完成安全註冊／重設流程後，從後端 `env.MLB_MAIL.sendAuthMail({id,kind,to,link})` 呼叫同一 Worker。
+- `kind` 僅接受 `verify`、`reset`；驗證/重設連結只能是 `https://b110212000.github.io/stock-order-tracker/#/auth/{email-verify|reset-password}/<43-char-token>`，必須吻合用途。標題、內文、寄件顯示名稱由 MLB Worker 固定，禁止透過 RPC 傳入任意 SMTP Header。
+- 仍由**現有的** `FeedbackService` Durable Object 儲存寄送數與狀態，但用獨立 `orderleadMail` key 與 MLB feedback 配額隔離：全域每日最多 100 次 SMTP 嘗試、每收件者每小時最多 5 次、Message ID 去重。只儲存 HMAC 摘要、時間與狀態；不儲存 email、token 或驗證連結內容；可能已寄出的不確定結果不可自動重寄。
+- Gmail `SMTP_USER`、`SMTP_PASSWORD` **只在 MLB Worker 的原有 Cloudflare Secrets**。OrderLead Worker 不需這兩個 Secret。此種 Service Binding 須是**同一個 Cloudflare 帳號**，並且 MLB 端 named entrypoint 已先部署。不要加任何公開 `/api/mail`。
+- SMTP mock tests 和 Workers Builds 通過**不代表 OrderLead 可以直接註冊**：OrderLead #75 還需要真實、已驗證 Email 的 D1 註冊／登入和一次性 token/密碼重設、WAF/限速及 iPhone 端到端驗收，才可以觸發寄信。沒有完整後端認證前，新的 RPC 保持無公開呼叫者。
