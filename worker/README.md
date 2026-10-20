@@ -243,7 +243,7 @@ await sendGmail(env, {
 ```
 
 - MLB `POST /api/feedback` **仍只能寄到後端固定 `FEEDBACK_TO_EMAIL`**。公開請求的 `to`、`email`、`kind` 都不會用來設定 SMTP 收件者；它不是任意寄信 Relay。
-- **沒有新增 `/api/send-mail` 或任意跨網站寄信 API**。若跨專案共用，應優先讓 OrderLead Worker 自行引入 SMTP 模組並為自己的 Worker 配置同一 Gmail 的 `SMTP_USER`／`SMTP_PASSWORD` **Cloudflare Secrets**，或未來將私有郵件服務抽出後用 Cloudflare Service Binding（僅 Worker→Worker）調用。
+- **沒有新增 `/api/send-mail` 或任意跨網站寄信 API**。若跨專案共用，**現在已改採同一個 MLB Worker 的 named Service Binding RPC**，OrderLead 不再另外保存 Gmail Secrets；詳見下方 Issue #10。
 - 不同 Worker **不會自動共享** Secret，不能從 MLB 的 Cloudflare Worker 直接讀取 `SMTP_PASSWORD`。切勿把 Gmail 應用程式密碼放在 GitHub、`wrangler.jsonc`、PWA 或 GET 回應內。
 - OrderLead 忘記密碼／註冊驗證還需要自己的 D1 高熵一次性 Token、原子消耗、真實 Email 歸屬驗證、寄信節流、防帳號探測、重設後 Session 撤銷；僅 SMTP 支援 `to` **不代表 OrderLead 登入或救援已完成**。
 - Gmail 的實際寄信配額與垃圾郵件政策適用於**兩個 App 合計**，伺服器 `FeedbackService` 的獨立限流不代替 OrderLead 自己的驗證郵件限流。
