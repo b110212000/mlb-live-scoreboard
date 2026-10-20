@@ -33,5 +33,7 @@ jobs:
           node-version: '22'
       - name: Verify mocked Gmail SMTP
         run: node tests/smtp.cjs
+      - name: Verify RPC validation
+        run: node tests/account-mail.cjs
       - name: Verify feedback cannot redirect mail
         run: node tests/feedback.cjs
